@@ -26,7 +26,7 @@ models:
     description: >
       Devedores do provedor beta, uma linha por (tipo de documento, documento normalizado). Vale
       a versão mais recente: maior data de atualização da fonte, depois maior data de entrega,
-      depois maior linha. O CPF fica só com dígitos, com os zeros repostos até 11 posições. O RG
+      depois maior arquivo (nome) e maior linha. O CPF fica só com dígitos, com os zeros repostos até 11 posições. O RG
       (`documento.tipo` igual a RG) não vira CPF: fica só com letras e dígitos, sem zeros
       repostos, e a chave inclui o tipo, para um RG nunca se confundir com um CPF de mesmo número.
       Linha sem documento ou com JSON inválido fica fora e continua na bronze (teste `warn`).

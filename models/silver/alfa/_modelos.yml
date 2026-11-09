@@ -14,7 +14,7 @@ models:
     description: >
       Devedores do provedor alfa, uma linha por documento normalizado. Vale a versão mais recente
       do documento: maior data de atualização da fonte, depois maior data de entrega, depois maior
-      linha. Linha sem documento (vazio ou sem dígitos) fica fora e continua na bronze. Nenhuma
+      arquivo (nome) e maior linha. Linha sem documento (vazio ou sem dígitos) fica fora e continua na bronze. Nenhuma
       coluna recebe marcação interpretativa: datas sentinela (1900-01-01) e CPFs inválidos passam
       como vieram.
     columns:

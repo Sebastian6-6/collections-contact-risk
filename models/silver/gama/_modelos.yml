@@ -14,7 +14,7 @@ models:
     description: >
       Devedores do provedor gama, uma linha por documento normalizado. Vale a versão mais recente
       do documento: maior `dt_ref` (a data de atualização da fonte), depois maior data de entrega,
-      depois maior linha. Fora ficam, e continuam na bronze, a linha ilegível, o cabeçalho
+      depois maior arquivo (nome) e maior linha. Fora ficam, e continuam na bronze, a linha ilegível, o cabeçalho
       repetido dentro do histórico e o documento vazio (S9). O endereço vem em três formatos
       (colunas separadas, `rua` e `endereco`) e sai nas mesmas colunas; nos dois formatos de texto
       as partes só são separadas quando o texto casa inteiro com o padrão estrito, e o texto

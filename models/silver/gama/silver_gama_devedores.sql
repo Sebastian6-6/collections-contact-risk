@@ -1,6 +1,6 @@
 {#
   Grão: uma linha por documento normalizado. Vale a versão mais recente: data de atualização da
-  fonte (`dt_ref`), depois data de entrega, depois linha (S3). A padronização acontece antes, em
+  fonte (`dt_ref`), depois data de entrega, depois arquivo e linha (S3). A padronização acontece antes, em
   `silver_gama_devedores_padronizados` (S2). Os contatos são uma lista: estão em
   `devedores_contatos`.
 #}
@@ -31,7 +31,11 @@ WITH tVersoes AS (
     , _hash_arquivo
     , ROW_NUMBER() OVER (
       PARTITION BY documento
-      ORDER BY data_atualizacao DESC NULLS LAST, data_entrega DESC NULLS LAST, _linha DESC
+      ORDER BY
+        data_atualizacao DESC NULLS LAST
+        , data_entrega DESC NULLS LAST
+        , _arquivo DESC
+        , _linha DESC
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS num_versao
   FROM {{ ref('silver_gama_devedores_padronizados') }}
