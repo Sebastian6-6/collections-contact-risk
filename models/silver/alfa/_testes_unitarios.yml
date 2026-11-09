@@ -19,6 +19,27 @@ unit_tests:
         - {documento: "10312391620", nome_completo: "ANA", email: "ana@x.com", telefone: "11900405285", logradouro: "RUA A", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", endereco: "RUA A, 10, APTO 3 - CENTRO - SANTOS", cep: "07359422", salario_informado: 1400.00, data_atualizacao: "2026-07-20", data_entrega: "2026-08-31", _linha: 2}
         - {documento: "01006543201", nome_completo: "BIA", email: null, telefone: "21960476196", logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, endereco: "RUA ANA-MARIA, 10 - CENTRO - SANTOS", cep: "21897318", salario_informado: 0.00, data_atualizacao: "2026-09-02", data_entrega: "2026-09-05", _linha: 7}
 
+  - name: silver_alfa_data_entrega_so_historico_recebe_data_da_carga
+    description: >
+      Só o arquivo histórico configurado (nome exato) recebe a data da carga histórica. Uma entrega
+      diária com a data no nome fica com ela; nome parecido com o de uma entrega mas sem data
+      válida (formato sem hífen, dia inexistente) fica com a data de entrega nula, que o teste
+      `entrega_diaria_sem_data_valida` reprova.
+    model: silver_alfa_devedores_padronizados
+    given:
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {cpf: "10312391620", _arquivo: "contact_data/provedor_alfa.csv", _linha: 1, _motivo_ilegivel: null}
+          - {cpf: "10312391621", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_2026-09-01.csv", _linha: 1, _motivo_ilegivel: null}
+          - {cpf: "10312391622", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_20260901.csv", _linha: 1, _motivo_ilegivel: null}
+          - {cpf: "10312391623", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_2026-09-31.csv", _linha: 1, _motivo_ilegivel: null}
+    expect:
+      rows:
+        - {documento: "10312391620", data_entrega: "2026-08-31"}
+        - {documento: "10312391621", data_entrega: "2026-09-01"}
+        - {documento: "10312391622", data_entrega: null}
+        - {documento: "10312391623", data_entrega: null}
+
   - name: silver_alfa_devedores_versao_mais_recente
     description: >
       Uma linha por documento. Vale a maior data de atualização; no empate, a maior data de entrega;

@@ -42,10 +42,7 @@ WITH tBase AS (
     , LPAD({{ somente_digitos('cep') }}, 8, '0') AS cep
     , NULLIF(TRIM(uf), '') AS uf
     , {{ data_flexivel('data_atualizacao') }} AS data_atualizacao
-    , COALESCE(
-      {{ data_do_nome_do_arquivo('_arquivo') }}
-      , CAST('{{ var("data_carga_historica") }}' AS DATE)
-    ) AS data_entrega
+    , {{ data_de_entrega('_arquivo', 'alfa') }} AS data_entrega
     , _arquivo
     , _linha
     , _hash_arquivo

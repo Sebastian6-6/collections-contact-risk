@@ -79,7 +79,7 @@ models:
       - name: data_entrega
         description: >-
           Data da entrega do arquivo de onde veio a versão: a data escrita no nome do arquivo ou,
-          no histórico, a variável `data_carga_historica` (2026-08-31, enunciado p. 1).
+          só no arquivo histórico configurado, a variável `data_carga_historica` (2026-08-31, enunciado p. 1). `NULL` em entrega diária sem data válida no nome, o que reprova o teste `entrega_diaria_sem_data_valida`.
       - name: _arquivo
         description: "{{ doc('bronze_arquivo') }}"
         data_tests:

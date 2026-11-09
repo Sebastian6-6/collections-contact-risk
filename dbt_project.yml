@@ -12,6 +12,13 @@ vars:
   # Data de entrega do arquivo histórico, que não traz data no nome. O enunciado fixa a carga
   # histórica "até 31/08/2026" (p. 1); as entregas diárias de setembro/2026 vêm depois dela.
   data_carga_historica: "2026-08-31"
+  # Arquivo histórico de cada fonte, pelo caminho exato que a bronze guarda em `_arquivo`. Só ele
+  # recebe `data_carga_historica`; um arquivo diário sem data válida no nome fica com a data nula
+  # e reprova o teste `entrega_diaria_sem_data_valida`.
+  arquivo_historico:
+    alfa: "contact_data/provedor_alfa.csv"
+    beta: "contact_data/provedor_beta.jsonl"
+    gama: "contact_data/provedor_gama.csv"
 
 clean-targets:
   - target

@@ -67,10 +67,7 @@ WITH tBase AS (
     ) AS uf
     , LPAD({{ somente_digitos("endereco_json ->> 'cep'") }}, 8, '0') AS cep
     , {{ data_flexivel('dt_ref') }} AS data_atualizacao
-    , COALESCE(
-      {{ data_do_nome_do_arquivo('_arquivo') }}
-      , CAST('{{ var("data_carga_historica") }}' AS DATE)
-    ) AS data_entrega
+    , {{ data_de_entrega('_arquivo', 'gama') }} AS data_entrega
     , lista_contatos
     , _arquivo
     , _linha

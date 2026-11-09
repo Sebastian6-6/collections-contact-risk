@@ -81,6 +81,20 @@
 {%- endmacro %}
 
 {#
+  Data de entrega de uma linha da bronze. O arquivo histórico da fonte (variável `arquivo_historico`,
+  caminho exato) recebe `data_carga_historica`; qualquer outro arquivo usa a data do nome e, se ela
+  faltar ou não existir no calendário, fica NULL em vez de herdar a data da carga histórica. O teste
+  `entrega_diaria_sem_data_valida` reprova a pipeline nesse caso.
+#}
+{% macro data_de_entrega(expressao, fonte) -%}
+  CASE
+    WHEN CAST({{ expressao }} AS VARCHAR) = '{{ var("arquivo_historico")[fonte] }}'
+      THEN CAST('{{ var("data_carga_historica") }}' AS DATE)
+    ELSE {{ data_do_nome_do_arquivo(expressao) }}
+  END
+{%- endmacro %}
+
+{#
   Converte texto 'AAAA-MM-DD HH:MM:SS' em TIMESTAMP, devolvendo NULL quando o texto não é um
   instante válido, em vez de derrubar a consulta. Segue o mesmo desenho de `data_iso_ou_nulo`:
     - DuckDB: TRY_CAST. Verificado por execução.

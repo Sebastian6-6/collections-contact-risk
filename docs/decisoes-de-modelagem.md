@@ -133,8 +133,8 @@ ORDER BY data_atualizacao DESC NULLS LAST, data_entrega DESC NULLS LAST, _linha 
 ```
 
 - `data_atualizacao` é a data informada pelo provedor (`data_atualizacao` no alfa, `atualizado_em` no beta, `dt_ref` na gama).
-- `data_entrega` sai do nome do arquivo. O histórico não tem data no nome e usa a variável `data_carga_historica: 2026-08-31`, a data em que o enunciado fixa a carga histórica (p. 1).
-- `_linha` desempata dentro do mesmo arquivo. O resultado é determinístico porque (documento, atualização, entrega, linha) não tem empate.
+- `data_entrega` sai do nome do arquivo. O histórico não tem data no nome: só o arquivo configurado em `arquivo_historico` (nome exato) usa a variável `data_carga_historica: 2026-08-31`, a data em que o enunciado fixa a carga histórica (p. 1). Um arquivo diário sem data válida no nome fica com a data nula e o teste `entrega_diaria_sem_data_valida` reprova a pipeline.
+- `_arquivo` e depois `_linha` desempatam: o original e o reenvio da mesma data (gama, 15/09) trazem a mesma linha, e sem o arquivo o vencedor era arbitrário. O resultado é determinístico porque (documento, atualização, entrega, arquivo, linha) não tem empate.
 
 **Por que a data de atualização vem antes da data de entrega.** Ordenar pela entrega antes da atualização escolhe outro vencedor em 0 dos 11.459 documentos do alfa, 1 dos 11.322 do beta e 1 dos 11.436 da gama (consulta abaixo). O caso do beta é um reenvio atrasado: uma entrega trouxe um registro atualizado um dia antes do que já tinha vindo numa entrega anterior (commit ddc2107). Com a atualização primeiro, um reenvio velho não substitui a versão mais nova.
 

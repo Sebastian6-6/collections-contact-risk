@@ -74,10 +74,7 @@ WITH tBase AS (
     , vinculo_desde
     , {{ valor_monetario('renda_mensal') }} AS renda_mensal
     , {{ data_flexivel('data_atualizacao') }} AS data_atualizacao
-    , COALESCE(
-      {{ data_do_nome_do_arquivo('_arquivo') }}
-      , CAST('{{ var("data_carga_historica") }}' AS DATE)
-    ) AS data_entrega
+    , {{ data_de_entrega('_arquivo', 'beta') }} AS data_entrega
     , lista_telefones
     , lista_emails
     , {{ email_normalizado('email_unico') }} AS email_unico
