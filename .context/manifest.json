@@ -407,6 +407,28 @@
         "stage-3"
       ],
       "origin": "https://github.com/sqlfluff/sqlfluff/tree/4.5.0/src/sqlfluff (rules + core/default_config.cfg) · acesso 2026-11-09"
+    },
+    "referencias-claude-notas-subagentes-e-modelos": {
+      "source": "raw/referencias/claude/notas-subagentes-e-modelos.md",
+      "sha256": "56bf31696cd558121cb5941dc397980c90a20d097a9f692db641da9523c5175c",
+      "size": 2856,
+      "kind": "document",
+      "converted_at": "2026-11-09 09:02",
+      "converted": "converted/referencias-claude-notas-subagentes-e-modelos.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Facts used from the Claude Code subagent docs and the Claude models overview (subagent frontmatter fields, model/effort resolution, skills preload, watcher restart caveat, official model-choice guidance and default efforts); a note, not a copy, since the docs have no open license.",
+      "tags": [
+        "reference",
+        "claude-code",
+        "subagents",
+        "models",
+        "effort",
+        "stage-3"
+      ],
+      "origin": "https://code.claude.com/docs/en/sub-agents + https://platform.claude.com/docs/en/models/overview · acesso 2026-11-09"
     }
   }
 }
