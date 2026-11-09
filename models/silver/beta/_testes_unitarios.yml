@@ -55,24 +55,24 @@ unit_tests:
       Telefone como texto e como objeto (DDD + número) vira o mesmo contato normalizado, e a
       primeira e a última data de entrega cobrem as duas aparições. O tipo e o `principal` vêm da
       aparição mais recente (atualização mais nova), mesmo quando a mais antiga os trazia de outro
-      jeito. Um telefone que saiu da versão atual continua registrado. E-mail vem da lista ou do
+      jeito, e a rastreabilidade (`_arquivo`, `_linha`, `_hash_arquivo`) é dessa aparição. Um telefone que saiu da versão atual continua registrado. E-mail vem da lista ou do
       texto único e sem tipo de telefone.
     model: silver_beta_devedores_contatos
     given:
       - input: ref('silver_beta_devedores_padronizados')
         format: sql
         rows: |
-          SELECT 'CPF' AS tipo_documento, '123' AS documento, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 1 AS _linha, CAST('["+55 11 90040-5285", "2199998888"]' AS JSON) AS lista_telefones, CAST('["ANA@X.COM"]' AS JSON) AS lista_emails, CAST(NULL AS VARCHAR) AS email_unico
+          SELECT 'CPF' AS tipo_documento, '123' AS documento, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 1 AS _linha, 'b1' AS _arquivo, 'h1' AS _hash_arquivo, CAST('["+55 11 90040-5285", "2199998888"]' AS JSON) AS lista_telefones, CAST('["ANA@X.COM"]' AS JSON) AS lista_emails, CAST(NULL AS VARCHAR) AS email_unico
           UNION ALL
-          SELECT 'CPF', '123', CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 2, CAST('[{"ddd": "11", "numero": "900405285", "tipo": "celular", "principal": true}]' AS JSON), CAST(NULL AS JSON), 'ana@x.com'
+          SELECT 'CPF', '123', CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 2, 'b2', 'h2', CAST('[{"ddd": "11", "numero": "900405285", "tipo": "celular", "principal": true}]' AS JSON), CAST(NULL AS JSON), 'ana@x.com'
           UNION ALL
-          SELECT 'RG', '123', CAST('2026-09-11' AS DATE), CAST('2026-09-11' AS DATE), 3, CAST('[{"ddd": "11", "numero": "900405285", "tipo": "fixo", "principal": false}]' AS JSON), CAST('[]' AS JSON), CAST(NULL AS VARCHAR)
+          SELECT 'RG', '123', CAST('2026-09-11' AS DATE), CAST('2026-09-11' AS DATE), 3, 'b3', 'h3', CAST('[{"ddd": "11", "numero": "900405285", "tipo": "fixo", "principal": false}]' AS JSON), CAST('[]' AS JSON), CAST(NULL AS VARCHAR)
     expect:
       rows:
-        - {tipo_documento: "CPF", documento: "123", tipo: "telefone", contato: "11900405285", tipo_telefone: "celular", principal: true, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10"}
-        - {tipo_documento: "CPF", documento: "123", tipo: "telefone", contato: "2199998888", tipo_telefone: null, principal: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31"}
-        - {tipo_documento: "CPF", documento: "123", tipo: "email", contato: "ana@x.com", tipo_telefone: null, principal: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10"}
-        - {tipo_documento: "RG", documento: "123", tipo: "telefone", contato: "11900405285", tipo_telefone: "fixo", principal: false, data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11"}
+        - {tipo_documento: "CPF", documento: "123", tipo: "telefone", contato: "11900405285", tipo_telefone: "celular", principal: true, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
+        - {tipo_documento: "CPF", documento: "123", tipo: "telefone", contato: "2199998888", tipo_telefone: null, principal: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+        - {tipo_documento: "CPF", documento: "123", tipo: "email", contato: "ana@x.com", tipo_telefone: null, principal: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
+        - {tipo_documento: "RG", documento: "123", tipo: "telefone", contato: "11900405285", tipo_telefone: "fixo", principal: false, data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "b3", _linha: 3, _hash_arquivo: "h3"}
 
   - name: silver_beta_devedores_enderecos_versao_atual
     description: >

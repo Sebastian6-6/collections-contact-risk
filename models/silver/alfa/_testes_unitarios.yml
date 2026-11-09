@@ -41,3 +41,23 @@ unit_tests:
       rows:
         - {documento: "A", nome_completo: "NOME 2", _linha: 1}
         - {documento: "B", nome_completo: "EMPATE 2", _linha: 8}
+
+  - name: silver_alfa_contatos_aparicao_mais_recente
+    description: >
+      O par (documento, tipo, contato) repetido soma as datas de entrega (primeira e última) e traz
+      o arquivo, a linha e o hash da aparição mais recente; um telefone que sumiu da versão atual
+      continua registrado, e contato vazio não gera linha.
+    model: silver_alfa_devedores_contatos
+    given:
+      - input: ref('silver_alfa_devedores_padronizados')
+        format: sql
+        rows: |
+          SELECT 'A' AS documento, '11900405285' AS telefone, 'ana@x.com' AS email, CAST('2026-08-31' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 'a1' AS _arquivo, 4 AS _linha, 'h1' AS _hash_arquivo
+          UNION ALL
+          SELECT 'A', '11900405285', CAST(NULL AS VARCHAR), CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 'a2', 9, 'h2'
+          UNION ALL
+          SELECT 'B', CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 'a2', 10, 'h2'
+    expect:
+      rows:
+        - {documento: "A", tipo: "telefone", contato: "11900405285", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
+        - {documento: "A", tipo: "email", contato: "ana@x.com", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "a1", _linha: 4, _hash_arquivo: "h1"}

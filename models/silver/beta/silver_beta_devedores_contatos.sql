@@ -21,7 +21,9 @@ WITH tTelefones AS (
     , CAST(t.posicao AS INTEGER) AS posicao
     , p.data_atualizacao
     , p.data_entrega
+    , p._arquivo
     , p._linha
+    , p._hash_arquivo
   FROM {{ ref('silver_beta_devedores_padronizados') }} AS p
   CROSS JOIN LATERAL {{ json_abrir_lista('p.lista_telefones', 't') }}
 )
@@ -37,7 +39,9 @@ WITH tTelefones AS (
     , CAST(e.posicao AS INTEGER) AS posicao
     , p.data_atualizacao
     , p.data_entrega
+    , p._arquivo
     , p._linha
+    , p._hash_arquivo
   FROM {{ ref('silver_beta_devedores_padronizados') }} AS p
   CROSS JOIN LATERAL {{ json_abrir_lista('p.lista_emails', 'e') }}
 )
@@ -53,7 +57,9 @@ WITH tTelefones AS (
     , CAST(1 AS INTEGER) AS posicao
     , data_atualizacao
     , data_entrega
+    , _arquivo
     , _linha
+    , _hash_arquivo
   FROM {{ ref('silver_beta_devedores_padronizados') }}
   WHERE 1 = 1
     AND email_unico IS NOT NULL
@@ -70,7 +76,9 @@ WITH tTelefones AS (
     , posicao
     , data_atualizacao
     , data_entrega
+    , _arquivo
     , _linha
+    , _hash_arquivo
   FROM tTelefones
   WHERE 1 = 1
     AND contato IS NOT NULL
@@ -87,7 +95,9 @@ WITH tTelefones AS (
     , posicao
     , data_atualizacao
     , data_entrega
+    , _arquivo
     , _linha
+    , _hash_arquivo
   FROM tEmailsDaLista
   WHERE 1 = 1
     AND contato IS NOT NULL
@@ -104,7 +114,9 @@ WITH tTelefones AS (
     , posicao
     , data_atualizacao
     , data_entrega
+    , _arquivo
     , _linha
+    , _hash_arquivo
   FROM tEmailsUnicos
 )
 
@@ -132,11 +144,15 @@ WITH tTelefones AS (
     , contato
     , tipo_telefone
     , principal
+    , _arquivo
+    , _linha
+    , _hash_arquivo
     , ROW_NUMBER() OVER (
       PARTITION BY tipo_documento, documento, tipo, contato
       ORDER BY
         data_atualizacao DESC NULLS LAST
         , data_entrega DESC NULLS LAST
+        , _arquivo DESC
         , _linha DESC
         , posicao DESC
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
@@ -152,6 +168,9 @@ WITH tTelefones AS (
     , contato
     , tipo_telefone
     , principal
+    , _arquivo
+    , _linha
+    , _hash_arquivo
   FROM tOrdenadas
   WHERE 1 = 1
     AND num_aparicao = 1
@@ -166,6 +185,9 @@ SELECT
   , r.principal
   , e.data_primeira_entrega
   , e.data_ultima_entrega
+  , r._arquivo
+  , r._linha
+  , r._hash_arquivo
 FROM tEntregas AS e
 INNER JOIN tMaisRecentes AS r
   ON e.tipo_documento = r.tipo_documento

@@ -82,3 +82,15 @@ models:
           - accepted_values:
               arguments:
                 values: [alfa, beta, gama]
+      - name: _arquivo
+        description: "Da linha do contato realizado que originou o par (contato, provedor). {{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "Da linha do contato realizado que originou o par (contato, provedor). {{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "Da linha do contato realizado que originou o par (contato, provedor). {{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null

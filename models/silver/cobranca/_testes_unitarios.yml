@@ -42,17 +42,17 @@ unit_tests:
   - name: silver_cobranca_provedores_uma_linha_por_provedor
     description: >
       O texto `alfa|beta|gama` vira uma linha por provedor; provedor repetido conta uma vez e
-      elemento vazio não gera linha.
+      elemento vazio não gera linha; a rastreabilidade é a do contato realizado.
     model: silver_cobranca_contatos_realizados_provedores
     given:
       - input: ref('silver_cobranca_contatos_realizados')
         format: sql
         rows: |
-          SELECT 'C1' AS contato_id, 'f1' AS _arquivo, 2 AS _linha
+          SELECT 'C1' AS contato_id, 'f1' AS _arquivo, 2 AS _linha, 'h1' AS _hash_arquivo
           UNION ALL
-          SELECT 'C2', 'f1', 3
+          SELECT 'C2', 'f1', 3, 'h1'
           UNION ALL
-          SELECT 'C3', 'f1', 4
+          SELECT 'C3', 'f1', 4, 'h1'
       - input: ref('silver_cobranca_contatos_realizados_padronizados')
         format: sql
         rows: |
@@ -63,8 +63,8 @@ unit_tests:
           SELECT 'C3', 'gama', 'f1', 4
     expect:
       rows:
-        - {contato_id: "C1", provedor: "alfa"}
-        - {contato_id: "C1", provedor: "beta"}
-        - {contato_id: "C1", provedor: "gama"}
-        - {contato_id: "C2", provedor: "beta"}
-        - {contato_id: "C3", provedor: "gama"}
+        - {contato_id: "C1", provedor: "alfa", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
+        - {contato_id: "C1", provedor: "beta", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
+        - {contato_id: "C1", provedor: "gama", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
+        - {contato_id: "C2", provedor: "beta", _arquivo: "f1", _linha: 3, _hash_arquivo: "h1"}
+        - {contato_id: "C3", provedor: "gama", _arquivo: "f1", _linha: 4, _hash_arquivo: "h1"}

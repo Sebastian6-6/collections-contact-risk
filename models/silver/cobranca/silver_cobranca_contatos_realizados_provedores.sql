@@ -3,11 +3,15 @@
   `alfa|beta|gama`; aqui cada provedor vira uma linha, só do contato que está em
   `contatos_realizados` (a versão escolhida). Provedor repetido no mesmo texto conta uma vez, e
   elemento vazio não gera linha. `STRING_TO_ARRAY` e `UNNEST` existem com o mesmo comportamento
-  no DuckDB e no PostgreSQL.
+  no DuckDB e no PostgreSQL. `_arquivo`, `_linha` e `_hash_arquivo` são da linha do contato
+  realizado que originou o par.
 #}
 WITH tAbertos AS (
   SELECT
     c.contato_id
+    , c._arquivo
+    , c._linha
+    , c._hash_arquivo
     , NULLIF(TRIM(p.provedor), '') AS provedor
   FROM {{ ref('silver_cobranca_contatos_realizados') }} AS c
   INNER JOIN {{ ref('silver_cobranca_contatos_realizados_padronizados') }} AS e
@@ -20,6 +24,9 @@ WITH tAbertos AS (
   SELECT
     contato_id
     , provedor
+    , _arquivo
+    , _linha
+    , _hash_arquivo
     , ROW_NUMBER() OVER (
       PARTITION BY contato_id, provedor
       ORDER BY contato_id
@@ -33,6 +40,9 @@ WITH tAbertos AS (
 SELECT
   contato_id
   , provedor
+  , _arquivo
+  , _linha
+  , _hash_arquivo
 FROM tOrdenados
 WHERE 1 = 1
   AND num_repeticao = 1

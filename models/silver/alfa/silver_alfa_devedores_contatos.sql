@@ -2,14 +2,20 @@
   Grão: uma linha por (documento, tipo, contato normalizado), com a primeira e a última data de
   entrega em que o par apareceu. Considera todas as linhas da bronze com documento, não só a
   versão atual do devedor (S4): um número que saiu da versão mais recente continua registrado.
-  Só existe linha para contato que veio preenchido.
+  Só existe linha para contato que veio preenchido. `_arquivo`, `_linha` e `_hash_arquivo` são da
+  aparição mais recente do par (mesma ordem da versão do devedor), porque a data de entrega não
+  identifica o arquivo.
 #}
 WITH tContatos AS (
   SELECT
     documento
     , 'telefone' AS tipo
     , telefone AS contato
+    , data_atualizacao
     , data_entrega
+    , _arquivo
+    , _linha
+    , _hash_arquivo
   FROM {{ ref('silver_alfa_devedores_padronizados') }}
   WHERE 1 = 1
     AND telefone IS NOT NULL
@@ -20,20 +26,74 @@ WITH tContatos AS (
     documento
     , 'email' AS tipo
     , email AS contato
+    , data_atualizacao
     , data_entrega
+    , _arquivo
+    , _linha
+    , _hash_arquivo
   FROM {{ ref('silver_alfa_devedores_padronizados') }}
   WHERE 1 = 1
     AND email IS NOT NULL
 )
 
+, tEntregas AS (
+  SELECT
+    documento
+    , tipo
+    , contato
+    , MIN(data_entrega) AS data_primeira_entrega
+    , MAX(data_entrega) AS data_ultima_entrega
+  FROM tContatos
+  GROUP BY
+    documento
+    , tipo
+    , contato
+)
+
+, tOrdenadas AS (
+  SELECT
+    documento
+    , tipo
+    , contato
+    , _arquivo
+    , _linha
+    , _hash_arquivo
+    , ROW_NUMBER() OVER (
+      PARTITION BY documento, tipo, contato
+      ORDER BY
+        data_atualizacao DESC NULLS LAST
+        , data_entrega DESC NULLS LAST
+        , _arquivo DESC
+        , _linha DESC
+      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS num_aparicao
+  FROM tContatos
+)
+
+, tMaisRecentes AS (
+  SELECT
+    documento
+    , tipo
+    , contato
+    , _arquivo
+    , _linha
+    , _hash_arquivo
+  FROM tOrdenadas
+  WHERE 1 = 1
+    AND num_aparicao = 1
+)
+
 SELECT
-  documento
-  , tipo
-  , contato
-  , MIN(data_entrega) AS data_primeira_entrega
-  , MAX(data_entrega) AS data_ultima_entrega
-FROM tContatos
-GROUP BY
-  documento
-  , tipo
-  , contato
+  e.documento
+  , e.tipo
+  , e.contato
+  , e.data_primeira_entrega
+  , e.data_ultima_entrega
+  , r._arquivo
+  , r._linha
+  , r._hash_arquivo
+FROM tEntregas AS e
+INNER JOIN tMaisRecentes AS r
+  ON e.documento = r.documento
+    AND e.tipo = r.tipo
+    AND e.contato = r.contato

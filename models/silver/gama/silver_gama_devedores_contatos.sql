@@ -7,15 +7,19 @@
   Os contatos vêm da lista `contatos`, de elementos {tipo, valor}. `celular` e `fixo` viram o tipo
   `telefone`, e `email` vira `email`. O tipo do telefone (`celular` ou `fixo`) é do provedor e
   vem da aparição mais recente do contato (mesma ordem da versão do devedor, S3); fica `NULL` no
-  e-mail. A linha com a lista truncada (JSON inválido) não tem contato legível: o devedor entra
-  em `devedores`, mas esta tabela não traz o que a lista cortada tinha.
+  e-mail. `_arquivo`, `_linha` e `_hash_arquivo` são dessa mesma aparição, porque a data de
+  entrega não identifica o arquivo (a gama tem arquivo original e reenvio na mesma data). A linha
+  com a lista truncada (JSON inválido) não tem contato legível: o devedor entra em `devedores`,
+  mas esta tabela não traz o que a lista cortada tinha.
 #}
 WITH tElementos AS (
   SELECT
     p.documento
     , p.data_atualizacao
     , p.data_entrega
+    , p._arquivo
     , p._linha
+    , p._hash_arquivo
     , c.valor ->> 'tipo' AS tipo_origem
     , c.valor ->> 'valor' AS valor_origem
     , CAST(c.posicao AS INTEGER) AS posicao
@@ -29,7 +33,9 @@ WITH tElementos AS (
     , posicao
     , data_atualizacao
     , data_entrega
+    , _arquivo
     , _linha
+    , _hash_arquivo
     , CASE
       WHEN tipo_origem IN ('celular', 'fixo') THEN 'telefone'
       WHEN tipo_origem = 'email' THEN 'email'
@@ -51,7 +57,9 @@ WITH tElementos AS (
     , posicao
     , data_atualizacao
     , data_entrega
+    , _arquivo
     , _linha
+    , _hash_arquivo
   FROM tAparicoes
   WHERE 1 = 1
     AND tipo IS NOT NULL
@@ -78,11 +86,15 @@ WITH tElementos AS (
     , tipo
     , contato
     , tipo_telefone
+    , _arquivo
+    , _linha
+    , _hash_arquivo
     , ROW_NUMBER() OVER (
       PARTITION BY documento, tipo, contato
       ORDER BY
         data_atualizacao DESC NULLS LAST
         , data_entrega DESC NULLS LAST
+        , _arquivo DESC
         , _linha DESC
         , posicao DESC
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
@@ -96,6 +108,9 @@ WITH tElementos AS (
     , tipo
     , contato
     , tipo_telefone
+    , _arquivo
+    , _linha
+    , _hash_arquivo
   FROM tOrdenadas
   WHERE 1 = 1
     AND num_aparicao = 1
@@ -108,6 +123,9 @@ SELECT
   , r.tipo_telefone
   , e.data_primeira_entrega
   , e.data_ultima_entrega
+  , r._arquivo
+  , r._linha
+  , r._hash_arquivo
 FROM tEntregas AS e
 INNER JOIN tMaisRecentes AS r
   ON e.documento = r.documento

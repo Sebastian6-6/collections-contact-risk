@@ -114,3 +114,15 @@ models:
         description: "Maior data de entrega dos arquivos em que o par apareceu."
         data_tests:
           - not_null
+      - name: _arquivo
+        description: "Da aparição mais recente do par (documento, tipo, contato). {{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "Da aparição mais recente do par (documento, tipo, contato). {{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "Da aparição mais recente do par (documento, tipo, contato). {{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null

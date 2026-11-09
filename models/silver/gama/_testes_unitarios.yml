@@ -58,18 +58,24 @@ unit_tests:
     description: >
       `celular` e `fixo` viram `telefone` (normalizado) e `email` vira `email` (minúsculas);
       o par repetido soma as datas de entrega e fica com o tipo do telefone da aparição mais
-      recente; lista nula (JSON truncado), tipo desconhecido e valor vazio não geram linha.
+      recente, e o par traz o arquivo, a linha e o hash dessa aparição (com a mesma data e a mesma
+      linha, o arquivo de nome maior desempata); lista nula (JSON truncado), tipo desconhecido e valor vazio não geram linha.
     model: silver_gama_devedores_contatos
     given:
       - input: ref('silver_gama_devedores_padronizados')
         format: sql
         rows: |
-          SELECT 'A' AS documento, CAST('[{"tipo": "celular", "valor": "(21) 94780-1773"}, {"tipo": "email", "valor": " ANA@X.COM "}, {"tipo": "fax", "valor": "123"}, {"tipo": "fixo", "valor": ""}]' AS JSON) AS lista_contatos, CAST('2026-06-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 3 AS _linha
+          SELECT 'A' AS documento, CAST('[{"tipo": "celular", "valor": "(21) 94780-1773"}, {"tipo": "email", "valor": " ANA@X.COM "}, {"tipo": "fax", "valor": "123"}, {"tipo": "fixo", "valor": ""}]' AS JSON) AS lista_contatos, CAST('2026-06-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 3 AS _linha, 'g1' AS _arquivo, 'h1' AS _hash_arquivo
           UNION ALL
-          SELECT 'A', CAST('[{"tipo": "fixo", "valor": "21947801773"}]' AS JSON), CAST('2026-09-10' AS DATE), CAST('2026-09-11' AS DATE), 7
+          SELECT 'A', CAST('[{"tipo": "fixo", "valor": "21947801773"}]' AS JSON), CAST('2026-09-10' AS DATE), CAST('2026-09-11' AS DATE), 7, 'g2', 'h2'
           UNION ALL
-          SELECT 'B', CAST(NULL AS JSON), CAST('2026-09-10' AS DATE), CAST('2026-09-11' AS DATE), 8
+          SELECT 'B', CAST(NULL AS JSON), CAST('2026-09-10' AS DATE), CAST('2026-09-11' AS DATE), 8, 'g2', 'h2'
+          UNION ALL
+          SELECT 'D', CAST('[{"tipo": "email", "valor": "d@x.com"}]' AS JSON), CAST('2026-09-15' AS DATE), CAST('2026-09-15' AS DATE), 5, 'g3_original', 'h3'
+          UNION ALL
+          SELECT 'D', CAST('[{"tipo": "email", "valor": "d@x.com"}]' AS JSON), CAST('2026-09-15' AS DATE), CAST('2026-09-15' AS DATE), 5, 'g3_reenvio', 'h4'
     expect:
       rows:
-        - {documento: "A", tipo: "telefone", contato: "21947801773", tipo_telefone: "fixo", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-11"}
-        - {documento: "A", tipo: "email", contato: "ana@x.com", tipo_telefone: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31"}
+        - {documento: "A", tipo: "telefone", contato: "21947801773", tipo_telefone: "fixo", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-11", _arquivo: "g2", _linha: 7, _hash_arquivo: "h2"}
+        - {documento: "A", tipo: "email", contato: "ana@x.com", tipo_telefone: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "g1", _linha: 3, _hash_arquivo: "h1"}
+        - {documento: "D", tipo: "email", contato: "d@x.com", tipo_telefone: null, data_primeira_entrega: "2026-09-15", data_ultima_entrega: "2026-09-15", _arquivo: "g3_reenvio", _linha: 5, _hash_arquivo: "h4"}
