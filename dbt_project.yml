@@ -1,0 +1,24 @@
+name: collections_contact_risk
+version: "1.0.0"
+config-version: 2
+profile: collections_contact_risk
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  collections_contact_risk:
+    # Bronze e silver são views: não duplicam dados e o banco é recriado a cada execução.
+    bronze:
+      +materialized: view
+    silver:
+      +materialized: view
+    # A gold é o que se consulta, então vira tabela física.
+    gold:
+      +materialized: table
