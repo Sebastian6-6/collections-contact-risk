@@ -1,0 +1,7 @@
+# O repositório usa LF nos arquivos de texto.
+* text=auto eol=lf
+
+# Exceção: os arquivos de dados ficam byte a byte como foram recebidos. O hash de cada um
+# entra na rastreabilidade, e uma conversão de fim de linha mudaria o hash entre Windows e
+# Linux. Esta regra vem depois da anterior de propósito: no .gitattributes, vale a última.
+contact_data/** -text

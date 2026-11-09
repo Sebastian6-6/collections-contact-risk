@@ -1,0 +1,26 @@
+# >>> context-manager (managed block — delete the whole block to opt out) >>>
+.context/local/
+# <<< context-manager <<<
+
+# macOS metadata
+.DS_Store
+._*
+__MACOSX/
+
+# Python bytecode (embeds absolute local paths)
+__pycache__/
+*.pyc
+
+# Ambiente e ferramentas locais
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Banco DuckDB, recriado a cada execução da pipeline
+*.duckdb
+*.duckdb.wal
+
+# Artefatos do dbt
+target/
+logs/
+dbt_packages/
