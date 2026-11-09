@@ -22,6 +22,8 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `.claude/skills/qualida
 | Indentação de 2 espaços | case | SQLFluff LT02 com `tab_space_size = 2` |
 | `CAST(x AS TIPO)` no lugar de `x::TIPO` | projeto | SQLFluff CV11 |
 | Vírgula no começo da linha | projeto (estilo do dono) | SQLFluff LT04 com `line_position = leading` |
+| 1ª coluna na linha de baixo do `SELECT` | projeto (exigência do lint da indentação do case) | SQLFluff LT09 e LT02: a regra que verifica os 2 espaços pede essa quebra |
+| `AS` só em coluna renomeada ou expressão; sem autoalias (`id AS id`) | projeto (estilo do dono) | SQLFluff AL09 |
 | `WHERE 1 = 1` e um `AND` por linha | projeto (estilo do dono) | SQLFluff com `implicit_indents = allow` |
 | Identificadores em snake_case minúsculo; CTEs no padrão `tNomeCte` | projeto | SQLFluff CP02 com `ignore_words_regex = ^t[A-Z][A-Za-z0-9]*$`. O case pede só um nome descritivo para a CTE; o padrão `tNomeCte` não conflita com ele, e o PostgreSQL aceita o nome sem aspas (guarda em minúsculas) |
 | Macros do projeto visíveis no lint | projeto | SQLFluff com o templater do dbt, que compila o modelo como o dbt |
@@ -30,7 +32,7 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `.claude/skills/qualida
 
 | Regra | Origem | Checagem |
 |---|---|---|
-| PEP 8, imports ordenados, nomes, simplificação | projeto | Ruff (`ruff.toml`): `ruff check` e `ruff format --check` |
+| PEP 8 (exceto o alinhamento vertical), linha de até 99 colunas, imports ordenados, nomes, simplificação | projeto | `ruff check` (`ruff.toml`). O `ruff format` não roda, porque desfaria o alinhamento vertical permitido pelo estilo |
 | Nada de relógio, sorteio ou ordem de arquivos do sistema operacional no caminho dos dados | case (código reprodutível, p. 2) | `verificar_reprodutibilidade.py`, nas pastas listadas no `pyproject.toml` |
 | Testes | projeto | `pytest` |
 

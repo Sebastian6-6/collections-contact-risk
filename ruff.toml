@@ -12,6 +12,3 @@ select = ["E", "W", "F", "I", "B", "SIM", "UP", "N", "C90", "PTH", "DTZ", "RUF"]
 
 [lint.mccabe]
 max-complexity = 10
-
-[format]
-quote-style = "double"

@@ -64,11 +64,13 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `qualidade-python`) sã
 
 - **SQL:** o estilo pessoal, adaptado ao case.
   - Recuo de 2 espaços, como pede a convenção do case. Por isso o alinhamento em colunas do estilo pessoal (vírgulas alinhadas, `FROM` à direita, `AS` numa coluna fixa) não se aplica aqui.
+  - A 1ª coluna vai na linha de baixo do `SELECT`: a regra do SQLFluff que verifica os 2 espaços do case exige essa quebra.
   - Vírgula no começo da linha; `WHERE 1 = 1` seguido de um `AND` por predicado.
+  - `AS` só quando a coluna muda de nome ou é uma expressão; coluna repassada sem mudança não leva `AS`.
   - CTEs no padrão `tNomeCte` (`tBase`, `tDevedoresValidos`). O case pede só um nome descritivo para cada CTE, e o PostgreSQL aceita o nome sem aspas; é a única exceção ao snake_case.
-  - Valem as demais regras do estilo pessoal: `AS` explícito, linha em branco entre grupos de colunas, `UNION ALL` sozinho na linha, `CAST(NULL AS TIPO)` nos `UNION`, nenhuma vírgula sobrando.
+  - Valem as demais regras do estilo pessoal: linha em branco entre grupos de colunas, `UNION ALL` sozinho na linha, `CAST(NULL AS TIPO)` nos `UNION`, nenhuma vírgula sobrando.
   - O SQLFluff, com o templater do dbt, aplica essas regras.
-- **Python:** o estilo pessoal inteiro, inclusive o alinhamento vertical de atribuições e argumentos relacionados. Como o formatador desfaria esse alinhamento, o projeto roda `ruff check`, e não `ruff format`.
+- **Python:** o estilo pessoal, inclusive o alinhamento vertical de atribuições e argumentos relacionados, com uma adaptação: linhas de até 99 colunas, que o `ruff check` cobra. Como o formatador desfaria o alinhamento, o projeto roda `ruff check`, e não `ruff format`.
 
 ### Camadas e nomes
 

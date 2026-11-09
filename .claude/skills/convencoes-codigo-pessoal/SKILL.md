@@ -29,7 +29,7 @@ Valem em todo código novo. Num projeto, as regras dele (AGENTS.md, CLAUDE.md, c
 - Duas linhas em branco entre funções e classes do módulo; uma entre métodos.
 
 ### Estilo
-- PEP 8, com 4 espaços de recuo e aspas duplas (simples só para evitar escape).
+- PEP 8, exceto o alinhamento vertical e o limite de linha descritos abaixo, com 4 espaços de recuo e aspas duplas (simples só para evitar escape).
 - Alinhar na vertical atribuições e argumentos relacionados é permitido quando a leitura vira uma tabela (vários campos do mesmo registro, chamadas repetidas com os mesmos parâmetros). Fora desses blocos, um espaço em volta do `=`.
 - Sem limite rígido de linha: quebre quando a leitura piorar.
 - Type hints na API pública (parâmetros e retorno), com a sintaxe moderna (`list[str]`, `str | None`). Não tipar toda variável local.
@@ -92,10 +92,10 @@ Estilo de leitura em colunas. Se o projeto exigir outro recuo ou outro padrão d
 
 1. Palavras-chave e funções em MAIÚSCULAS. Colunas e tabelas em `snake_case`.
 2. Recuo com espaços, sem tab. A 1ª coluna fica na linha do `SELECT`; as seguintes começam com a vírgula à esquerda, alinhadas para as expressões ficarem numa coluna só.
-3. `AS` sempre explícito e alinhado na vertical numa coluna fixa.
+3. `AS` só quando a coluna muda de nome ou é uma expressão (`CAST(valor AS NUMERIC(14, 2)) AS vl_total`). Coluna repassada sem mudança não leva `AS`: o autoalias `id AS id` só repete o nome. Quando há `AS`, ele fica alinhado na vertical numa coluna fixa.
 4. Linha em branco entre grupos lógicos de colunas (identificadores, códigos e descrições, datas, métricas, controle).
 5. `FROM` alinhado pela direita com o `SELECT`; `JOIN` com o recuo das colunas, aliases alinhados, o `AND` da condição terminando junto com o `ON`.
-6. `WHERE 1=1` e um `AND` por predicado; `GROUP BY` e `ORDER BY` com o 1º item na mesma linha e os seguintes com a vírgula à esquerda.
+6. `WHERE 1 = 1` e um `AND` por predicado; `GROUP BY` e `ORDER BY` com o 1º item na mesma linha e os seguintes com a vírgula à esquerda.
 7. CTEs no padrão `tNomeCte` (`t` minúsculo + PascalCase, sem acento e sem `_`): `WITH tBase AS (`, depois `, tCalc AS (`. CTEs que não são objeto de uma mudança mantêm o nome.
 8. `UNION ALL` sozinho na linha, com linha em branco antes e depois, no recuo da CTE em que está.
 9. Item de várias linhas (`CASE ... END`) com as continuações recuadas sob o próprio item.
@@ -104,14 +104,14 @@ Estilo de leitura em colunas. Se o projeto exigir outro recuo ou outro padrão d
 
 ```sql
 WITH tBase AS (
-    SELECT id                                             AS id
-         , valor                                          AS valor
+    SELECT id
+         , CAST(valor AS NUMERIC(14, 2))                  AS valor
       FROM origem_a
-     WHERE 1=1
+     WHERE 1 = 1
        AND ativo = TRUE
 )
 
-SELECT b.id                                               AS id
+SELECT b.id
      , SUM(b.valor)                                       AS valor_total
   FROM tBase b
  GROUP BY b.id

@@ -207,6 +207,13 @@ Base no enunciado:
   4. Escrever o capítulo 1 do storytelling.
   5. Apagar o ambiente descartável usado no desenho.
 
+### Commits extras autorizados pelo dono durante a execução
+- `fix: context-manager não segue caminhos fora de .context nem links simbólicos` — a revisão automática de segurança
+  apontou dois riscos no código do context-manager, e o dono autorizou a correção em 2026-11-09.
+- `chore: estilo pessoal de Python e SQL reunido numa skill` — direção do dono depois dos testes das skills (skills
+  agnósticas, estilo pessoal numa skill só), em 2026-11-09.
+- As correções da revisão do passo 1.8 (plano mestre, seção 5).
+
 ## 5. Ganhos a medir
 
 | O quê | Como | Onde entra |
