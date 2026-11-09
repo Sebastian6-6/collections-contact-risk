@@ -20,9 +20,9 @@ WITH tElementos AS (
     , p._arquivo
     , p._linha
     , p._hash_arquivo
+    , CAST(c.posicao AS INTEGER) AS posicao
     , c.valor ->> 'tipo' AS tipo_origem
     , c.valor ->> 'valor' AS valor_origem
-    , CAST(c.posicao AS INTEGER) AS posicao
   FROM {{ ref('silver_gama_devedores_padronizados') }} AS p
   CROSS JOIN LATERAL {{ json_abrir_lista('p.lista_contatos', 'c') }}
 )
