@@ -5,6 +5,16 @@
     "contact_data/entregas_diarias/beta": "Daily delivery files from provider beta (JSONL, one per day; some days missing).",
     "contact_data/entregas_diarias/gama": "Daily delivery files from provider gama (CSV, one per day, plus a resend file for 2026-09-15).",
     "": "Project root: holds the case brief PDF and the contact_data/ inputs.",
-    "docs": "Public project documentation in pt-BR: source profile, ERD, modeling decisions and data dictionary"
+    "docs": "Public project documentation in pt-BR: source profile, ERD, modeling decisions and data dictionary",
+    "ingestion": "Python ingestion component: reads provider files per dataset config (conjuntos.yml) and lands them as Parquet with lineage columns",
+    "landing/alfa_entregas": "Landed Parquet of provider alfa daily deliveries, partitioned by dt_referencia (generated, git-ignored)",
+    "landing/alfa_historico": "Landed Parquet of provider alfa historical load (generated, git-ignored)",
+    "landing/beta_entregas": "Landed Parquet of provider beta daily deliveries, partitioned by dt_referencia (generated, git-ignored)",
+    "landing/beta_historico": "Landed Parquet of provider beta historical load (generated, git-ignored)",
+    "landing/contatos_realizados": "Landed Parquet of the September contact-attempt log (generated, git-ignored)",
+    "landing/gama_entregas": "Landed Parquet of provider gama daily deliveries incl. resends, partitioned by dt_referencia (generated, git-ignored)",
+    "landing/gama_historico": "Landed Parquet of provider gama historical load (generated, git-ignored)",
+    "logs": "Local run logs (dbt and pipeline output), not versioned",
+    "macros": "dbt macros: schema/alias name generation and shared SQL logic"
   }
 }

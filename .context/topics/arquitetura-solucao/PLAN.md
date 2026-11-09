@@ -1,5 +1,8 @@
 # Plano mestre de execução
 
+> **Superado — não seguir.** Este plano mestre organizava a execução em 5 tópicos e foi escrito sem aprovação. O fluxo vigente é uma sessão por etapa do desenho (0 a 10): decidir uma a uma, executar no fim da sessão, salvar e passar para a próxima. O plano mestre será reescrito numa sessão própria; até lá, valem o AGENTS.md e o `STATE.md` deste tópico.
+
+
 Este arquivo amarra a execução do projeto. O desenho foi feito neste tópico (`arquitetura-solucao`); a construção acontece em cinco tópicos, cada um com o próprio `PLAN.md` detalhado. Aqui ficam o que vale para todos: a ordem, os agentes, como eles são orquestrados, a política de commits e a tabela que garante que nenhuma decisão do desenho se perdeu.
 
 As regras do repositório estão no `AGENTS.md`, que todo agente carrega automaticamente. Este plano não repete essas regras: aponta para elas.
@@ -157,3 +160,13 @@ Um documento em pt-BR simples, na primeira pessoa, guardado **fora do repositór
 | Nomes da etapa 3 (schemas por camada e fonte, macros, `ft_devedor_contato`) | já no AGENTS.md; fecha na aprovação única; 1 · passo 1.4 |
 | Gold híbrida: estrela + datasets de análise como views (schema `analises`) | 3 · passos 3.1 e 3.5 |
 | Script de perfil: consultar a própria silver | 4 · passo 4.5 |
+
+## 9. Como retomar numa sessão nova
+
+Cada tópico de execução roda numa sessão própria; a memória do projeto torna a troca sem perda.
+
+1. **Abrir:** `/c <tópico>`. Carrega o `STATE.md` do tópico e o `PROJECT.md`; o AGENTS.md entra sozinho.
+2. **Ler sob demanda:** o `PLAN.md` do tópico e, deste plano mestre, as seções 2 (pausas), 3 (agentes), 4 (orquestração) e 5 (commits).
+3. **Não reabrir o que já foi decidido:** o que está no AGENTS.md, nas "Decisions" do `STATE.md` ou na tabela de decisões do `PLAN.md` vale como está. Decisões de desenho são fechadas no `arquitetura-solucao`, com o dono, uma a uma, antes de o tópico rodar; a sessão de execução só executa. Um resultado da execução que contradiga uma decisão volta como pendência para o `arquitetura-solucao`.
+4. **Contexto enxuto:** leituras grandes e logs longos ficam com os agentes (o `verificador` resume as checagens); na sessão principal entram só os relatos curtos.
+5. **Fechar:** `/c save`, o capítulo do tópico no documento de storytelling (fora do repositório) e um "onde parei" preciso no `STATE.md`.

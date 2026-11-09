@@ -7,3 +7,4 @@
 2026-11-09 done  Stage 2 — Stack and execution model (engine, transformation framework, orchestration, requirements.txt)
 2026-11-09 done  Execution plans written: master PLAN.md here + PLAN.md in the 5 execution topics (2026-11-09)
 2026-11-09 done  Plan review (master PLAN.md §7): traceability table, cold review by a fresh revisor agent (33 findings, all applied)
+2026-11-09 done  Close the open decisions of fundacao-do-repositorio and ingestao-e-padronizacao with the owner (2026-11-09)

@@ -1,5 +1,8 @@
 # Plano — monitoramento e análises
 
+> **Rascunho não aprovado — não executar.** Escrito em 2026-11-09 por um agente que perdeu o contexto, junto com os demais planos e sem aprovação. Será refeito na sessão própria das etapas 8 (monitoramento) e 9 (análises), decisão por decisão. Partes já superadas pelo plano refeito da ingestão (`ingestao-e-padronizacao/PLAN.md`): a pasta de pouso `landing/`, o manifesto da ingestão, o schema `analises` e qualquer decisão que contradiga as decisões C1–C3, I1–I6 e S1–S10.
+
+
 ## 1. Objetivo e base no enunciado
 
 Responder à parte "Análise de Dados" do enunciado com dados reprodutíveis, sem painel (decisão do desenho). São
