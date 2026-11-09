@@ -5,6 +5,7 @@ model: sonnet
 effort: medium
 skills:
   - qualidade-sql
+  - convencoes-codigo-pessoal
   - using-dbt-for-analytics-engineering
   - adding-dbt-unit-test
   - running-dbt-commands
