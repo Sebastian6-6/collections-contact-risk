@@ -3,7 +3,10 @@
     models/bronze/<fonte>/...  ->  bronze_<fonte>
     models/silver/<fonte>/...  ->  silver_<fonte>
     models/<outra_camada>/...  ->  <outra_camada> (ex.: gold)
-  Bronze e silver sem subpasta de fonte são erro de compilação.
+  Erros de compilação:
+    - `schema`/`+schema` explícito em um modelo (a pasta é a única fonte do schema);
+    - modelo direto em models/, sem pasta de camada;
+    - bronze ou silver sem subpasta de fonte.
   Nós que não são modelos (testes, seeds, snapshots) seguem o comportamento padrão do dbt.
 #}
 {% macro generate_schema_name(custom_schema_name, node) -%}
@@ -11,7 +14,22 @@
     {{ return(default__generate_schema_name(custom_schema_name, node)) }}
   {%- endif -%}
 
+  {%- if custom_schema_name is not none -%}
+    {{ exceptions.raise_compiler_error(
+      "O modelo '" ~ node.name ~ "' define o schema '" ~ custom_schema_name ~ "' na configuração. "
+      ~ "Neste projeto o schema sai da pasta do modelo; remova `schema`/`+schema`. "
+      ~ "Veja AGENTS.md, seção 'Camadas e nomes'."
+    ) }}
+  {%- endif -%}
+
   {#- fqn = [projeto, camada, (fonte), ..., nome do modelo] -#}
+  {%- if node.fqn | length < 3 -%}
+    {{ exceptions.raise_compiler_error(
+      "O modelo '" ~ node.name ~ "' está direto em models/, sem pasta de camada. "
+      ~ "Mova-o para models/bronze/<fonte>/, models/silver/<fonte>/ ou models/gold/."
+    ) }}
+  {%- endif -%}
+
   {%- set camada = node.fqn[1] -%}
 
   {%- if camada in ['bronze', 'silver'] -%}
