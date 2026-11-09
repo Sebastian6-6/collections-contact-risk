@@ -79,3 +79,26 @@
       THEN {{ data_iso_ou_nulo("REGEXP_REPLACE(" ~ nome ~ ", '^.*?([0-9]{4}-[0-9]{2}-[0-9]{2}).*$', '" ~ retrovisor ~ "')") }}
   END
 {%- endmacro %}
+
+{#
+  Converte texto 'AAAA-MM-DD HH:MM:SS' em TIMESTAMP, devolvendo NULL quando o texto não é um
+  instante válido, em vez de derrubar a consulta. Segue o mesmo desenho de `data_iso_ou_nulo`:
+    - DuckDB: TRY_CAST. Verificado por execução.
+    - PostgreSQL (padrão): `pg_input_is_valid` (16 ou superior). Escrito a partir da documentação;
+      não foi executado neste projeto.
+  Sem fuso: o provedor não informa e o valor fica como veio.
+#}
+{% macro timestamp_ou_nulo(expressao) -%}
+  {{ return(adapter.dispatch('timestamp_ou_nulo', 'collections_contact_risk')(expressao)) }}
+{%- endmacro %}
+
+{% macro default__timestamp_ou_nulo(expressao) -%}
+  CASE
+    WHEN pg_input_is_valid(NULLIF(TRIM({{ expressao }}), ''), 'timestamp')
+      THEN CAST(NULLIF(TRIM({{ expressao }}), '') AS TIMESTAMP)
+  END
+{%- endmacro %}
+
+{% macro duckdb__timestamp_ou_nulo(expressao) -%}
+  TRY_CAST(NULLIF(TRIM({{ expressao }}), '') AS TIMESTAMP)
+{%- endmacro %}

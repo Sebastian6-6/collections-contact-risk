@@ -1,0 +1,70 @@
+version: 2
+
+unit_tests:
+  - name: silver_cobranca_padronizacao_destino_por_canal
+    description: >
+      O destino é normalizado conforme o canal (telefone para ligação, SMS e WhatsApp; e-mail para
+      e-mail) e o texto original fica; canal desconhecido deixa o destino `NULL`; o CPF recupera o
+      zero perdido; instante inválido vira `NULL`; linha ilegível e sem `contato_id` ficam fora.
+    model: silver_cobranca_contatos_realizados_padronizados
+    given:
+      - input: source('bronze_cobranca', 'contatos_realizados')
+        rows:
+          - {contato_id: "C1", cpf_alvo: "1006543201", canal: "ligacao", destino: "+559238965554", data_hora: "2026-09-01 06:19:48", resultado: "entregue", provedor_origem: "alfa|beta", _arquivo: "contact_data/contatos_realizados.csv", _linha: 2, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {contato_id: "C2", cpf_alvo: "123.456.789-09", canal: "EMAIL", destino: " Ana@Mail.COM ", data_hora: "2026-02-30 10:00:00", resultado: "lido", provedor_origem: "gama", _arquivo: "contact_data/contatos_realizados.csv", _linha: 3, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {contato_id: "C3", cpf_alvo: "12345678909", canal: "fax", destino: "11 4000-1234", data_hora: "2026-09-01 07:00:00", resultado: "lido", provedor_origem: "beta", _arquivo: "contact_data/contatos_realizados.csv", _linha: 4, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {contato_id: "", cpf_alvo: "12345678909", canal: "sms", destino: "11940040000", data_hora: "2026-09-01 07:00:00", resultado: "lido", provedor_origem: "beta", _arquivo: "contact_data/contatos_realizados.csv", _linha: 5, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {contato_id: "C9", cpf_alvo: "", canal: "", destino: "", data_hora: "", resultado: "", provedor_origem: "", _arquivo: "contact_data/contatos_realizados.csv", _linha: 6, _hash_arquivo: "h", _motivo_ilegivel: "linha truncada"}
+    expect:
+      rows:
+        - {contato_id: "C1", cpf_alvo: "01006543201", canal: "ligacao", destino_original: "+559238965554", destino: "9238965554", data_hora: "2026-09-01 06:19:48", resultado: "entregue", provedor_origem: "alfa|beta", _linha: 2}
+        - {contato_id: "C2", cpf_alvo: "12345678909", canal: "email", destino_original: " Ana@Mail.COM ", destino: "ana@mail.com", data_hora: null, resultado: "lido", provedor_origem: "gama", _linha: 3}
+        - {contato_id: "C3", cpf_alvo: "12345678909", canal: "fax", destino_original: "11 4000-1234", destino: null, data_hora: "2026-09-01 07:00:00", resultado: "lido", provedor_origem: "beta", _linha: 4}
+
+  - name: silver_cobranca_contatos_realizados_repetido_vale_a_ultima_linha
+    description: >
+      Um `contato_id` repetido fica com a linha de maior `_arquivo` e, no empate, de maior `_linha`.
+    model: silver_cobranca_contatos_realizados
+    given:
+      - input: ref('silver_cobranca_contatos_realizados_padronizados')
+        format: sql
+        rows: |
+          SELECT 'C1' AS contato_id, CAST('11111111111' AS VARCHAR) AS cpf_alvo, 'email' AS canal, 'a@x.com' AS destino_original, 'a@x.com' AS destino, CAST('2026-09-01 10:00:00' AS TIMESTAMP) AS data_hora, 'lido' AS resultado, 'alfa' AS provedor_origem, 'f1' AS _arquivo, 2 AS _linha, 'h' AS _hash_arquivo
+          UNION ALL
+          SELECT 'C1', '11111111111', 'email', 'a@x.com', 'a@x.com', CAST('2026-09-01 10:00:00' AS TIMESTAMP), 'entregue', 'alfa', 'f1', 9, 'h'
+          UNION ALL
+          SELECT 'C2', '22222222222', 'sms', '11940040000', '11940040000', CAST('2026-09-01 11:00:00' AS TIMESTAMP), 'lido', 'beta', 'f1', 3, 'h'
+    expect:
+      rows:
+        - {contato_id: "C1", resultado: "entregue", _linha: 9}
+        - {contato_id: "C2", resultado: "lido", _linha: 3}
+
+  - name: silver_cobranca_provedores_uma_linha_por_provedor
+    description: >
+      O texto `alfa|beta|gama` vira uma linha por provedor; provedor repetido conta uma vez e
+      elemento vazio não gera linha.
+    model: silver_cobranca_contatos_realizados_provedores
+    given:
+      - input: ref('silver_cobranca_contatos_realizados')
+        format: sql
+        rows: |
+          SELECT 'C1' AS contato_id, 'f1' AS _arquivo, 2 AS _linha
+          UNION ALL
+          SELECT 'C2', 'f1', 3
+          UNION ALL
+          SELECT 'C3', 'f1', 4
+      - input: ref('silver_cobranca_contatos_realizados_padronizados')
+        format: sql
+        rows: |
+          SELECT 'C1' AS contato_id, 'alfa|beta|gama' AS provedor_origem, 'f1' AS _arquivo, 2 AS _linha
+          UNION ALL
+          SELECT 'C2', 'beta|beta|', 'f1', 3
+          UNION ALL
+          SELECT 'C3', 'gama', 'f1', 4
+    expect:
+      rows:
+        - {contato_id: "C1", provedor: "alfa"}
+        - {contato_id: "C1", provedor: "beta"}
+        - {contato_id: "C1", provedor: "gama"}
+        - {contato_id: "C2", provedor: "beta"}
+        - {contato_id: "C3", provedor: "gama"}
