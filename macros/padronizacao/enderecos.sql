@@ -12,22 +12,40 @@
 {%- endmacro %}
 
 {#
+  Padrões estritos do gama, que manda o endereço em texto de dois jeitos (docs/perfil-das-fontes.md),
+  com as mesmas regras do padrão do alfa (sem vírgula nem hífen dentro das partes, ancorado):
+    - `rua`: logradouro, numero                     (grupos 1 e 2)
+    - `endereco`: logradouro, numero - bairro       (grupos 1, 2 e 3)
+#}
+{% macro endereco_padrao_rua() -%}
+  '^([^,-]+), ([^,-]+)$'
+{%- endmacro %}
+
+{% macro endereco_padrao_rua_bairro() -%}
+  '^([^,-]+), ([^,-]+) - ([^-]+)$'
+{%- endmacro %}
+
+{#
   O texto casa com o padrão estrito? BOOLEAN; NULL quando o texto é NULL.
 #}
-{% macro endereco_casa_padrao(expressao) -%}
-  CAST({{ expressao }} AS VARCHAR) ~ {{ endereco_padrao_estrito() }}
+{% macro endereco_casa_padrao(expressao, padrao=none) -%}
+  CAST({{ expressao }} AS VARCHAR) ~ {{ padrao if padrao else endereco_padrao_estrito() }}
 {%- endmacro %}
 
 {#
   Parte do endereço pelo número do grupo: 1 logradouro, 2 numero, 3 complemento, 4 bairro,
   5 cidade. NULL quando a linha não casa com o padrão ou, no complemento, quando não há.
+  `padrao` troca o padrão estrito de `endereco_padrao_estrito()` por outro, ancorado do início ao
+  fim, e os grupos passam a seguir a ordem dele (gama: `endereco_padrao_rua` e
+  `endereco_padrao_rua_bairro`).
 #}
-{% macro endereco_parte(expressao, grupo) -%}
+{% macro endereco_parte(expressao, grupo, padrao=none) -%}
   {#- A referência ao grupo ('\1') é montada em duas partes, como em `data_do_nome_do_arquivo`. -#}
   {%- set retrovisor = '\\' ~ grupo -%}
   {%- set texto = "CAST(" ~ expressao ~ " AS VARCHAR)" -%}
-  {%- set parte = "REGEXP_REPLACE(" ~ texto ~ ", " ~ endereco_padrao_estrito() ~ ", '" ~ retrovisor ~ "')" -%}
+  {%- set padrao_usado = padrao if padrao else endereco_padrao_estrito() -%}
+  {%- set parte = "REGEXP_REPLACE(" ~ texto ~ ", " ~ padrao_usado ~ ", '" ~ retrovisor ~ "')" -%}
   CASE
-    WHEN {{ endereco_casa_padrao(expressao) }} THEN NULLIF({{ parte }}, '')
+    WHEN {{ endereco_casa_padrao(expressao, padrao_usado) }} THEN NULLIF({{ parte }}, '')
   END
 {%- endmacro %}
