@@ -72,14 +72,27 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `qualidade-python`) sã
   - O SQLFluff, com o templater do dbt, aplica essas regras.
 - **Python:** o estilo pessoal, inclusive o alinhamento vertical de atribuições e argumentos relacionados, com uma adaptação: linhas de até 99 colunas, que o `ruff check` cobra. Como o formatador desfaria o alinhamento, o projeto roda `ruff check`, e não `ruff format`.
 
+### Ingestão
+
+- **A ingestão grava a bronze.** `python -m ingestion.main` (ou `python pipeline.py`, que também recria o banco e roda o dbt) lê **todos** os arquivos recebidos a cada execução e grava uma linha por linha recebida em `bronze_<fonte>.<entidade>`, sem transformar. `contact_data/` é a zona bruta imutável. Não há cópia intermediária nem modos de carga: o banco é recriado do zero, então reler tudo é o que garante execuções idênticas.
+- **Colunas.** No CSV, a união dos cabeçalhos de todos os arquivos da entidade, em texto (`NULL` onde o arquivo não tem a coluna); no JSON Lines, `registro` com o texto da linha. Em toda tabela: `_arquivo` (caminho relativo), `_linha`, `_hash_arquivo`, `_linha_original` e `_motivo_ilegivel`. O registro de cargas fica em `bronze_<fonte>.arquivos`.
+- **Ilegível** é só a linha que o leitor não consegue separar em colunas; ela entra com o texto e o motivo, e nenhuma linha é descartada. Um byte fora do encoding interrompe a fonte, com o arquivo e a linha no erro.
+- **Sem horário de execução, data de modificação ou id aleatório**: a rastreabilidade vem do arquivo, da linha e do hash.
+- **Fonte nova.** Cada provedor ou sistema que produz dados é uma fonte. Para acrescentar:
+  1. Formato e origem já existem: uma entrada em `ingestion/fontes.yml`.
+  2. Formato novo: uma função em `ingestion/leitores.py` com `@leitor("nome")`.
+  3. Origem nova (API, bucket): uma função em `ingestion/conectores.py` com `@conector("nome")`. Uma API grava a resposta como arquivo numa pasta versionada antes de ser lida.
+  4. Declarar a tabela em `models/bronze/<fonte>/_fontes.yml`. O `main.py` não muda.
+
 ### Camadas e nomes
 
-- Cada camada tem um papel:
-  - **bronze:** fiel à origem.
-  - **silver:** padroniza cada fonte isoladamente: tipos, limpeza e deduplicação dentro da fonte.
-  - **gold:** une as fontes, resolve conflitos e expõe o modelo dimensional.
+- O banco tem três camadas:
+  - **bronze:** tudo o que foi recebido, como veio, gravado pela ingestão. `models/bronze/` guarda o contrato dessas tabelas (fontes do dbt, com descrição e testes), sem SQL.
+  - **silver:** trabalha dentro de uma fonte só: tipos, limpeza, normalização, listas abertas em linhas e deduplicação de cada tabela pela sua chave, com `ROW_NUMBER()`. Toda a padronização vem antes da deduplicação, e toda tabela que muda de grão tem teste de chave primária.
+  - **gold:** une as fontes, resolve conflitos, aplica as regras de negócio e expõe o modelo dimensional.
+- Cada provedor é uma fonte (`alfa`, `beta`, `gama`); o histórico de contatos é a fonte `cobranca`.
 - Schemas no banco: `bronze_<fonte>`, `silver_<fonte>` e `gold`. A tabela leva só o nome da entidade (`bronze_alfa.devedores`).
-- O dbt exige nomes de modelo únicos, por isso o arquivo leva camada e fonte (`models/bronze/alfa/bronze_alfa_devedores.sql`). Schema e nome da tabela saem da pasta, pelas macros `generate_schema_name` e `generate_alias_name`.
+- O dbt exige nomes de modelo únicos, por isso o arquivo leva camada e fonte (`models/silver/alfa/silver_alfa_devedores.sql`). Schema e nome da tabela saem da pasta, pelas macros `generate_schema_name` e `generate_alias_name`.
 - Nomes de tabela, coluna e arquivo com um único `_` entre as palavras, sem prefixos de camada (`stg_`, `int_` e similares). As CTEs seguem o padrão `tNomeCte` (ver "Estilo do código").
 - Na gold, só dois prefixos de tabela: `dim_` para dimensões e `ft_` para fatos.
 
