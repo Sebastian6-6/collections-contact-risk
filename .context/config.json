@@ -1,0 +1,59 @@
+{
+  "skill_version": "1.1.0",
+  "alias": "c",
+  "git_profile": "full",
+  "save_commit": false,
+  "rules_file": "agents",
+  "modules": {
+    "ingest": true,
+    "map": true,
+    "history": true,
+    "status_hook": true
+  },
+  "language": {
+    "memory": "en",
+    "output": "pt-BR",
+    "ocr": [
+      "pt",
+      "en"
+    ]
+  },
+  "large_file_threshold": {
+    "lines": 2000,
+    "bytes": 1048576
+  },
+  "skip_dirs": [
+    ".git",
+    ".venv",
+    "venv",
+    "env",
+    "node_modules",
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".ipynb_checkpoints",
+    "dist",
+    "build",
+    "target",
+    ".idea",
+    ".vscode",
+    "site-packages"
+  ],
+  "map": {
+    "max_depth": 4,
+    "max_rows": 200
+  },
+  "lock_ttl_hours": 8,
+  "known_topics": [
+    "arquitetura-solucao",
+    "documentacao-e-entrega",
+    "fundacao-do-repositorio",
+    "ingestao-e-padronizacao",
+    "modelo-gold-e-regua",
+    "monitoramento-e-analises"
+  ],
+  "applied": {
+    "gitignore": true
+  }
+}

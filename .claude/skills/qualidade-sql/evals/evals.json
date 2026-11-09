@@ -1,0 +1,17 @@
+{
+  "skill_name": "qualidade-sql",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "escreve o modelo dbt models/silver/beta/silver_beta_devedores.sql. a bronze bronze_beta_devedores tem uma linha por registro recebido com as colunas linha_json (texto), nm_arquivo e nu_linha. extrai cpf (pode vir em cpf ou em documento.valor quando documento.tipo = 'CPF'), nome (nome, nome_completo ou nome_devedor) e atualizado_em (ISO com fuso ou epoch em ms), descarta linhas com json invalido e deixa so o registro mais recente por cpf. renda pode vir como numero, texto 'R$ 9241,83' ou null",
+      "expected_output": "SQL em MAIÚSCULAS, uma CTE por etapa, só ROW_NUMBER com ROWS BETWEEN para deduplicar, sem SELECT *, CAST em vez de ::, renda ausente como NULL (nunca 0), RG não vira CPF, e evidência de lint/verificação",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "preciso de um modelo na gold que calcule, por provedor e por dia de arquivo, o volume recebido e a media movel de 7 dias para o monitoramento de ingestao. a base é uma tabela com nm_provedor, dt_arquivo e qt_linhas. e ve se da pra deixar a query eficiente",
+      "expected_output": "Média móvel com SUM()/SUM(1) e ROWS BETWEEN 6 PRECEDING AND CURRENT ROW (sem AVG/LAG como janela), sem gerar dias ausentes, MAIÚSCULAS, e menção a medir com EXPLAIN ANALYZE em vez de otimizar às cegas",
+      "files": []
+    }
+  ]
+}

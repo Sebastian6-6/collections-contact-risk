@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/context-manager/scripts/ctx.py\" hook 2>/dev/null || python \"$CLAUDE_PROJECT_DIR/.claude/skills/context-manager/scripts/ctx.py\" hook 2>/dev/null || py -3 \"$CLAUDE_PROJECT_DIR/.claude/skills/context-manager/scripts/ctx.py\" hook",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

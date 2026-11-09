@@ -1,0 +1,10 @@
+{
+  "folders": {
+    "contact_data": "Raw input data for the case as delivered: historical snapshots from three providers (alfa CSV, beta JSONL, gama CSV) and the September contact-attempt log.",
+    "contact_data/entregas_diarias/alfa": "Daily delivery files from provider alfa (CSV, one per day of the month).",
+    "contact_data/entregas_diarias/beta": "Daily delivery files from provider beta (JSONL, one per day; some days missing).",
+    "contact_data/entregas_diarias/gama": "Daily delivery files from provider gama (CSV, one per day, plus a resend file for 2026-09-15).",
+    "": "Project root: holds the case brief PDF and the contact_data/ inputs.",
+    "docs": "Public project documentation in pt-BR: source profile, ERD, modeling decisions and data dictionary"
+  }
+}

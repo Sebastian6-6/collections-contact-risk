@@ -1,0 +1,412 @@
+{
+  "version": 1,
+  "documents": {
+    "case-tecnico-dados-cobranca": {
+      "source": "raw/case-tecnico-dados-cobranca.md",
+      "sha256": "4d88f5822d6d2ea789bacf38751961a080e93e391f3ca6a863a39d5c7350f9d5",
+      "size": 6601,
+      "kind": "document",
+      "converted_at": "2026-11-08 13:13",
+      "converted": "converted/case-tecnico-dados-cobranca.md",
+      "status": "ok",
+      "error": null,
+      "pages": 4,
+      "converter": "plain",
+      "summary": "Data engineering case brief (4 pages, anonymized): build a reproducible bronze/silver/gold pipeline merging three debtor-data providers (historical load to 2026-08-31 plus September daily deliveries) into a single registry, a phone/e-mail contact-risk scale validated against September contact attempts, CNPJ enrichment from Receita Federal open data, ERD, ingestion anomaly monitoring, do-not-contact policy, plus deliverables (README, ERD, type justifications, AGENTS.md) and evaluation criteria.",
+      "tags": [
+        "case-brief",
+        "requirements",
+        "collections",
+        "contact-risk",
+        "lgpd",
+        "cnpj",
+        "data-quality",
+        "erd",
+        "evaluation"
+      ],
+      "origin": "Case técnico de dados (enunciado anonimizado)"
+    },
+    "referencias-licencas-docs-getdbt-apache-2-0": {
+      "source": "raw/referencias/_licencas/docs-getdbt-Apache-2.0.md",
+      "sha256": "e4bd17c6bd998e138aab09618ac8b39007789f1777a41de7092fc8c32f919866",
+      "size": 11361,
+      "kind": "document",
+      "converted_at": "2026-11-08 21:56",
+      "converted": "converted/referencias-licencas-docs-getdbt-apache-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Apache 2.0 license of the dbt documentation repository, kept with the copied dbt reference pages.",
+      "tags": [
+        "license",
+        "dbt"
+      ],
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/License.md — acesso 2026-11-08"
+    },
+    "referencias-licencas-duckdb-web-mit": {
+      "source": "raw/referencias/_licencas/duckdb-web-MIT.txt",
+      "sha256": "7e17fd31249fa875cb3b1c5e05c6c3e99b75509f6a2804ca176c217834de1dcb",
+      "size": 1072,
+      "kind": "document",
+      "converted_at": "2026-11-08 21:56",
+      "converted": "converted/referencias-licencas-duckdb-web-mit.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "MIT license of the DuckDB documentation repository, kept with the copied DuckDB reference pages.",
+      "tags": [
+        "license",
+        "duckdb"
+      ],
+      "origin": "https://github.com/duckdb/duckdb-web/blob/main/LICENSE — acesso 2026-11-08"
+    },
+    "referencias-dbt-blog-dbt-core-v2": {
+      "source": "raw/referencias/dbt/blog-dbt-core-v2.md",
+      "sha256": "8108aea5ae9955a0e9c56c9d1d330efa5db0c01cc37860a324aed8a1daaf6e85",
+      "size": 11768,
+      "kind": "document",
+      "converted_at": "2026-11-08 21:56",
+      "converted": "converted/referencias-dbt-blog-dbt-core-v2.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt Labs post on dbt Core v2 (2026-06-01): licensing of dbt v2 vs dbt-oss vs the Python 1.x line, and that 1.x stays available; basis for keeping dbt Core 1.12.",
+      "tags": [
+        "reference",
+        "dbt",
+        "licensing",
+        "v2",
+        "stage-2"
+      ],
+      "origin": "Blog oficial dbt (Apache 2.0) — https://docs.getdbt.com/blog/dbt-core-v2-is-here — fonte: github.com/dbt-labs/docs.getdbt.com — acesso 2026-11-08"
+    },
+    "referencias-dbt-duckdb-setup-v2": {
+      "source": "raw/referencias/dbt/duckdb-setup-v2.md",
+      "sha256": "dd66321e5c7117bc91a93f32dfa4b3456018d8a2c9e1804725b31f2a5308dbc4",
+      "size": 8855,
+      "kind": "document",
+      "converted_at": "2026-11-08 21:56",
+      "converted": "converted/referencias-dbt-duckdb-setup-v2.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt v2 DuckDB setup page: built-in driver cannot load extensions, parity gaps with dbt-duckdb (dbt#14393), static-analysis caveats on read_csv/read_json.",
+      "tags": [
+        "reference",
+        "dbt",
+        "duckdb",
+        "v2",
+        "limitations",
+        "stage-2"
+      ],
+      "origin": "Documentação oficial dbt v2 (Apache 2.0) — https://docs.getdbt.com/docs/local/connect-data-platform/duckdb-setup — acesso 2026-11-08"
+    },
+    "referencias-dbt-install-dbt-oss-v2": {
+      "source": "raw/referencias/dbt/install-dbt-oss-v2.md",
+      "sha256": "75c8c636b38f16d45405bf3c8b12393ac862739bc854e884b18a64aaa8414efa",
+      "size": 3016,
+      "kind": "document",
+      "converted_at": "2026-11-08 21:56",
+      "converted": "converted/referencias-dbt-install-dbt-oss-v2.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt v2 OSS install page: Apache 2.0 runtime installed with uv tool, must not share an environment with dbt/dbt-core, lacks static analysis and lint.",
+      "tags": [
+        "reference",
+        "dbt",
+        "v2",
+        "installation",
+        "stage-2"
+      ],
+      "origin": "Documentação oficial dbt v2 (Apache 2.0) — https://docs.getdbt.com/docs/local/install-dbt-v2 — acesso 2026-11-08"
+    },
+    "referencias-duckdb-announcing-duckdb-2-0-0": {
+      "source": "raw/referencias/duckdb/announcing-duckdb-2.0.0.md",
+      "sha256": "bf4dd57468d34a70b0688a1899a6cf7c43ac2814c11977335252d642fe46fe81",
+      "size": 25033,
+      "kind": "document",
+      "converted_at": "2026-11-08 21:56",
+      "converted": "converted/referencias-duckdb-announcing-duckdb-2-0-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "DuckDB 2.0.0 LTS release post (2026-10-21): support window, breaking changes (storage format, PEG parser, lambda syntax) and migration notes.",
+      "tags": [
+        "reference",
+        "duckdb",
+        "release",
+        "lts",
+        "stage-2"
+      ],
+      "origin": "Blog oficial DuckDB (MIT) — https://duckdb.org/2026/10/21/announcing-duckdb-200 — versão 2.0.0 — acesso 2026-11-08"
+    },
+    "referencias-duckdb-postgresql-compatibility-2-0": {
+      "source": "raw/referencias/duckdb/postgresql-compatibility-2.0.md",
+      "sha256": "1b97693c3dc61e3974340dd9182875336e80960cef49f54ef62d6c8d717b9db0",
+      "size": 10454,
+      "kind": "document",
+      "converted_at": "2026-11-08 21:56",
+      "converted": "converted/referencias-duckdb-postgresql-compatibility-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "DuckDB 2.0 docs: the known differences between DuckDB SQL and PostgreSQL (integer division, implicit casts, identifier case, regexp_extract, to_date, GROUP BY); basis for writing models in the PostgreSQL-compatible subset.",
+      "tags": [
+        "reference",
+        "duckdb",
+        "postgresql",
+        "sql-dialect",
+        "stage-2"
+      ],
+      "origin": "Documentação oficial DuckDB 2.0 (MIT) — https://duckdb.org/docs/2.0/sql/dialect/postgresql_compatibility — fonte: github.com/duckdb/duckdb-web docs/2.0 — acesso 2026-11-08"
+    },
+    "referencias-licencas-ruff-mit": {
+      "source": "raw/referencias/_licencas/ruff-MIT.txt",
+      "sha256": "2597d854122b77ddc71971564ca2350a37608575ce324adc5650a2b2051c8f18",
+      "size": 20731,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-licencas-ruff-mit.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "MIT license of Ruff, kept with the copied Ruff configuration page.",
+      "tags": [
+        "license",
+        "ruff"
+      ],
+      "origin": "https://github.com/astral-sh/ruff/blob/0.17.4/LICENSE · acesso 2026-11-09"
+    },
+    "referencias-licencas-sqlfluff-mit": {
+      "source": "raw/referencias/_licencas/sqlfluff-MIT.md",
+      "sha256": "22dce2dc3663d299ccc2606289647982d757e6157393081e59736a9db335c77f",
+      "size": 1078,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-licencas-sqlfluff-mit.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "MIT license of SQLFluff, kept with the copied SQLFluff rule reference.",
+      "tags": [
+        "license",
+        "sqlfluff"
+      ],
+      "origin": "https://github.com/sqlfluff/sqlfluff/blob/4.5.0/LICENSE.md · acesso 2026-11-09"
+    },
+    "referencias-dbt-how-we-structure-2-staging": {
+      "source": "raw/referencias/dbt/how-we-structure-2-staging.md",
+      "sha256": "7f1059072d0a48ad3ba1d5ff910486859aeda1c87229d8950e8513b3d941480f",
+      "size": 14036,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-dbt-how-we-structure-2-staging.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt structure guide, staging layer: one model per source table, subfolder per source system, renaming/typing only, views; maps to this project's bronze/silver per source.",
+      "tags": [
+        "reference",
+        "dbt",
+        "project-structure",
+        "staging",
+        "stage-3"
+      ],
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/2-staging.md · acesso 2026-11-09"
+    },
+    "referencias-dbt-how-we-structure-4-marts": {
+      "source": "raw/referencias/dbt/how-we-structure-4-marts.md",
+      "sha256": "26e67c3bcde1c863c44406e99a4c4af2fbbdf4aa392d2f0e200cb30de3b10f3d",
+      "size": 12118,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-dbt-how-we-structure-4-marts.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt structure guide, marts layer: business-conformed entities, materialized as tables, wide denormalized marts preferred over a classic star unless needed; basis for the gold star schema plus analysis datasets.",
+      "tags": [
+        "reference",
+        "dbt",
+        "project-structure",
+        "marts",
+        "gold",
+        "stage-6"
+      ],
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/4-marts.md · acesso 2026-11-09"
+    },
+    "referencias-dbt-how-we-structure-6-mapping-folders-to-warehouse": {
+      "source": "raw/referencias/dbt/how-we-structure-6-mapping-folders-to-warehouse.md",
+      "sha256": "aaa3b694ea5900aa62e1d64d095d2e882b0f1d7f98ae90bb3667b36f06c7cdad",
+      "size": 5525,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-dbt-how-we-structure-6-mapping-folders-to-warehouse.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt structure guide: mapping model folders to warehouse schemas with +schema configs and generate_schema_name; basis for the per-layer/per-source schema macros.",
+      "tags": [
+        "reference",
+        "dbt",
+        "schemas",
+        "macros",
+        "stage-3"
+      ],
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/6-mapping-folders-to-warehouse.md · acesso 2026-11-09"
+    },
+    "referencias-duckdb-explain-analyze-2-0": {
+      "source": "raw/referencias/duckdb/explain_analyze-2.0.md",
+      "sha256": "1d36a904fa23a981f8134567c140202e10a8a829288256a3dd2dfb960ddf5393",
+      "size": 4220,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-duckdb-explain-analyze-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "DuckDB 2.0 guide to EXPLAIN ANALYZE: reading the physical plan with per-operator timing and cardinalities; basis for explicar_modelo.py.",
+      "tags": [
+        "reference",
+        "duckdb",
+        "performance",
+        "query-plan"
+      ],
+      "origin": "https://github.com/duckdb/duckdb-web/blob/main/docs/stable/guides/meta/explain_analyze.md · acesso 2026-11-09"
+    },
+    "referencias-duckdb-how-to-tune-workloads-2-0": {
+      "source": "raw/referencias/duckdb/how_to_tune_workloads-2.0.md",
+      "sha256": "5d6aec8b82ff94459c81d62a976f008911b8a680f7d949db1954e4c53c899087",
+      "size": 15378,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-duckdb-how-to-tune-workloads-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "DuckDB 2.0 workload tuning guide: parallelism, memory limits, spilling, profiling and persistent vs in-memory databases.",
+      "tags": [
+        "reference",
+        "duckdb",
+        "performance"
+      ],
+      "origin": "https://github.com/duckdb/duckdb-web/blob/main/docs/stable/guides/performance/how_to_tune_workloads.md · acesso 2026-11-09"
+    },
+    "referencias-duckdb-join-operations-2-0": {
+      "source": "raw/referencias/duckdb/join_operations-2.0.md",
+      "sha256": "400109f0686ce636d35c400c1de402cb3e7633c961b2216a0ed86c2a4a380fe3",
+      "size": 2684,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-duckdb-join-operations-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "DuckDB 2.0 join operations guide: hash, merge, nested-loop and inequality joins, join order optimization; basis for the join checklist in qualidade-sql.",
+      "tags": [
+        "reference",
+        "duckdb",
+        "performance",
+        "joins"
+      ],
+      "origin": "https://github.com/duckdb/duckdb-web/blob/main/docs/stable/guides/performance/join_operations.md · acesso 2026-11-09"
+    },
+    "referencias-duckdb-my-workload-is-slow-2-0": {
+      "source": "raw/referencias/duckdb/my_workload_is_slow-2.0.md",
+      "sha256": "cf4b2c6d046e5b04991a95ddaf06e6d13c46deb3df23d5410c7f3d6711f5c52a",
+      "size": 2785,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-duckdb-my-workload-is-slow-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "DuckDB 2.0 checklist for slow workloads (version, profiling, data types, indexes, memory).",
+      "tags": [
+        "reference",
+        "duckdb",
+        "performance"
+      ],
+      "origin": "https://github.com/duckdb/duckdb-web/blob/main/docs/stable/guides/performance/my_workload_is_slow.md · acesso 2026-11-09"
+    },
+    "referencias-duckdb-with-2-0": {
+      "source": "raw/referencias/duckdb/with-2.0.md",
+      "sha256": "a0128a10beed9e97ec42b2ed21cff01243fccdda0fd79d03b4db24d82d65b064",
+      "size": 22188,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-duckdb-with-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "DuckDB 2.0 WITH clause reference: CTE materialization rules (inlined when referenced once without aggregation or volatile functions), MATERIALIZED / NOT MATERIALIZED, recursive CTEs.",
+      "tags": [
+        "reference",
+        "duckdb",
+        "cte",
+        "sql"
+      ],
+      "origin": "https://github.com/duckdb/duckdb-web/blob/main/docs/stable/sql/query_syntax/with.md · acesso 2026-11-09"
+    },
+    "referencias-ruff-configuration-0-17-4": {
+      "source": "raw/referencias/ruff/configuration-0.17.4.md",
+      "sha256": "ad98019d25c70e6f4f8e149a3d496daee5a617cc32fb2926f03acd35273cb252",
+      "size": 11212,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-ruff-configuration-0-17-4.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Ruff 0.17.4 configuration docs (ruff.toml format, config file discovery, Python version inference); basis for the project's ruff.toml.",
+      "tags": [
+        "reference",
+        "ruff",
+        "python",
+        "lint",
+        "stage-3"
+      ],
+      "origin": "https://github.com/astral-sh/ruff/blob/0.17.4/docs/configuration.md · acesso 2026-11-09"
+    },
+    "referencias-sqlfluff-regras-usadas-4-5-0": {
+      "source": "raw/referencias/sqlfluff/regras-usadas-4.5.0.md",
+      "sha256": "a8a543220a8e4f50981bf1146fa8a43a3eb20f5c7f25224a8fe0ab77a840ad78",
+      "size": 10068,
+      "kind": "document",
+      "converted_at": "2026-11-09 07:43",
+      "converted": "converted/referencias-sqlfluff-regras-usadas-4-5-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "SQLFluff 4.5.0 rule docstrings and default settings for the rules this project configures (CP01, CP03, CP04, CP05 capitalisation; LT02 indentation; ST05 subqueries; CV11 cast style; AM04 select star); basis for .sqlfluff.",
+      "tags": [
+        "reference",
+        "sqlfluff",
+        "lint",
+        "sql-conventions",
+        "stage-3"
+      ],
+      "origin": "https://github.com/sqlfluff/sqlfluff/tree/4.5.0/src/sqlfluff (rules + core/default_config.cfg) · acesso 2026-11-09"
+    }
+  }
+}
