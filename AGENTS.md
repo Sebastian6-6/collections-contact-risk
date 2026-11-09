@@ -1,10 +1,18 @@
-## Estrutura
+# AGENTS.md
+
+Regras do repositório para pessoas e agentes de IA. São duas partes: as convenções que vieram com o case, mantidas exatamente como foram recebidas, e as convenções que adotei neste projeto.
+
+## Convenções do case (originais — não editar)
+
+Recebidas junto com o case. O texto abaixo é idêntico ao original; só os títulos desceram um nível (`##` → `###`) para caber nesta seção.
+
+### Estrutura
 
 - `ingestion/`: leitura dos arquivos dos provedores, sem transformação.
 - `models/`: transformações em SQL, organizadas por camada (`bronze/`, `silver/`, `gold/`).
 - `docs/`: ERD, decisões de modelagem e dicionário de dados.
 
-## SQL
+### SQL
 
 - Dialeto padrão: PostgreSQL.
 - Funções nativas e tipos de dado em UPPER CASE (`SELECT`, `COALESCE`, `NUMERIC`).
@@ -15,7 +23,77 @@
 - Nunca usar `SELECT *` em modelos das camadas silver e gold.
 - Indentação de 2 espaços.
 
-## Commits
+### Commits
 
 - Seguir Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`).
 - Um commit por mudança lógica. Mensagens descrevem o porquê, não só o quê.
+
+## Convenções do projeto
+
+Complementam as convenções do case acima e nunca as contradizem. Em caso de conflito, valem as do case.
+
+### Hierarquia de regras
+
+Em caso de conflito, a regra de nível mais alto prevalece:
+
+1. **Enunciado do case** (`.context/converted/`, ver `.context/index.md`). Toda decisão se apoia nele e segue os seus direcionamentos; ao justificar uma escolha, cite a página.
+2. **Este AGENTS.md**: é a fonte única das regras do repositório. As convenções do case (seção anterior) vêm antes das convenções do projeto. O `.claude/CLAUDE.md` só importa este arquivo e guarda as ferramentas do Claude; nenhuma regra do projeto fica lá nem no `.context/PROJECT.md`, que é só memória.
+3. **Boas práticas de engenharia de dados**: soluções elegantes, análise explícita de trade-offs em cada decisão e o máximo de reprodutibilidade e resiliência na pipeline. Exemplo: se uma tabela nova entra numa fonte que já existe, a ingestão e o tratamento até a silver reaproveitam o componente dessa fonte, com configuração em vez de código novo.
+
+Regras que valem só para uma etapa ou um tópico de trabalho não entram aqui: ficam registradas no próprio tópico, em `.context/topics/<tópico>/STATE.md`, e nunca contradizem este arquivo.
+
+### Modo de trabalho
+
+- **Decisões documentadas.** Cada decisão registra as opções consideradas, os trade-offs e a base no enunciado.
+- **Pesquisar antes de afirmar.** Fazer várias buscas na web (documentação oficial primeiro) e afirmar só o que estiver apoiado em contexto real e verificado. Na dúvida, dizer que não foi verificado em vez de supor.
+- **Documentação de referência.** Documentação externa usada no projeto (APIs, ferramentas, layouts oficiais) fica em `.context/raw/referencias/`, só nas seções usadas, com URL, versão e data de acesso na origem. Antes de tomá-la como base, confirmar na fonte oficial que ela é a versão mais atual; se houver versão nova, atualizar a cópia ou registrar por que o projeto segue na anterior. A versão documentada é sempre a mesma usada no projeto. Ela embasa as decisões, mas não entra na hierarquia de regras.
+- **Dependências.** As dependências Python diretas ficam em `requirements.in`, na raiz. O `requirements.txt` é gerado a partir dele com `uv pip compile --universal`, com todas as versões fixas (inclusive as indiretas), e é o único arquivo usado na instalação, para a execução ser reprodutível.
+
+### Stack
+
+- Motor: DuckDB, embutido; o banco é recriado do zero a cada execução da pipeline.
+- Transformações em dbt Core, com o adaptador dbt-duckdb.
+- O SQL dos modelos fica no subconjunto compatível com PostgreSQL, como pede a convenção do case. As diferenças entre DuckDB e PostgreSQL a evitar estão em `.context/converted/referencias-duckdb-postgresql-compatibility-2-0.md`.
+- As versões exatas ficam só no `requirements.txt`.
+- Todo código Python segue as convenções de `.claude/skills/convencoes-codigo-pessoal/SKILL.md`.
+- Reprodutibilidade: nenhuma tabela guarda horário de execução (como um `process_time`). A rastreabilidade de cada linha vem do nome, do número da linha e do hash do arquivo de origem, de modo que duas execuções a partir do mesmo estado inicial produzem exatamente o mesmo resultado.
+
+### Camadas e nomes
+
+- Cada camada tem um papel:
+  - **bronze:** fiel à origem.
+  - **silver:** padroniza cada fonte isoladamente: tipos, limpeza e deduplicação dentro da fonte.
+  - **gold:** une as fontes, resolve conflitos e expõe o modelo dimensional.
+- Schemas no banco: `bronze_<fonte>`, `silver_<fonte>` e `gold`. A tabela leva só o nome da entidade (`bronze_alfa.devedores`).
+- O dbt exige nomes de modelo únicos, por isso o arquivo leva camada e fonte (`models/bronze/alfa/bronze_alfa_devedores.sql`). Schema e nome da tabela saem da pasta, pelas macros `generate_schema_name` e `generate_alias_name`.
+- Nomes com um único `_` entre as palavras, sem prefixos de camada (`stg_`, `int_` e similares).
+- Na gold, só dois prefixos de tabela: `dim_` para dimensões e `ft_` para fatos.
+
+### Colunas da gold
+
+- Nomes em português, minúsculos, no formato prefixo de tipo + assunto:
+
+  | Prefixo | Uso | Exemplo |
+  |---|---|---|
+  | `sk_` | chave substituta | `sk_devedor` |
+  | `cod_` | código | `cod_cnae` |
+  | `desc_` | descrição | `desc_cnae` |
+  | `nome_` | nome | `nome_devedor` |
+  | `num_` | número, numérico ou não | `num_cpf`, `num_telefone` |
+  | `qt_` · `vl_` · `tx_` | quantidade · valor · taxa | `qt_tentativas`, `vl_renda` |
+  | `tp_` · `sit_` · `sigla_` | tipo · situação · sigla | `tp_canal`, `sit_risco`, `sigla_uf` |
+  | `flag_` | booleano | `flag_contato_compartilhado` |
+  | `dt_` · `hr_` | data · hora | `dt_atualizacao` |
+
+- Ordem das colunas nas dimensões: chave substituta → chave natural → atributos, com cada código seguido da própria descrição (`cod_x`, `desc_x`, `cod_y`, `desc_y`) → nomes → números e valores → flags → datas → rastreabilidade por último.
+- Ordem das colunas nos fatos: chave substituta (se houver) → chaves das dimensões → identificadores da origem → medidas → flags → datas → rastreabilidade por último.
+- Dimensões montadas a partir de várias fontes trazem uma coluna com os provedores que contribuíram para a linha (ex.: `desc_provedores_origem`).
+- Quando um fato não encontra a dimensão correspondente, a chave fica `NULL`. Nenhuma dimensão ganha linha fictícia do tipo "desconhecido", porque os modelos não geram linhas que não existam na origem. A junção do fato com essas dimensões usa `LEFT JOIN`.
+
+### Commits e branches
+
+- `main` recebe só versões que funcionam; o trabalho acontece na `develop`, com um branch por tópico (`<tipo>/<tópico>`) integrado por merge `--no-ff`. Pull requests de terceiros vão para a `develop` e precisam de aprovação do dono do repositório e do CI verde.
+- Commits só acontecem com autorização do dono do repositório. Na execução dos tópicos, a autorização está no `PLAN.md` de cada tópico: os agentes fazem os commits planejados ali, incluindo as correções apontadas na revisão do próprio tópico, e nenhum outro.
+- Só os tipos listados nas convenções do case. Mensagens em português, claras, dizendo o porquê da mudança.
+- Commits `fix:` e `refactor:` que melhoram desempenho ou qualidade trazem no corpo o ganho medido: o antes e o depois e como foi medido. Um número que não foi medido aparece rotulado como estimativa.
+- Nenhum arquivo do repositório e nenhuma mensagem de commit leva caminho absoluto da máquina de quem desenvolve; só caminhos relativos ao repositório.
