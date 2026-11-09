@@ -83,7 +83,7 @@ def test_carrega_caminhos_do_pyproject(tmp_path):
     )
     fundo = tmp_path / "x"
     fundo.mkdir()
-    assert carregar_caminhos(None, fundo) == [Path("ingestion"), Path("pipeline.py")]
+    assert carregar_caminhos(None, fundo) == [tmp_path / "ingestion", tmp_path / "pipeline.py"]
 
 
 def test_flag_config_usa_o_arquivo_indicado(tmp_path, capsys):
@@ -95,3 +95,45 @@ def test_flag_config_usa_o_arquivo_indicado(tmp_path, capsys):
     (tmp_path / "m.py").write_text("import random\n", encoding="utf-8")
     assert main(["--config", str(configuracao)]) == 1
     assert "sorteio" in capsys.readouterr().out
+
+
+def escrever_config(pasta: Path, caminhos: list[str]) -> Path:
+    arquivo = pasta / "pyproject.toml"
+    lista = ", ".join(f'"{nome}"' for nome in caminhos)
+    arquivo.write_text(
+        f"[tool.verificar_reprodutibilidade]\ncaminhos = [{lista}]\n", encoding="utf-8"
+    )
+    return arquivo
+
+
+def test_caminhos_configurados_valem_a_partir_da_pasta_do_pyproject(tmp_path, monkeypatch, capsys):
+    projeto = tmp_path / "projeto"
+    (projeto / "pacote").mkdir(parents=True)
+    (projeto / "pacote" / "m.py").write_text("import random\n", encoding="utf-8")
+    configuracao = escrever_config(projeto, ["pacote"])
+    outra_pasta = tmp_path / "outra"
+    outra_pasta.mkdir()
+    monkeypatch.chdir(outra_pasta)
+    assert main(["--config", str(configuracao)]) == 1
+    assert "sorteio" in capsys.readouterr().out
+
+
+def test_caminho_configurado_inexistente_vira_aviso(tmp_path, monkeypatch, capsys):
+    configuracao = escrever_config(tmp_path, ["ingestion"])
+    monkeypatch.chdir(tmp_path)
+    assert main(["--config", str(configuracao)]) == 0
+    saida = capsys.readouterr().out
+    assert "[aviso] caminho configurado não existe: ingestion" in saida
+    assert "nenhum arquivo verificado" in saida
+
+
+def test_estrito_falha_com_caminho_configurado_inexistente(tmp_path, monkeypatch):
+    configuracao = escrever_config(tmp_path, ["ingestion"])
+    monkeypatch.chdir(tmp_path)
+    assert main(["--config", str(configuracao), "--estrito"]) == 1
+
+
+def test_execucao_com_arquivos_nao_diz_que_esta_vazia(tmp_path, capsys):
+    (tmp_path / "m.py").write_text("x = 1\n", encoding="utf-8")
+    assert main([str(tmp_path)]) == 0
+    assert "nenhum arquivo verificado" not in capsys.readouterr().out

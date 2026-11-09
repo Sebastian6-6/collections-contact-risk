@@ -12,7 +12,7 @@ A skill `convencoes-codigo-pessoal` diz **como** escrevo código. Esta skill diz
 
 | Etapa | Como |
 |---|---|
-| 1. Teste que falha | pytest, com os casos reais de `docs/perfil-das-fontes.md` |
+| 1. Teste que falha | pytest, com os casos reais que o projeto documenta |
 | 2. Menor código que passa | seguindo `convencoes-codigo-pessoal` |
 | 3. Testes verdes | `python -m pytest -q` |
 | 4. Ferramentas | `ruff check` (e `ruff format`, se o projeto usar formatador), `verificar_reprodutibilidade.py` |
@@ -26,6 +26,10 @@ A skill `convencoes-codigo-pessoal` diz **como** escrevo código. Esta skill diz
 | `scripts/verificar_reprodutibilidade.py` | Aponta leitura de relógio, módulos de sorteio e listagem de arquivos sem `sorted()` nas pastas configuradas pelo projeto. Um trecho legítimo é liberado com `# reprodutivel: <motivo>`, que deixa a decisão registrada no código |
 
 Tem testes (`scripts/test_verificar_reprodutibilidade.py`) e passa no Ruff.
+
+## Testes comparativos
+
+Cada caso de teste roda com e sem a skill, no mesmo modelo (Sonnet 5.5, esforço medium), e um script confere critérios objetivos (pytest, Ruff, verificador de reprodutibilidade, construções esperadas). Na primeira rodada (2 casos), a skill atendeu 21 de 21 critérios (100%), contra 19 de 21 (90%) sem ela. Sem a skill, o código listou arquivos sem ordenar e interpretou JSON dentro da etapa que deveria só ler os arquivos.
 
 ## Referências
 

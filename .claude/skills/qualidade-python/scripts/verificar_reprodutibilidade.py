@@ -13,9 +13,13 @@ Uso, a partir da raiz do projeto:
 
 Sem caminhos, usa `caminhos` de `[tool.verificar_reprodutibilidade]` no
 `pyproject.toml` (procurado subindo a partir da pasta atual, ou indicado com
-`--config`); sem configuração, verifica a pasta atual. Pastas `.venv`, `venv`,
-`tests`, `__pycache__`, ocultas e arquivos `test_*.py` ficam sempre de fora.
-Sai com código 1 se houver achado.
+`--config`); esses caminhos valem a partir da pasta do pyproject.toml, e os
+informados na linha de comando, a partir da pasta atual. Sem configuração,
+verifica a pasta atual. Pastas `.venv`, `venv`, `tests`, `__pycache__`, ocultas
+e arquivos `test_*.py` ficam sempre de fora.
+Sai com código 1 se houver achado. Um caminho configurado que não existe vira
+aviso e só muda o código de saída com --estrito. Se nenhum arquivo foi
+verificado, a última linha diz isso.
 Uma linha pode ser liberada com o comentário `# reprodutivel: <motivo>`.
 """
 
@@ -146,7 +150,16 @@ def carregar_caminhos(config: Path | None, inicio: Path) -> list[Path]:
         return [Path()]
     with arquivo.open("rb") as aberto:
         tabela = tomllib.load(aberto).get("tool", {}).get(TABELA_CONFIG, {})
-    return [Path(nome) for nome in tabela.get("caminhos", ["."])]
+    base = arquivo.resolve().parent
+    return [relativo_a_pasta_atual(base / nome) for nome in tabela.get("caminhos", ["."])]
+
+
+def relativo_a_pasta_atual(caminho: Path) -> Path:
+    """Devolve `caminho` relativo à pasta atual se estiver dentro dela, para a saída ser curta."""
+    try:
+        return caminho.relative_to(Path.cwd().resolve())
+    except ValueError:
+        return caminho
 
 
 def deve_ignorar(arquivo: Path, bases: list[Path]) -> bool:
@@ -182,18 +195,28 @@ def main(argumentos: list[str] | None = None) -> int:
     leitor = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     leitor.add_argument("caminhos", nargs="*", type=Path)
     leitor.add_argument("--config", type=Path, help="pyproject.toml com os parâmetros")
+    leitor.add_argument("--estrito", action="store_true", help="avisos também falham")
     opcoes = leitor.parse_args(argumentos)
 
     caminhos = opcoes.caminhos or carregar_caminhos(opcoes.config, Path.cwd())
+    avisos = [
+        f"[aviso] caminho configurado não existe: {caminho}"
+        for caminho in caminhos
+        if not opcoes.caminhos and not caminho.exists()
+    ]
+    arquivos = listar_arquivos_python(caminhos)
     achados = [
         achado
-        for arquivo in listar_arquivos_python(caminhos)
+        for arquivo in arquivos
         for achado in verificar_codigo(arquivo, arquivo.read_text(encoding="utf-8"))
     ]
+    for aviso in avisos:
+        print(aviso)
     for achado in achados:
         print(achado.formatar())
-    print(f"{len(achados)} achado(s)")
-    return 1 if achados else 0
+    vazio = "; nenhum arquivo verificado" if not arquivos else ""
+    print(f"{len(achados)} achado(s){vazio}")
+    return 1 if achados or (opcoes.estrito and avisos) else 0
 
 
 if __name__ == "__main__":

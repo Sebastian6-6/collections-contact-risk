@@ -133,3 +133,30 @@ def test_flag_config_usa_o_arquivo_indicado(tmp_path, capsys):
     codigo = main(["--config", str(configuracao), str(tmp_path / "models")])
     assert codigo == 1
     assert "select-estrela" in capsys.readouterr().out
+
+
+def test_caminhos_configurados_valem_a_partir_da_pasta_do_pyproject(tmp_path, monkeypatch, capsys):
+    configuracao = escrever_pyproject(tmp_path)
+    modelo = tmp_path / "sql" / "models" / "gold" / "m.sql"
+    modelo.parent.mkdir(parents=True)
+    modelo.write_text("SELECT * FROM t", encoding="utf-8")
+    outra_pasta = tmp_path / "outra"
+    outra_pasta.mkdir()
+    monkeypatch.chdir(outra_pasta)
+    assert main(["--config", str(configuracao)]) == 1
+    assert "select-estrela" in capsys.readouterr().out
+
+
+def test_caminho_configurado_inexistente_vira_aviso(tmp_path, monkeypatch, capsys):
+    configuracao = escrever_pyproject(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    assert main(["--config", str(configuracao)]) == 0
+    saida = capsys.readouterr().out
+    assert "[aviso] caminho configurado não existe: sql" in saida
+    assert "nenhum arquivo verificado" in saida
+
+
+def test_estrito_falha_com_caminho_configurado_inexistente(tmp_path, monkeypatch):
+    configuracao = escrever_pyproject(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    assert main(["--config", str(configuracao), "--estrito"]) == 1

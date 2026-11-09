@@ -33,13 +33,10 @@ Run the steps in order. Go back to step 3 after any change made in steps 4–5.
    every deduplication is checked against this sentence.
 2. **Write for the reader.**
    - One CTE per logical step, named after what it holds (never `cte2`).
-   - Explicit column lists; `AS` always explicit; a blank line between logical
-     groups of columns (keys, codes and descriptions, values, flags, dates,
-     lineage) in long selects.
-   - `CAST(x AS TYPE)`; in `UNION` branches, typed nulls: `CAST(NULL AS TYPE)`.
-   - `UNION ALL` alone on its line, with a blank line before and after.
-   - A multi-line item (`CASE ... END`) indented under its own item.
-   - No trailing comma before `FROM` or after the last item of any list.
+   - Explicit column lists; `CAST(x AS TYPE)`; typed nulls in `UNION` branches
+     (`CAST(NULL AS TYPE)`), so every branch agrees on the type.
+   - Layout (casing, commas, alignment, aliases, blank lines) comes from the
+     project's style skill and linter; do not invent one.
    - Engine-specific functions go into a macro, so the dialect difference lives in
      one place (`references/otimizacao-duckdb.md`, last section, for DuckDB vs
      PostgreSQL).

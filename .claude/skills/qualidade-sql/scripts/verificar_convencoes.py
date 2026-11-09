@@ -15,9 +15,11 @@ Uso, a partir da raiz do projeto:
     python .claude/skills/qualidade-sql/scripts/verificar_convencoes.py [caminhos...]
     (opção --config arquivo para indicar outro pyproject.toml)
 
-Sem caminhos, usa o parâmetro `caminhos` (padrão: models, macros e tests). Sai com
-código 1 se houver erro. Avisos (heurísticas) não mudam o código de saída, a menos
-que se use --estrito.
+Sem caminhos, usa o parâmetro `caminhos` (padrão: models, macros e tests), que vale
+a partir da pasta do pyproject.toml; os caminhos da linha de comando valem a partir
+da pasta atual. Sai com código 1 se houver erro. Avisos (heurísticas e caminho
+configurado inexistente) não mudam o código de saída, a menos que se use --estrito.
+Se nenhum arquivo foi verificado, a última linha diz isso.
 """
 
 import argparse
@@ -51,6 +53,7 @@ class Parametros:
     proibir_janela_nomeada: bool = False
     camadas_sem_select_estrela: tuple[str, ...] = ()
     alertar_zero_como_ausencia: bool = False
+    pasta_base: Path = Path()
 
 
 def localizar_pyproject(inicio: Path) -> Path | None:
@@ -61,6 +64,14 @@ def localizar_pyproject(inicio: Path) -> Path | None:
         if arquivo_config.is_file():
             return arquivo_config
     return None
+
+
+def relativo_a_pasta_atual(caminho: Path) -> Path:
+    """Devolve `caminho` relativo à pasta atual se estiver dentro dela, para a saída ser curta."""
+    try:
+        return caminho.relative_to(Path.cwd().resolve())
+    except ValueError:
+        return caminho
 
 
 def carregar_parametros(config: Path | None, inicio: Path) -> Parametros:
@@ -75,6 +86,7 @@ def carregar_parametros(config: Path | None, inicio: Path) -> Parametros:
         tabela = tomllib.load(aberto).get("tool", {}).get(TABELA_CONFIG, {})
     padrao = Parametros()
     return Parametros(
+        pasta_base=relativo_a_pasta_atual(arquivo.resolve().parent),
         caminhos=tuple(tabela.get("caminhos", padrao.caminhos)),
         funcoes_janela_permitidas=tuple(
             nome.upper() for nome in tabela.get("funcoes_janela_permitidas", ())
@@ -281,18 +293,25 @@ def main(argumentos: list[str] | None = None) -> int:
     opcoes = leitor.parse_args(argumentos)
 
     parametros = carregar_parametros(opcoes.config, Path.cwd())
-    caminhos = opcoes.caminhos or [Path(nome) for nome in parametros.caminhos]
-    achados = [
-        achado
-        for arquivo in listar_arquivos_sql(caminhos)
-        for achado in verificar_arquivo(arquivo, parametros)
+    caminhos = opcoes.caminhos or [parametros.pasta_base / nome for nome in parametros.caminhos]
+    inexistentes = [
+        f"[aviso] caminho configurado não existe: {caminho}"
+        for caminho in caminhos
+        if not opcoes.caminhos and not caminho.exists()
     ]
+    arquivos = listar_arquivos_sql(caminhos)
+    achados = [
+        achado for arquivo in arquivos for achado in verificar_arquivo(arquivo, parametros)
+    ]
+    for aviso in inexistentes:
+        print(aviso)
     for achado in achados:
         print(achado.formatar())
 
     erros = sum(achado.gravidade == "erro" for achado in achados)
-    avisos = len(achados) - erros
-    print(f"{erros} erro(s), {avisos} aviso(s)")
+    avisos = len(achados) - erros + len(inexistentes)
+    vazio = "; nenhum arquivo verificado" if not arquivos else ""
+    print(f"{erros} erro(s), {avisos} aviso(s){vazio}")
     falhou = erros > 0 or (opcoes.estrito and avisos > 0)
     return 1 if falhou else 0
 

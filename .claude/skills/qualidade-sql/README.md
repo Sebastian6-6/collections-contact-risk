@@ -6,7 +6,7 @@ Criado por **Pedro Alexandre Piassi Silva** · [![LinkedIn: Pedro Piassi](https:
 
 ## Por que existe
 
-Um linter de SQL cuida do estilo, mas algumas regras de projeto ficam fora do alcance dele: lista de funções de janela permitidas, frame obrigatório, `SELECT *` proibido em certas camadas, zero usado como ausência. A skill não traz nenhuma regra de projeto. Ela traz o ciclo de trabalho e verificadores que leem as regras da configuração de cada projeto (`.sqlfluff` e `pyproject.toml`). Neste repositório, o mapa entre cada regra e a checagem que a garante está em `docs/qualidade-e-convencoes.md`.
+Um linter de SQL cuida do estilo, mas algumas regras de projeto ficam fora do alcance dele: lista de funções de janela permitidas, frame obrigatório, `SELECT *` proibido em certas camadas, zero usado como ausência. A skill não traz nenhuma regra de projeto. Ela traz o ciclo de trabalho e verificadores que leem as regras da configuração de cada projeto (`.sqlfluff` e `pyproject.toml`).
 
 ## O ciclo
 
@@ -27,6 +27,10 @@ Um linter de SQL cuida do estilo, mas algumas regras de projeto ficam fora do al
 | `scripts/explicar_modelo.py` | Roda `EXPLAIN ANALYZE` no SQL compilado de um modelo e destaca produto cartesiano e joins sem igualdade |
 
 Os dois têm testes (`scripts/test_*.py`) e passam no Ruff.
+
+## Testes comparativos
+
+Cada caso de teste roda com e sem a skill, no mesmo modelo (Sonnet 5.5, esforço medium), e um script confere critérios objetivos (lint, verificador, construções esperadas). Na primeira rodada (2 casos), a skill atendeu 20 de 21 critérios (95%), contra 19 de 21 (90%) sem ela. O critério perdido foi o lint de um modelo com macro própria, que o templater jinja do SQLFluff não enxerga; isso levou à recomendação do templater do dbt em `references/configuracao.md`. Na segunda rodada, o mesmo caso passou com 0 violações.
 
 ## Referências
 

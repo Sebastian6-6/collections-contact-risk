@@ -38,8 +38,8 @@ plan or the counts justify.
       could multiply rows; back it with a `unique` test on the key.
 - [ ] **Deduplicate with `ROW_NUMBER()`, not `DISTINCT`.** `DISTINCT` hides the
       question "which row wins?"; `ROW_NUMBER() OVER (PARTITION BY key ORDER BY
-      rule ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)` makes the rule explicit
-      and testable.
+      rule)` makes the rule explicit and testable (add a frame clause if the
+      project's rules require one on every window).
 - [ ] **Join keys have the same type on both sides.** Comparing `VARCHAR` with
       `INTEGER` relies on DuckDB's implicit cast, which PostgreSQL rejects, and can
       prevent a hash join. Cast once, in the CTE that prepares the key.
@@ -58,7 +58,8 @@ plan or the counts justify.
       Calendar days without generating rows: a self-join on a date range (an
       inequality join, so check the plan). When a project restricts window
       functions, the portable forms are: moving average as
-      `CAST(SUM(x) OVER w AS NUMERIC) / SUM(1) OVER w` with the same frame, and gaps
+      `CAST(SUM(x) OVER (...) AS NUMERIC) / SUM(1) OVER (...)` with the same frame
+      written inside both `OVER (...)` (some projects forbid named windows), and gaps
       between dates with `ROW_NUMBER()` per series plus a self-join on `n = n + 1`
       instead of `LAG()`.
 - [ ] **Parse dirty text defensively.** DuckDB may evaluate a `CAST` before the
