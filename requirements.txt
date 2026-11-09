@@ -46,6 +46,7 @@ dbt-core==1.12.6
     # via
     #   -r requirements.in
     #   dbt-duckdb
+    #   sqlfluff-templater-dbt
 dbt-core-experimental-parser==2.0.11
     # via dbt-core
 dbt-duckdb==1.11.1
@@ -80,8 +81,11 @@ jinja2==3.1.6
     #   dbt-common
     #   dbt-core
     #   diff-cover
+    #   jinja2-simple-tags
     #   metricflow
     #   sqlfluff
+jinja2-simple-tags==0.6.1
+    # via sqlfluff-templater-dbt
 jsonschema==4.26.0
     # via
     #   dbt-common
@@ -192,6 +196,10 @@ six==1.17.0
 snowplow-tracker==1.1.0
     # via dbt-core
 sqlfluff==4.5.0
+    # via
+    #   -r requirements.in
+    #   sqlfluff-templater-dbt
+sqlfluff-templater-dbt==4.5.0
     # via -r requirements.in
 sqlglot==30.30.0
     # via metricflow

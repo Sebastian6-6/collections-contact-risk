@@ -4,7 +4,15 @@ from pathlib import Path
 
 import pytest
 
-from verificar_convencoes import verificar_arquivo
+from verificar_convencoes import Parametros, carregar_parametros, main, verificar_arquivo
+
+PROJETO = Parametros(
+    funcoes_janela_permitidas=("ROW_NUMBER", "SUM"),
+    exigir_frame_rows=True,
+    proibir_janela_nomeada=True,
+    camadas_sem_select_estrela=("silver", "gold"),
+    alertar_zero_como_ausencia=True,
+)
 
 
 def gravar_modelo(pasta: Path, camada: str, sql: str) -> Path:
@@ -14,8 +22,8 @@ def gravar_modelo(pasta: Path, camada: str, sql: str) -> Path:
     return arquivo
 
 
-def regras_encontradas(arquivo: Path) -> list[str]:
-    return sorted(achado.regra for achado in verificar_arquivo(arquivo))
+def regras_encontradas(arquivo: Path, parametros: Parametros = PROJETO) -> list[str]:
+    return sorted(achado.regra for achado in verificar_arquivo(arquivo, parametros))
 
 
 def test_janela_permitida_com_frame_passa(tmp_path):
@@ -69,7 +77,7 @@ def test_count_estrela_nao_e_select_estrela(tmp_path):
 
 def test_zero_como_ausencia_e_aviso(tmp_path):
     sql = "SELECT COALESCE(vl_renda, 0) AS vl_renda, COALESCE(nome, 'x') AS nome FROM t"
-    achados = verificar_arquivo(gravar_modelo(tmp_path, "silver", sql))
+    achados = verificar_arquivo(gravar_modelo(tmp_path, "silver", sql), PROJETO)
     assert [(achado.regra, achado.gravidade) for achado in achados] == [
         ("zero-como-ausencia", "aviso")
     ]
@@ -77,8 +85,51 @@ def test_zero_como_ausencia_e_aviso(tmp_path):
 
 def test_comentarios_sao_ignorados_e_linha_e_preservada(tmp_path):
     sql = "-- LAG(x) OVER ()\n{# SELECT * #}\nSELECT\n  LAG(x) OVER (ORDER BY d) AS y\nFROM t"
-    achados = verificar_arquivo(gravar_modelo(tmp_path, "gold", sql))
+    achados = verificar_arquivo(gravar_modelo(tmp_path, "gold", sql), PROJETO)
     assert {(achado.regra, achado.linha) for achado in achados} == {
         ("janela-nao-permitida", 4),
         ("janela-sem-frame", 4),
     }
+
+
+def test_sem_configuracao_o_comportamento_e_neutro(tmp_path):
+    sql = "SELECT *, LAG(x) OVER w, COALESCE(v, 0) FROM t WINDOW w AS (ORDER BY d)"
+    modelo = gravar_modelo(tmp_path, "gold", sql)
+    assert verificar_arquivo(modelo, Parametros()) == []
+
+
+def test_parametros_padrao_dos_caminhos():
+    assert Parametros().caminhos == ("models", "macros", "tests")
+
+
+def escrever_pyproject(pasta: Path) -> Path:
+    arquivo = pasta / "pyproject.toml"
+    arquivo.write_text(
+        "[tool.verificar_convencoes_sql]\n"
+        'caminhos = ["sql"]\n'
+        'funcoes_janela_permitidas = ["SUM"]\n'
+        "exigir_frame_rows = true\n"
+        'camadas_sem_select_estrela = ["gold"]\n',
+        encoding="utf-8",
+    )
+    return arquivo
+
+
+def test_carrega_parametros_do_pyproject_subindo_pastas(tmp_path):
+    escrever_pyproject(tmp_path)
+    fundo = tmp_path / "a" / "b"
+    fundo.mkdir(parents=True)
+    parametros = carregar_parametros(None, fundo)
+    assert parametros.caminhos == ("sql",)
+    assert parametros.funcoes_janela_permitidas == ("SUM",)
+    assert parametros.exigir_frame_rows is True
+    assert parametros.proibir_janela_nomeada is False
+    assert parametros.camadas_sem_select_estrela == ("gold",)
+
+
+def test_flag_config_usa_o_arquivo_indicado(tmp_path, capsys):
+    configuracao = escrever_pyproject(tmp_path)
+    gravar_modelo(tmp_path, "gold", "SELECT * FROM t")
+    codigo = main(["--config", str(configuracao), str(tmp_path / "models")])
+    assert codigo == 1
+    assert "select-estrela" in capsys.readouterr().out

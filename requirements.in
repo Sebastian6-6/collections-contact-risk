@@ -6,5 +6,6 @@ dbt-duckdb>=1.11,<1.12
 duckdb>=2.0,<2.1
 pyyaml
 sqlfluff>=4.5,<4.6
+sqlfluff-templater-dbt>=4.5,<4.6
 ruff>=0.17,<0.18
 pytest>=9.2,<10

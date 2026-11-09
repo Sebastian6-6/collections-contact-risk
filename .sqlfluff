@@ -1,15 +1,27 @@
+# Convenções SQL do projeto aplicadas pelo SQLFluff. A origem de cada regra (case ou projeto)
+# está em docs/qualidade-e-convencoes.md.
 [sqlfluff]
 dialect = postgres
-templater = jinja
+# O templater do dbt compila o modelo como o dbt (macros do projeto, ref, source, target).
+# O templater jinja simples não enxerga macros do projeto e quebra o lint.
+templater = dbt
 max_line_length = 99
+# SELECT * por camada é checado por verificar_convencoes.py, que sabe a camada pela pasta.
 exclude_rules = AM04
 
-[sqlfluff:templater:jinja]
-apply_dbt_builtins = True
+[sqlfluff:templater:dbt]
+project_dir = .
+profiles_dir = .
 
 [sqlfluff:indentation]
 indent_unit = space
 tab_space_size = 2
+# Permite "WHERE 1 = 1" com um AND por linha, sem quebrar a linha depois do WHERE.
+implicit_indents = allow
+
+[sqlfluff:layout:type:comma]
+# Vírgula no começo da linha (estilo do dono do projeto).
+line_position = leading
 
 [sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = upper
@@ -22,6 +34,11 @@ extended_capitalisation_policy = upper
 
 [sqlfluff:rules:capitalisation.literals]
 capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+# CTEs no padrão tNomeCte são a única exceção ao snake_case minúsculo.
+ignore_words_regex = ^t[A-Z][A-Za-z0-9]*$
 
 [sqlfluff:rules:convention.casting_style]
 preferred_type_casting_style = cast

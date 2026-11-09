@@ -55,8 +55,20 @@ Regras que valem só para uma etapa ou um tópico de trabalho não entram aqui: 
 - Transformações em dbt Core, com o adaptador dbt-duckdb.
 - O SQL dos modelos fica no subconjunto compatível com PostgreSQL, como pede a convenção do case. As diferenças entre DuckDB e PostgreSQL a evitar estão em `.context/converted/referencias-duckdb-postgresql-compatibility-2-0.md`.
 - As versões exatas ficam só no `requirements.txt`.
-- Todo código Python segue as convenções de `.claude/skills/convencoes-codigo-pessoal/SKILL.md`.
+- Todo código Python e SQL segue as convenções de `.claude/skills/convencoes-codigo-pessoal/SKILL.md`, com as adaptações da seção "Estilo do código".
 - Reprodutibilidade: nenhuma tabela guarda horário de execução (como um `process_time`). A rastreabilidade de cada linha vem do nome, do número da linha e do hash do arquivo de origem, de modo que duas execuções a partir do mesmo estado inicial produzem exatamente o mesmo resultado.
+
+### Estilo do código
+
+As skills de qualidade (`.claude/skills/qualidade-sql` e `qualidade-python`) são genéricas; as regras deste projeto chegam a elas pela configuração da raiz (`.sqlfluff`, `ruff.toml` e as seções `[tool.*]` do `pyproject.toml`). O mapa entre cada regra e a checagem que a garante está em `docs/qualidade-e-convencoes.md`.
+
+- **SQL:** o estilo pessoal, adaptado ao case.
+  - Recuo de 2 espaços, como pede a convenção do case. Por isso o alinhamento em colunas do estilo pessoal (vírgulas alinhadas, `FROM` à direita, `AS` numa coluna fixa) não se aplica aqui.
+  - Vírgula no começo da linha; `WHERE 1 = 1` seguido de um `AND` por predicado.
+  - CTEs no padrão `tNomeCte` (`tBase`, `tDevedoresValidos`). O case pede só um nome descritivo para cada CTE, e o PostgreSQL aceita o nome sem aspas; é a única exceção ao snake_case.
+  - Valem as demais regras do estilo pessoal: `AS` explícito, linha em branco entre grupos de colunas, `UNION ALL` sozinho na linha, `CAST(NULL AS TIPO)` nos `UNION`, nenhuma vírgula sobrando.
+  - O SQLFluff, com o templater do dbt, aplica essas regras.
+- **Python:** o estilo pessoal inteiro, inclusive o alinhamento vertical de atribuições e argumentos relacionados. Como o formatador desfaria esse alinhamento, o projeto roda `ruff check`, e não `ruff format`.
 
 ### Camadas e nomes
 
@@ -66,7 +78,7 @@ Regras que valem só para uma etapa ou um tópico de trabalho não entram aqui: 
   - **gold:** une as fontes, resolve conflitos e expõe o modelo dimensional.
 - Schemas no banco: `bronze_<fonte>`, `silver_<fonte>` e `gold`. A tabela leva só o nome da entidade (`bronze_alfa.devedores`).
 - O dbt exige nomes de modelo únicos, por isso o arquivo leva camada e fonte (`models/bronze/alfa/bronze_alfa_devedores.sql`). Schema e nome da tabela saem da pasta, pelas macros `generate_schema_name` e `generate_alias_name`.
-- Nomes com um único `_` entre as palavras, sem prefixos de camada (`stg_`, `int_` e similares).
+- Nomes de tabela, coluna e arquivo com um único `_` entre as palavras, sem prefixos de camada (`stg_`, `int_` e similares). As CTEs seguem o padrão `tNomeCte` (ver "Estilo do código").
 - Na gold, só dois prefixos de tabela: `dim_` para dimensões e `ft_` para fatos.
 
 ### Colunas da gold

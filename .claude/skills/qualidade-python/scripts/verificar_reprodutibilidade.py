@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
-"""Aponta, no código Python da pipeline, o que pode quebrar a reprodutibilidade.
+"""Aponta, no código Python, o que pode quebrar a reprodutibilidade.
 
-O enunciado exige que a pipeline rode do estado inicial e produza exatamente os
-mesmos resultados a cada rodada. Três coisas costumam quebrar isso sem que
+Uma pipeline reprodutível roda do estado inicial e produz exatamente os mesmos
+resultados a cada rodada. Três coisas costumam quebrar isso sem que
 nenhum linter reclame: ler o relógio, sortear valores e percorrer arquivos numa
 ordem que depende do sistema operacional. O Ruff não trata nenhuma das três como
 erro de projeto; este script trata.
 
 Uso, a partir da raiz do projeto:
     python .claude/skills/qualidade-python/scripts/verificar_reprodutibilidade.py [caminhos...]
+    (opção --config arquivo para indicar outro pyproject.toml)
 
-Sem caminhos, verifica ingestion/ e pipeline.py. Sai com código 1 se houver achado.
+Sem caminhos, usa `caminhos` de `[tool.verificar_reprodutibilidade]` no
+`pyproject.toml` (procurado subindo a partir da pasta atual, ou indicado com
+`--config`); sem configuração, verifica a pasta atual. Pastas `.venv`, `venv`,
+`tests`, `__pycache__`, ocultas e arquivos `test_*.py` ficam sempre de fora.
+Sai com código 1 se houver achado.
 Uma linha pode ser liberada com o comentário `# reprodutivel: <motivo>`.
 """
 
 import argparse
 import ast
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-CAMINHOS_PADRAO = ("ingestion", "pipeline.py")
+TABELA_CONFIG = "verificar_reprodutibilidade"
+PASTAS_IGNORADAS = {".venv", "venv", "tests", "__pycache__"}
 MARCA_LIBERACAO = "# reprodutivel:"
 
 CHAMADAS_DE_RELOGIO = {
@@ -122,6 +129,42 @@ def verificar_codigo(arquivo: Path, codigo: str) -> list[Achado]:
     )
 
 
+def localizar_pyproject(inicio: Path) -> Path | None:
+    """Sobe a partir de `inicio` até achar um pyproject.toml; None se não houver."""
+    inicio = inicio.resolve()
+    for pasta in (inicio, *inicio.parents):
+        arquivo_config = pasta / "pyproject.toml"
+        if arquivo_config.is_file():
+            return arquivo_config
+    return None
+
+
+def carregar_caminhos(config: Path | None, inicio: Path) -> list[Path]:
+    """Lê `caminhos` de `[tool.verificar_reprodutibilidade]`; o padrão é a pasta atual."""
+    arquivo = config or localizar_pyproject(inicio)
+    if arquivo is None:
+        return [Path()]
+    with arquivo.open("rb") as aberto:
+        tabela = tomllib.load(aberto).get("tool", {}).get(TABELA_CONFIG, {})
+    return [Path(nome) for nome in tabela.get("caminhos", ["."])]
+
+
+def deve_ignorar(arquivo: Path, bases: list[Path]) -> bool:
+    """True para testes, ambientes virtuais, caches e pastas ocultas.
+
+    Só as pastas abaixo do caminho pedido contam, para não excluir um projeto
+    inteiro por causa da pasta onde ele está.
+    """
+    if arquivo.name.startswith("test_"):
+        return True
+    partes = arquivo.parts
+    for base in bases:
+        if base.is_dir() and base in arquivo.parents:
+            partes = arquivo.relative_to(base).parts
+            break
+    return any(parte in PASTAS_IGNORADAS or parte.startswith(".") for parte in partes[:-1])
+
+
 def listar_arquivos_python(caminhos: list[Path]) -> list[Path]:
     arquivos = set()
     for caminho in caminhos:
@@ -129,7 +172,7 @@ def listar_arquivos_python(caminhos: list[Path]) -> list[Path]:
             arquivos.update(caminho.rglob("*.py"))  # reprodutivel: ordenado no return
         elif caminho.suffix == ".py" and caminho.exists():
             arquivos.add(caminho)
-    return sorted(arquivo for arquivo in arquivos if "tests" not in arquivo.parts)
+    return sorted(arquivo for arquivo in arquivos if not deve_ignorar(arquivo, caminhos))
 
 
 def main(argumentos: list[str] | None = None) -> int:
@@ -138,9 +181,10 @@ def main(argumentos: list[str] | None = None) -> int:
     sys.stderr.reconfigure(encoding="utf-8")
     leitor = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     leitor.add_argument("caminhos", nargs="*", type=Path)
+    leitor.add_argument("--config", type=Path, help="pyproject.toml com os parâmetros")
     opcoes = leitor.parse_args(argumentos)
 
-    caminhos = opcoes.caminhos or [Path(nome) for nome in CAMINHOS_PADRAO]
+    caminhos = opcoes.caminhos or carregar_caminhos(opcoes.config, Path.cwd())
     achados = [
         achado
         for arquivo in listar_arquivos_python(caminhos)

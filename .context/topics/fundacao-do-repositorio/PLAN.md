@@ -94,7 +94,7 @@ Base no enunciado:
 - **Pronto quando:**
   - `pip check` limpo;
   - `dbt --version` mostra 1.12.x com duckdb 1.11.x;
-  - `ruff check .` e `ruff format --check .` limpos;
+  - `ruff check .` limpo (o projeto não usa `ruff format`: o estilo pessoal permite alinhamento vertical);
   - os 24 testes das skills passam com `python -m pytest -q`.
 - **Se falhar:**
   - se alguma dependência não tiver wheel para 3.14, registrar qual é e aplicar o plano B de D1;
@@ -183,7 +183,7 @@ Base no enunciado:
 - **Quem:** `engenheiro-python` (Sonnet 5.5 · medium).
 - **Fazer:**
   1. `.github/workflows/ci.yml`, em push e pull request para `develop` e `main`, Ubuntu e Python 3.14. Passos:
-     instalar pelo `requirements.txt`, `ruff check`, `ruff format --check`,
+     instalar pelo `requirements.txt`, `ruff check`, SQLFluff (templater do dbt),
      `.claude/skills/qualidade-sql/scripts/verificar_convencoes.py`,
      `.claude/skills/qualidade-python/scripts/verificar_reprodutibilidade.py`, `pytest` e `dbt parse --use-v2-parser`.
   2. `.github/CODEOWNERS` (D5).

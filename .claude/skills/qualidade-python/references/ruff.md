@@ -1,13 +1,15 @@
 # Ruff configuration
 
 Ruff replaces flake8, black and isort with one tool: a linter (PEP 8 through the
-pycodestyle rules, plus bug and simplification rules) and a formatter.
+pycodestyle rules, plus bug and simplification rules) and an optional formatter.
+The formatter normalizes spacing, so it undoes manual vertical alignment: a project
+that allows alignment runs only `ruff check`.
 
-## `ruff.toml` validated for this project
+## A validated starting point
 
-Tested with Ruff 0.17.4 on the skill scripts (no findings, with an equivalent
-`src` glob) and on Portuguese identifiers, strings and comments with accents (no
-findings). Put it at the repository root.
+Tested with Ruff 0.17.4 on Portuguese identifiers, strings and comments with
+accents (no findings). Put it at the repository root and adjust `target-version`
+and `src` to the project.
 
 ```toml
 line-length = 99
