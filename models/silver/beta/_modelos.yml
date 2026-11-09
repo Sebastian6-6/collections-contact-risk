@@ -56,8 +56,9 @@ models:
       - name: nome_completo
         description: >-
           Nome do devedor, sem espaços nas pontas. Vem de `nome_completo`, `nome` ou `nome_devedor`
-          do JSON, a primeira preenchida (o nome fixo é `nome_completo`, o mesmo do alfa). Nomes
-          com caracteres corrompidos na origem passam como vieram.
+          do JSON, a primeira preenchida (o nome fixo é `nome_completo`, o mesmo do alfa). Os nomes
+          passam como vieram, sem correção de caracteres (U+FFFD: 0 ocorrências nos 92 arquivos,
+          medido em 2026-11-09).
       - name: data_nascimento
         description: "Data de nascimento (ISO ou dd/mm/aaaa na origem); `NULL` quando vazia ou inexistente no calendário."
       - name: cnpj_empregador

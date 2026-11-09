@@ -140,7 +140,7 @@ ORDER BY data_atualizacao DESC NULLS LAST, data_entrega DESC NULLS LAST, _linha 
 
 Na gama, `dt_ref` foi medido antes de ser usado como data de atualização: nenhuma das 19.505 linhas lidas é posterior à data de entrega. Nas entregas diárias (9.505 linhas), 8.791 trazem a data de entrega e 714 trazem de 1 a 3 dias antes (commit d6bb9e4).
 
-**Reenvio da gama de 15/09.** O original tem 85 linhas, e a última está cortada (1 linha ilegível); o reenvio traz o conteúdo completo. Como os dois têm a mesma data no nome, o desempate final é a linha. Medi em 2026-11-09: 40 versões vencedoras vêm do original, e as 40 são idênticas, byte a byte, a uma linha do reenvio. O desempate não muda o conteúdo.
+**Reenvio da gama de 15/09.** O original tem 85 linhas, e a última está cortada (1 linha ilegível); o reenvio traz o conteúdo completo. Como os dois têm a mesma data no nome, o desempate é o `_arquivo` (o reenvio, de nome maior, vence) e depois a linha. Medi em 2026-11-09, antes de pôr o `_arquivo` no desempate: 40 versões vencedoras vinham do original, e as 40 são idênticas, byte a byte, a uma linha do reenvio, então o desempate não muda o conteúdo. Depois dele, as 200 versões vencedoras de 15/09 vêm do reenvio.
 
 ### 5.4 A data 2025-09-01 (pendente de decisão)
 
@@ -150,15 +150,18 @@ Cada provedor tem um grupo de cerca de 370 registros com data de atualização 0
 
 **O que foi medido, e onde as medições divergem:**
 
-| Medição | Alfa | Beta | Gama | Origem |
-|---|---|---|---|---|
-| Vencedor muda se a entrega ordenar antes da atualização | 0 | 1 | 1 | reproduzida em 2026-11-09 (beta igual ao commit ddc2107) |
-| Vencedor muda se 2025-09-01 for tratada como ausente (`NULL`, vai para o fim) | 0 | — | 35 | registrada nos passos 4.4 e 4.6 (commit d6bb9e4) |
-| A mesma medição, refeita | 5 | 2 | 5 | consulta abaixo, 2026-11-09 |
+| Medição (vencedor diferente do da regra do modelo, com `_arquivo DESC` no desempate) | Alfa | Beta | Gama |
+|---|---|---|---|
+| Documentos distintos | 11.459 | 11.322 | 11.436 |
+| A sentinela 2025-09-01 é tratada como ausente (`NULL`, vai para o fim) | 5 | 2 | 5 |
+| A entrega ordena antes da atualização | 0 | 1 | 1 |
+| Só entrega, arquivo e linha (a atualização não entra) | 62 | 70 | 59 |
 
-Não consegui reproduzir o 0 do alfa nem o 35 da gama. Testei outras três definições (a sentinela trocada pela data de entrega; a sentinela por último e a entrega primeiro; a entrega primeiro com a sentinela nula), e nenhuma chega a 35. Na gama, só 13 devedores têm, no histórico, uma linha com a sentinela e outra sem, o que limita qualquer medição desse tipo dentro do histórico. Para a revisão do tópico, ficam registrados os dois conjuntos de números e a consulta que gerou o segundo.
+Reproduzido em 2026-11-09 pelas consultas `analyses/medicao_ordenacao_devedores_alfa.sql`, `analyses/medicao_ordenacao_devedores_beta.sql` e `analyses/medicao_ordenacao_devedores_gama.sql` (`dbt show --select medicao_ordenacao_devedores_<fonte>`), uma por fonte, com a regra do modelo e o desempate por `_arquivo`.
 
-Nos dois casos o efeito é pequeno (no máximo 5 devedores por fonte, na medição reproduzida), mas **a regra continua pendente de decisão**: manter a data como veio e tratá-la na gold, ou ordenar com a sentinela como data desconhecida, sem mudar nenhuma coluna. Nenhuma das duas está decidida.
+**Números anteriores que não se reproduzem.** Os passos 4.4 e 4.6 (commit d6bb9e4) registraram 35 documentos da gama (e 0 do alfa) para a sentinela, e 87 da gama para "ordenar por `dt_ref` muda o vencedor frente à ordem só por entrega". Nenhum dos dois se reproduz: a medição da sentinela dá 5 no alfa, 2 no beta e 5 na gama, e a de "só entrega" dá 59 na gama. O 60 que apareceu numa refeita anterior vinha dos empates entre o original e o reenvio da gama de 15/09 (58 documentos), que o desempate pelo arquivo eliminou. A afirmação de que tratar a sentinela como ausente "não muda a escolha" também é falsa: muda em até 5 documentos por fonte.
+
+O efeito é pequeno (no máximo 5 devedores por fonte na sentinela), mas **a regra continua pendente de decisão do autor**: manter a data como veio e tratá-la na gold, ou ordenar com a sentinela como data desconhecida, sem mudar nenhuma coluna. Nenhuma das duas está decidida.
 
 Consulta (rodar com `dbt show --inline`, trocando `alfa` pela fonte; no beta a partição é `tipo_documento, documento`):
 
@@ -281,6 +284,6 @@ Estas regras foram implementadas nos passos 4.3 a 4.7 e ainda não foram confirm
 
 - **Versões PostgreSQL das macros.** As macros com `adapter.dispatch` têm uma versão DuckDB, executada e testada, e uma versão PostgreSQL escrita só a partir da documentação, nunca executada (não há instância PostgreSQL no projeto): `json_ou_nulo` (`IS JSON`, `CAST AS JSONB`), `data_iso_ou_nulo` e `timestamp_ou_nulo` (`pg_input_is_valid`, PostgreSQL 16 ou mais novo), `json_texto` e `json_abrir_lista` (`jsonb_array_elements ... WITH ORDINALITY`). `STRING_TO_ARRAY` com `UNNEST` existe nos dois motores, mas só rodou no DuckDB.
 - **Testes genéricos fora do lint.** O SQLFluff com o templater do dbt não analisa os arquivos de `{% test %}` em `tests/generic/`. O uso de `graph.sources` nesses testes foi verificado só pela execução, não na documentação do dbt.
-- **Números dos commits que não reproduzi:** o 0 do alfa e o 35 da gama para a data 2025-09-01 (seção 5.4); a medição de que ordenar a gama por `dt_ref` muda 87 vencedores frente à ordem só por entrega (refeita com `data_entrega DESC, _linha DESC`, deu 60; a definição usada no commit não está registrada).
+- **Números dos commits que não reproduzi:** o 0 do alfa e o 35 da gama para a data 2025-09-01, e os 87 vencedores da gama que mudariam frente à ordem só por entrega (seção 5.4). Os números reproduzidos estão nas consultas de `analyses/`; o 60 de uma refeita anterior vinha dos 58 empates entre original e reenvio, já eliminados.
 - **Fuso horário** da `data_hora` da cobrança: a origem não traz fuso, e o projeto assume a hora local da operação sem confirmação.
 - **Desempenho:** os tempos (pipeline de cerca de 6,5 s, gravação em lote de 53 a 74 vezes mais rápida) foram medidos numa única máquina.

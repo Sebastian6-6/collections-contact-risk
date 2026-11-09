@@ -27,10 +27,12 @@ models:
       data de entrega e 714 trazem 1 a 3 dias antes (mediana 0). No histórico a data vai de
       2025-01-27 a 2026-08, e 372 linhas trazem 2025-09-01, data que não aparece em nenhuma entrega
       diária. Com 5.391 documentos em mais de uma linha, ordenar por `dt_ref` escolhe outra linha
-      que não a mais recente por entrega em 87 dos 11.436 documentos; tratar 2025-09-01 como
-      ausente mudaria a escolha em 35. A escolha é usar `dt_ref` na ordenação, porque nunca vem do
-      futuro e acompanha a entrega nas diárias, e deixar 2025-09-01 como veio (S8); o tratamento
-      dessa data é da gold. A suposição de que `dt_ref` é a data de atualização do registro está
+      que não a mais recente por entrega em 59 dos 11.436 documentos; tratar 2025-09-01 como
+      ausente mudaria a escolha em 5 (consulta `analyses/medicao_ordenacao_devedores_gama.sql`;
+      os 87 e 35 anteriores não se reproduzem). A regra da sentinela continua pendente de
+      decisão do autor. Hoje `dt_ref` ordena porque nunca vem do futuro e acompanha
+      a entrega nas diárias, e 2025-09-01 fica como veio (S8); quem trata essa data é a decisão
+      pendente. A suposição de que `dt_ref` é a data de atualização do registro está
       no contrato do provedor.
     columns:
       - name: documento
