@@ -1,0 +1,19 @@
+[tool.pytest.ini_options]
+testpaths = [
+  ".claude/skills/qualidade-python/scripts",
+  ".claude/skills/qualidade-sql/scripts",
+  "tests",
+]
+
+# Regras deste projeto (convenções do case no AGENTS.md), lidas pelo script genérico da skill qualidade-sql.
+[tool.verificar_convencoes_sql]
+caminhos = ["models", "macros", "tests"]
+funcoes_janela_permitidas = ["ROW_NUMBER", "SUM"]
+exigir_frame_rows = true
+proibir_janela_nomeada = true
+camadas_sem_select_estrela = ["silver", "gold"]
+alertar_zero_como_ausencia = true
+
+# Regras deste projeto (convenções do case no AGENTS.md), lidas pelo script genérico da skill qualidade-python.
+[tool.verificar_reprodutibilidade]
+caminhos = ["ingestion", "pipeline.py", "scripts"]

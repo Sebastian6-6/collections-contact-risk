@@ -3,14 +3,14 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "escreve o modelo dbt models/silver/beta/silver_beta_devedores.sql. a bronze bronze_beta_devedores tem uma linha por registro recebido com as colunas linha_json (texto), nm_arquivo e nu_linha. extrai cpf (pode vir em cpf ou em documento.valor quando documento.tipo = 'CPF'), nome (nome, nome_completo ou nome_devedor) e atualizado_em (ISO com fuso ou epoch em ms), descarta linhas com json invalido e deixa so o registro mais recente por cpf. renda pode vir como numero, texto 'R$ 9241,83' ou null",
-      "expected_output": "SQL em MAIÚSCULAS, uma CTE por etapa, só ROW_NUMBER com ROWS BETWEEN para deduplicar, sem SELECT *, CAST em vez de ::, renda ausente como NULL (nunca 0), RG não vira CPF, e evidência de lint/verificação",
+      "prompt": "escreve o modelo dbt models/silver/crm/silver_crm_clientes.sql. a bronze bronze_crm_clientes tem uma linha por registro recebido com as colunas linha_json (texto), nm_arquivo e nu_linha. extrai o documento (pode vir em documento ou em identificacao.numero quando identificacao.tipo = 'CPF'), o nome (nome ou nome_completo) e atualizado_em (ISO com fuso ou epoch em ms). linha com json invalido nao pode derrubar a consulta. deixa so o registro mais recente por documento. a renda pode vir como numero, texto 'R$ 1.234,56' ou null",
+      "expected_output": "Segue as regras e a configuração do projeto (lint e verificador limpos); granularidade declarada; uma CTE por etapa; deduplicação explícita e determinística; JSON inválido tratado sem abortar a consulta (TRY_CAST ou equivalente isolado em macro); documento de outro tipo não vira CPF; renda ausente fica NULL; evidência dos comandos e das premissas",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "preciso de um modelo na gold que calcule, por provedor e por dia de arquivo, o volume recebido e a media movel de 7 dias para o monitoramento de ingestao. a base é uma tabela com nm_provedor, dt_arquivo e qt_linhas. e ve se da pra deixar a query eficiente",
-      "expected_output": "Média móvel com SUM()/SUM(1) e ROWS BETWEEN 6 PRECEDING AND CURRENT ROW (sem AVG/LAG como janela), sem gerar dias ausentes, MAIÚSCULAS, e menção a medir com EXPLAIN ANALYZE em vez de otimizar às cegas",
+      "prompt": "preciso de um modelo na gold que calcule, por origem e por dia de arquivo, o volume recebido e a media movel de 7 dias para o monitoramento de ingestao. a base é uma tabela com nm_origem, dt_arquivo e qt_linhas. e ve se da pra deixar a query eficiente",
+      "expected_output": "Média móvel com o frame declarado e dentro das funções de janela que o projeto permite; diz se a janela conta 7 linhas ou 7 dias corridos; não gera dias ausentes; evita divisão inteira; mede o plano com EXPLAIN ANALYZE em vez de otimizar às cegas",
       "files": []
     }
   ]

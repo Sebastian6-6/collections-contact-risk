@@ -1,0 +1,14 @@
+line-length = 99
+target-version = "py314"
+src = [".", "ingestion", ".claude/skills/*/scripts"]
+extend-exclude = [
+  ".claude/skills/context-manager",
+  ".claude/skills/maintaining-dbt-documentation",
+  ".claude/skills/using-dbt-for-analytics-engineering/scripts/review_run_results.md",
+]
+
+[lint]
+select = ["E", "W", "F", "I", "B", "SIM", "UP", "N", "C90", "PTH", "DTZ", "RUF"]
+
+[lint.mccabe]
+max-complexity = 10

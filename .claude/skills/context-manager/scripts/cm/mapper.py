@@ -93,6 +93,8 @@ def scan(root: Path, skip: set[str], max_depth: int) -> list[Row]:
         row = Row(folder=rel)
         for name in sorted(f for f in filenames if not f.startswith(".")):
             path = Path(current) / name
+            if path.is_symlink():  # the map lists only real repository files
+                continue
             try:
                 stat = path.stat()
             except OSError:

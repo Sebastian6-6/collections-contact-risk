@@ -1,0 +1,52 @@
+# Garante que um PR que quebre qualquer regra de docs/qualidade-e-convencoes.md
+# (lint, convenções de SQL, reprodutibilidade, testes ou compatibilidade do dbt)
+# não chegue à develop nem à main.
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  verificacoes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Instalar o Python 3.14
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Instalar o uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Instalar as dependências fixadas
+        run: uv pip install --system -r requirements.txt
+
+      - name: Lint do Python (ruff)
+        run: ruff check .
+
+      - name: Lint do SQL (SQLFluff com templater do dbt)
+        run: sqlfluff lint models
+
+      - name: Convenções do SQL que nenhum linter cobre
+        run: python .claude/skills/qualidade-sql/scripts/verificar_convencoes.py
+
+      - name: Reprodutibilidade do Python
+        run: python .claude/skills/qualidade-python/scripts/verificar_reprodutibilidade.py
+
+      - name: Testes (pytest)
+        run: python -m pytest -q
+
+      - name: Parse do dbt
+        run: dbt parse
+
+      - name: Parse do dbt com o parser v2
+        run: dbt parse --use-v2-parser

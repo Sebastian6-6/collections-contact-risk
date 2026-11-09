@@ -1,11 +1,11 @@
 # Optimizing SQL on DuckDB without leaving the PostgreSQL subset
 
 Based on the DuckDB 2.0 documentation (CTE materialization, EXPLAIN ANALYZE,
-join operations, performance guide) and the PostgreSQL compatibility page kept in
-`.context/converted/referencias-duckdb-postgresql-compatibility-2-0.md`.
+join operations, performance guide, PostgreSQL compatibility page). Applies to any
+project that runs on DuckDB and wants its SQL to stay portable to PostgreSQL.
 
-The data here is small. The point of this checklist is not saving seconds; it is
-showing the habits that matter when the same models run on large volumes.
+On small data the point is not saving seconds; it is keeping the habits that
+matter when the same models run on large volumes.
 
 ## Contents
 1. How to read the plan
@@ -38,8 +38,8 @@ plan or the counts justify.
       could multiply rows; back it with a `unique` test on the key.
 - [ ] **Deduplicate with `ROW_NUMBER()`, not `DISTINCT`.** `DISTINCT` hides the
       question "which row wins?"; `ROW_NUMBER() OVER (PARTITION BY key ORDER BY
-      rule ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)` makes the rule explicit
-      and testable.
+      rule)` makes the rule explicit and testable (add a frame clause if the
+      project's rules require one on every window).
 - [ ] **Join keys have the same type on both sides.** Comparing `VARCHAR` with
       `INTEGER` relies on DuckDB's implicit cast, which PostgreSQL rejects, and can
       prevent a hash join. Cast once, in the CTE that prepares the key.
@@ -52,9 +52,21 @@ plan or the counts justify.
       the silver layer, once, and join on the stored value.
 - [ ] **Aggregations at the grain they are needed.** Aggregate before joining when
       the join only needs one row per key.
-- [ ] **Window functions only `ROW_NUMBER()`/`SUM()` with `ROWS BETWEEN`.** Moving
-      average: `SUM(x) OVER w / SUM(1) OVER w` with the same frame. Day gaps:
-      `ROW_NUMBER()` per series and a self-join on `n = n + 1`.
+- [ ] **Say what a window frame counts.** `ROWS BETWEEN 6 PRECEDING AND CURRENT
+      ROW` covers the last 7 *rows*, not the last 7 calendar days: with missing
+      days it reaches further back. Write down which one the requirement means.
+      Calendar days without generating rows: a self-join on a date range (an
+      inequality join, so check the plan). When a project restricts window
+      functions, the portable forms are: moving average as
+      `CAST(SUM(x) OVER (...) AS NUMERIC) / SUM(1) OVER (...)` with the same frame
+      written inside both `OVER (...)` (some projects forbid named windows), and gaps
+      between dates with `ROW_NUMBER()` per series plus a self-join on `n = n + 1`
+      instead of `LAG()`.
+- [ ] **Parse dirty text defensively.** DuckDB may evaluate a `CAST` before the
+      `WHERE` that was meant to filter the bad rows out: one truncated JSON line
+      made `CAST(linha AS JSON)` abort the whole query (observed on DuckDB 2.0,
+      2026-11-09). Use `TRY_CAST` inside a macro (with the PostgreSQL equivalent,
+      `IS JSON` from version 16, in the same macro) so dirty rows become `NULL`.
 
 ## 3. CTEs: when they cost something
 
@@ -66,8 +78,8 @@ materialized by default, but DuckDB **inlines** a CTE when all of these hold:
 - it does not perform a grouped aggregation;
 - it is not marked `AS MATERIALIZED`.
 
-Consequence for the case rule "one CTE per logical step": a chain of CTEs each
-used once costs nothing; the optimizer sees one query. A CTE referenced several
+Consequence for "one CTE per logical step": a chain of CTEs each used once costs
+nothing; the optimizer sees one query. A CTE referenced several
 times is computed once and reused, which is usually what you want. Use
 `AS MATERIALIZED` / `AS NOT MATERIALIZED` (valid in PostgreSQL 12+ too) only when
 the plan shows that the default choice is the slow part.
@@ -85,7 +97,7 @@ the plan shows that the default choice is the slow part.
 
 ## 5. PostgreSQL-compatible subset
 
-The case requires the PostgreSQL dialect while the engine is DuckDB. Avoid the
+When the SQL must stay valid PostgreSQL while the engine is DuckDB, avoid the
 differences DuckDB documents:
 
 | Difference | Write instead |
@@ -95,7 +107,7 @@ differences DuckDB documents:
 | Regex extraction has no common form: `REGEXP_EXTRACT` is DuckDB-only (and returns `''`, not `NULL`, on no match); PostgreSQL's `REGEXP_SUBSTR` does not exist in DuckDB 2.0 (checked) | Prefer forms both accept (checked on DuckDB 2.0): `REGEXP_REPLACE(x, '[^0-9]', '', 'g')` to keep digits, `x ~ 'pattern'` to test. When extraction is unavoidable, put it in a macro and wrap it in `NULLIF(..., '')` |
 | No `TO_DATE` in DuckDB; `STRPTIME` does not exist in PostgreSQL | Rebuild an ISO string and `CAST(... AS DATE)`, or isolate the parse in a macro |
 | `GROUP BY` does not use functional dependencies in DuckDB | List every non-aggregated column in `GROUP BY` |
-| Quoted identifiers keep case in DuckDB | Never quote identifiers; use lowercase snake_case |
+| Quoted identifiers keep case in DuckDB | Never quote identifiers. Unquoted names are case-insensitive in both engines (PostgreSQL stores them in lowercase), so a mixed-case CTE name works but is only cosmetic |
 | `==` works only in DuckDB | Always `=` |
 
 When a DuckDB-only function is genuinely needed (for example `TRY_CAST` to

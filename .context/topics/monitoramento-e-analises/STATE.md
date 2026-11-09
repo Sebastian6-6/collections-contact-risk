@@ -39,6 +39,8 @@ Answer the brief's data-analysis items with reproducible data: ingestion anomaly
 - [?] D5 analysis datasets as views in schema analises + dbt analyses/ for one-off queries; profile regenerated from silver — awaiting the single approval after the plan review (2026-11-09)
 - [?] D6 outcome classes — awaiting the single approval after the plan review (2026-11-09)
 
+- [?] docs/perfil-das-fontes.md says the gama 09-15 resend has 309 lines; the file has 311 CSV records without the header (found by a skill-eval agent, recounted 2026-11-09). Fix it when the profile is regenerated from silver in step 4.5.
+
 ## Decisions
 <!-- Local to this topic, append-only: "- YYYY-MM-DD decision". -->
 - 2026-11-09 Inherits the rules in AGENTS.md and the design decisions in arquitetura-solucao/STATE.md; PLAN.md is written in pt-BR because the owner reviews and presents it.

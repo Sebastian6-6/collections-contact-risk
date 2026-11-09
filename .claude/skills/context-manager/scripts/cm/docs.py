@@ -48,6 +48,9 @@ DOCLING_EXT = {
     *IMAGE_EXT,
 }
 PLAIN_EXT = {".md", ".markdown", ".txt"}
+# Document ids are slugs (see topics.slugify); anything else is rejected
+# before it can become part of a path.
+_DOC_ID = re.compile(r"[a-z0-9][a-z0-9-]*")
 LEGACY_EXT = {".doc": ".docx", ".ppt": ".pptx", ".xls": ".xlsx"}
 # EasyOCR ships a Portuguese model; the default RapidOCR install does not.
 # $CONTEXT_MANAGER_DOCLING_SPEC pins another requirement if needed.
@@ -178,12 +181,35 @@ def save_manifest(layout: Layout, data: dict[str, Any]) -> None:
     write_json(layout.manifest, data)
 
 
+def converted_path(layout: Layout, doc_id: str) -> Path:
+    """Path of a document's converted Markdown, always inside ``converted/``.
+
+    The path is rebuilt from the id instead of trusting the ``converted``
+    field of ``manifest.json``: the manifest is versioned, so an edited
+    entry could otherwise point a write or a delete outside ``.context/``.
+    """
+    if not _DOC_ID.fullmatch(doc_id):
+        raise ValueError(f"id de documento inválido: {doc_id!r}")
+    path = layout.converted / f"{doc_id}.md"
+    if not path.resolve().is_relative_to(layout.converted.resolve()):
+        raise ValueError(f"caminho fora de converted/: {doc_id!r}")
+    return path
+
+
 def raw_files(layout: Layout) -> list[Path]:
+    """Originals in ``raw/``, skipping links and anything resolving outside it.
+
+    A symbolic link could make the conversion copy a file from elsewhere on
+    the machine into ``converted/``, which is versioned.
+    """
     if not layout.raw.is_dir():
         return []
+    raw_root = layout.raw.resolve()
     files = []
     for path in sorted(layout.raw.rglob("*")):
-        if not path.is_file():
+        if path.is_symlink() or not path.is_file():
+            continue
+        if not path.resolve().is_relative_to(raw_root):
             continue
         rel = path.relative_to(layout.raw)
         # Skip hidden files and Office owner/lock files ("~$report.docx").
@@ -257,9 +283,7 @@ def scan(layout: Layout, force: set[str] | None = None) -> Scan:
         sha = _hash_cached(layout, path, cache)
         doc_id = by_source.get(source) or _new_id(source, documents)
         entry = documents.get(doc_id, {})
-        converted = layout.context / entry.get(
-            "converted", f"converted/{doc_id}.md"
-        )
+        converted = converted_path(layout, doc_id)
         if (
             entry.get("sha256") != sha
             or entry.get("status") == "error"
@@ -291,7 +315,7 @@ def _write_converted(
         "kind": entry["kind"],
     }
     atomic_write_text(
-        layout.context / entry["converted"],
+        converted_path(layout, doc_id),
         frontmatter.join(meta, body.strip() + "\n"),
     )
 
@@ -485,7 +509,7 @@ def set_meta(
         if origin is not None:
             entry["origin"] = origin.strip()
         if description is not None:
-            path = layout.context / entry["converted"]
+            path = converted_path(layout, doc_id)
             meta, body = frontmatter.split(read_text(path))
             ocr = body.split("## Extracted text (OCR)", 1)
             ocr_part = (
@@ -498,7 +522,7 @@ def set_meta(
             )
             entry["needs_description"] = False
         elif origin is not None and entry.get("converted"):
-            path = layout.context / entry["converted"]
+            path = converted_path(layout, doc_id)
             if path.exists():
                 meta, body = frontmatter.split(read_text(path))
                 meta["origin"] = entry["origin"]
@@ -559,15 +583,17 @@ def forget(layout: Layout, doc_id: str) -> dict[str, Any]:
     """
     with file_lock(_manifest_lock(layout), timeout=30):
         manifest = load_manifest(layout)
+        converted = converted_path(layout, doc_id)
         entry = manifest["documents"].pop(doc_id, None)
         if entry is None:
             raise KeyError(doc_id)
-        converted = layout.context / entry.get(
-            "converted", f"converted/{doc_id}.md"
-        )
         converted.unlink(missing_ok=True)
         save_manifest(layout, manifest)
     write_index(layout)
     source = layout.context / entry.get("source", "")
-    entry["source_present"] = bool(entry.get("source")) and source.is_file()
+    entry["source_present"] = (
+        bool(entry.get("source"))
+        and source.resolve().is_relative_to(layout.raw.resolve())
+        and source.is_file()
+    )
     return entry

@@ -1,0 +1,11 @@
+# Dependências diretas do projeto, com faixas de versão.
+# O requirements.txt é gerado a partir deste arquivo (uv pip compile --universal)
+# e é o único usado na instalação, com todas as versões fixas.
+dbt-core>=1.12,<1.13
+dbt-duckdb>=1.11,<1.12
+duckdb>=2.0,<2.1
+pyyaml
+sqlfluff>=4.5,<4.6
+sqlfluff-templater-dbt>=4.5,<4.6
+ruff>=0.17,<0.18
+pytest>=9.2,<10

@@ -24,8 +24,8 @@ when the answer is clearly "yes, this is simpler", and keep the tests green.
 
 ## Standard library first
 - [ ] `pathlib` instead of `os.path`; `csv` and `json` before pandas for reading.
-- [ ] Before adding a dependency, check the treatment-stage library rule in the
-      skill (offline, deterministic when pinned, changes a business decision).
+- [ ] Before adding a dependency, check the project's rule for new libraries, if it
+      has one, and measure the gain over the standard library on real input.
 
 ## Errors
 - [ ] No bare `except:` and no `except Exception: pass`. Catch the specific error,

@@ -3,14 +3,14 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "cria em ingestion/ uma funcao que lista os arquivos diarios de um provedor (contact_data/entregas_diarias/<provedor>/, csv ou jsonl, pode ter arquivo _reenvio) e devolve, para cada arquivo, o nome, o hash sha256, a data que esta no nome e o numero de linhas. vai ser usada para o manifesto de arquivos da landing",
-      "expected_output": "Teste pytest escrito primeiro; listagem com sorted(); sem datetime.now; leitura em binário ou utf-8 explícito; nomes em português e docstring; reenvio identificado; evidência de pytest e ruff",
+      "prompt": "cria uma funcao que lista os arquivos de uma pasta de entregas diarias (nome no padrao <origem>_<AAAA-MM-DD>.csv ou .jsonl, pode ter um _reenvio antes da extensao) e devolve, para cada arquivo, o nome, o hash sha256, a data que esta no nome e o numero de linhas. vai alimentar um manifesto de arquivos",
+      "expected_output": "Teste pytest escrito primeiro e visto falhar; listagem ordenada; hash por blocos; sem relógio; encoding explícito; nomes em português e docstring; reenvio identificado; nome fora do padrão não some em silêncio; evidência de pytest, ruff e do verificador de reprodutibilidade",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "da uma melhorada nesse codigo de leitura do gama, ta funcionando mas ta feio:\n\nimport os, csv, json, datetime\ndef process(path):\n    out=[]\n    for f in os.listdir(path):\n        try:\n            for i,row in enumerate(csv.DictReader(open(path+'/'+f))):\n                if row['documento']=='documento': continue\n                try: row['contatos']=json.loads(row['contatos'])\n                except: row['contatos']=[]\n                row['loaded_at']=datetime.datetime.now().isoformat()\n                out.append(row)\n        except: pass\n    return out",
-      "expected_output": "Remove datetime.now (reprodutibilidade), ordena arquivos, pathlib, encoding utf-8 e newline='', não descarta linhas em silêncio (cabeçalho repetido e JSON inválido registrados, não apagados nem virando lista vazia), sem except genérico, ingestão sem transformar (parse do JSON fica para o dbt), nomes em português, testes",
+      "prompt": "da uma melhorada nesse codigo de leitura dos arquivos de clientes, ta funcionando mas ta feio:\n\nimport os, csv, json, datetime\ndef process(path):\n    out=[]\n    for f in os.listdir(path):\n        try:\n            for i,row in enumerate(csv.DictReader(open(path+'/'+f))):\n                if row['documento']=='documento': continue\n                try: row['contatos']=json.loads(row['contatos'])\n                except: row['contatos']=[]\n                row['loaded_at']=datetime.datetime.now().isoformat()\n                out.append(row)\n        except: pass\n    return out",
+      "expected_output": "Sem relógio; arquivos em ordem; pathlib; encoding utf-8 e newline=''; nada descartado em silêncio (cabeçalho repetido e JSON inválido registrados, não apagados nem virando lista vazia); sem except genérico; nomes em português; testes; premissas declaradas (por exemplo, se o JSON deve ser interpretado nessa etapa)",
       "files": []
     }
   ]
