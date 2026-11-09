@@ -1,0 +1,116 @@
+version: 2
+
+models:
+  - name: silver_alfa_devedores_padronizados
+    description: >
+      Etapa efêmera (não vira tabela) da silver do alfa. Uma linha por linha lida da bronze que
+      tem documento, com toda a padronização já aplicada e sem deduplicar. Alimenta `devedores`
+      (versão mais recente) e `devedores_contatos` (todas as versões), para os dois padronizarem
+      do mesmo jeito.
+    config:
+      materialized: ephemeral
+
+  - name: silver_alfa_devedores
+    description: >
+      Devedores do provedor alfa, uma linha por documento normalizado. Vale a versão mais recente
+      do documento: maior data de atualização da fonte, depois maior data de entrega, depois maior
+      linha. Linha sem documento (vazio ou sem dígitos) fica fora e continua na bronze. Nenhuma
+      coluna recebe marcação interpretativa: datas sentinela (1900-01-01) e CPFs inválidos passam
+      como vieram.
+    columns:
+      - name: documento
+        description: >-
+          Documento do devedor só com dígitos, com os zeros à esquerda repostos até 11 posições,
+          vindo de `cpf` ou de `documento` da bronze (o provedor renomeou a coluna). Chave da tabela.
+        data_tests:
+          - unique
+          - not_null
+      - name: nome_completo
+        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio."
+      - name: data_nascimento
+        description: "Data de nascimento. A data sentinela 1900-01-01 da origem fica como veio."
+      - name: cnpj_empregador
+        description: >-
+          CNPJ do empregador em maiúsculas e sem máscara, com zeros à esquerda repostos até 14
+          posições. `NULL` quando o provedor não informou.
+      - name: cargo
+        description: "Cargo do devedor; `NULL` quando vazio."
+      - name: salario_informado
+        description: >-
+          Salário informado em `NUMERIC(14, 2)`. `NULL` quando vazio; o zero informado pelo
+          provedor fica 0.00.
+      - name: telefone
+        description: "Telefone da versão mais recente, só dígitos, DDD + número, sem o código do país."
+      - name: email
+        description: "E-mail da versão mais recente, em minúsculas; `NULL` quando vazio."
+      - name: endereco
+        description: "Endereço em texto, exatamente como veio (aparado nas pontas)."
+      - name: logradouro
+        description: >-
+          Logradouro, só quando `endereco` casa inteiro com `logradouro, numero[, complemento] -
+          bairro - cidade`; senão `NULL`, como todas as outras partes.
+      - name: numero
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando o endereço não casa com o padrão."
+      - name: complemento
+        description: "Complemento do endereço; `NULL` quando não há ou o endereço não casa com o padrão."
+      - name: bairro
+        description: "Bairro; `NULL` quando o endereço não casa com o padrão."
+      - name: cidade
+        description: "Cidade; `NULL` quando o endereço não casa com o padrão."
+      - name: cep
+        description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições."
+      - name: uf
+        description: "Sigla da UF."
+      - name: data_atualizacao
+        description: "Data de atualização do registro informada pelo provedor, usada para escolher a versão."
+      - name: data_entrega
+        description: >-
+          Data da entrega do arquivo de onde veio a versão: a data escrita no nome do arquivo ou,
+          no histórico, a variável `data_carga_historica` (2026-08-31, enunciado p. 1).
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_alfa_devedores_contatos
+    description: >
+      Histórico de contatos do provedor alfa, uma linha por (documento, tipo, contato
+      normalizado). Considera todas as linhas da bronze com documento, não só a versão atual do
+      devedor: um telefone ou e-mail que saiu da versão mais recente continua registrado, com a
+      última data de entrega em que apareceu. Só existe linha para contato que veio preenchido.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [documento, tipo, contato]
+    columns:
+      - name: documento
+        description: "Documento do devedor, como em `silver_alfa.devedores`."
+        data_tests:
+          - not_null
+      - name: tipo
+        description: "Tipo do contato: `telefone` ou `email`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [telefone, email]
+      - name: contato
+        description: "Telefone (só dígitos, DDD + número) ou e-mail (minúsculas), conforme `tipo`."
+        data_tests:
+          - not_null
+      - name: data_primeira_entrega
+        description: "Menor data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
+      - name: data_ultima_entrega
+        description: "Maior data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null

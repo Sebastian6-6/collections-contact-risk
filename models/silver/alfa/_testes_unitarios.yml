@@ -1,0 +1,43 @@
+version: 2
+
+unit_tests:
+  - name: silver_alfa_padronizacao_documento_data_e_endereco
+    description: >
+      O documento vem de `cpf` ou de `documento` e perde a máscara; o zero perdido é reposto;
+      a data de entrega sai do nome do arquivo e, no histórico, da variável do projeto; o endereço
+      só é separado quando casa com o padrão estrito; linha sem documento ou ilegível fica fora.
+    model: silver_alfa_devedores_padronizados
+    given:
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {cpf: "103.123.916-20", documento: null, nome_completo: " ANA ", email: " ANA@X.COM ", telefone: "+55 11 90040-5285", endereco: "RUA A, 10, APTO 3 - CENTRO - SANTOS", cep: "7359422", salario_informado: "R$ 1.400,00", data_atualizacao: "2026-07-20", _arquivo: "contact_data/provedor_alfa.csv", _linha: 2, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: null, documento: "1006543201", nome_completo: "BIA", email: "", telefone: "(21)960476196", endereco: "RUA ANA-MARIA, 10 - CENTRO - SANTOS", cep: "21897318", salario_informado: "0,00", data_atualizacao: "2026-09-02", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_2026-09-05.csv", _linha: 7, _hash_arquivo: "h2", _motivo_ilegivel: null}
+          - {cpf: "", documento: null, nome_completo: "SEM CHAVE", email: "", telefone: "11900000000", endereco: "RUA B, 1 - X - Y", cep: "11111111", salario_informado: "", data_atualizacao: "2026-09-02", _arquivo: "contact_data/provedor_alfa.csv", _linha: 3, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "999", documento: null, nome_completo: "ILEGIVEL", email: "", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "", _arquivo: "contact_data/provedor_alfa.csv", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
+    expect:
+      rows:
+        - {documento: "10312391620", nome_completo: "ANA", email: "ana@x.com", telefone: "11900405285", logradouro: "RUA A", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", endereco: "RUA A, 10, APTO 3 - CENTRO - SANTOS", cep: "07359422", salario_informado: 1400.00, data_atualizacao: "2026-07-20", data_entrega: "2026-08-31", _linha: 2}
+        - {documento: "01006543201", nome_completo: "BIA", email: null, telefone: "21960476196", logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, endereco: "RUA ANA-MARIA, 10 - CENTRO - SANTOS", cep: "21897318", salario_informado: 0.00, data_atualizacao: "2026-09-02", data_entrega: "2026-09-05", _linha: 7}
+
+  - name: silver_alfa_devedores_versao_mais_recente
+    description: >
+      Uma linha por documento. Vale a maior data de atualização; no empate, a maior data de entrega;
+      no empate dos dois, a maior linha.
+    model: silver_alfa_devedores
+    given:
+      - input: ref('silver_alfa_devedores_padronizados')
+        format: sql
+        rows: |
+          SELECT 'A' AS documento, 'NOME 1' AS nome_completo, CAST('2000-01-01' AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS VARCHAR) AS cargo, CAST(NULL AS DECIMAL(14, 2)) AS salario_informado, CAST(NULL AS VARCHAR) AS telefone, CAST(NULL AS VARCHAR) AS email, CAST(NULL AS VARCHAR) AS endereco, CAST(NULL AS VARCHAR) AS logradouro, CAST(NULL AS VARCHAR) AS numero, CAST(NULL AS VARCHAR) AS complemento, CAST(NULL AS VARCHAR) AS bairro, CAST(NULL AS VARCHAR) AS cidade, CAST(NULL AS VARCHAR) AS cep, CAST(NULL AS VARCHAR) AS uf, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
+          UNION ALL
+          SELECT 'A', 'NOME 2', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 1, 'h'
+          UNION ALL
+          SELECT 'A', 'NOME 0', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-06-01' AS DATE), CAST('2026-09-10' AS DATE), 'f3', 9, 'h'
+          UNION ALL
+          SELECT 'B', 'EMPATE 1', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 4, 'h'
+          UNION ALL
+          SELECT 'B', 'EMPATE 2', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 8, 'h'
+    expect:
+      rows:
+        - {documento: "A", nome_completo: "NOME 2", _linha: 1}
+        - {documento: "B", nome_completo: "EMPATE 2", _linha: 8}
