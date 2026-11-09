@@ -1,0 +1,83 @@
+version: 2
+
+sources:
+  - name: bronze_gama
+    description: >
+      Provedor gama: CSV de devedores com JSON embutido em algumas colunas, com a carga histórica e as entregas diárias de setembro de 2026. Fiel à origem: nenhuma linha é descartada
+      nem interpretada na ingestão.
+    tables:
+      - name: devedores
+        description: >
+          Uma linha por linha recebida dos arquivos do provedor gama. Colunas de dados em texto, como vieram, inclusive o JSON embutido (`contatos`, `endereco_json`, `atributos_extra`), que a silver interpreta.
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_gama', 'arquivos')
+        columns:
+          - name: documento
+            description: "Documento do devedor, como veio, com ou sem pontuação."
+          - name: nome
+            description: "Nome do devedor."
+          - name: data_nascimento
+            description: "Data de nascimento em texto, no formato da origem."
+          - name: contatos
+            description: "Lista de contatos em JSON, em texto."
+          - name: endereco_json
+            description: "Endereço em JSON, em texto; o layout varia entre registros."
+          - name: atributos_extra
+            description: "Atributos adicionais do devedor em JSON, em texto."
+          - name: cnpj_empregador_raw
+            description: "CNPJ do empregador em texto, como veio."
+          - name: dt_ref
+            description: "Data de referência do registro informada pelo provedor, em texto."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: arquivos
+        description: "{{ doc('bronze_arquivos_tabela') }}"
+        data_tests:
+        - colunas_declaradas
+        columns:
+          - name: arquivo
+            description: "{{ doc('bronze_arquivos_arquivo') }}"
+            data_tests:
+              - not_null
+              - unique
+          - name: entidade
+            description: "{{ doc('bronze_arquivos_entidade') }}"
+            data_tests:
+              - not_null
+          - name: hash_arquivo
+            description: "{{ doc('bronze_arquivos_hash') }}"
+            data_tests:
+              - not_null
+          - name: bytes
+            description: "{{ doc('bronze_arquivos_bytes') }}"
+            data_tests:
+              - not_null
+          - name: linhas
+            description: "{{ doc('bronze_arquivos_linhas') }}"
+            data_tests:
+              - not_null
+          - name: cabecalho
+            description: "{{ doc('bronze_arquivos_cabecalho') }}"
