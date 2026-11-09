@@ -11,10 +11,10 @@ SELECT
   , MAX(p._arquivo) AS maior_arquivo_empatado
 FROM {{ ref('silver_alfa_devedores') }} AS v
 INNER JOIN {{ ref('silver_alfa_devedores_padronizados') }} AS p
-  ON p.documento = v.documento
-    AND p.data_atualizacao IS NOT DISTINCT FROM v.data_atualizacao
-    AND p.data_entrega IS NOT DISTINCT FROM v.data_entrega
-    AND p._linha = v._linha
+  ON v.documento = p.documento
+    AND v.data_atualizacao IS NOT DISTINCT FROM p.data_atualizacao
+    AND v.data_entrega IS NOT DISTINCT FROM p.data_entrega
+    AND v._linha = p._linha
 GROUP BY
   v.documento
   , v._arquivo
