@@ -24,3 +24,15 @@
 {% macro email_normalizado(expressao) -%}
   NULLIF(LOWER(TRIM(CAST({{ expressao }} AS VARCHAR))), '')
 {%- endmacro %}
+
+{#
+  Telefone normalizado de um elemento JSON que pode ser um texto ("+55 11 90040-5285") ou um
+  objeto {ddd, numero, ...} (beta): o texto passa direto por `telefone_normalizado` e no objeto
+  o DDD e o número são concatenados antes. Objeto sem DDD ou sem número dá NULL, em vez de um
+  número incompleto que pareceria outro. Usa `json_texto` e `->>`, que o dispatch resolve por motor.
+#}
+{% macro telefone_de_elemento_json(expressao) -%}
+  {{ telefone_normalizado(
+    "COALESCE(" ~ json_texto(expressao) ~ ", (" ~ expressao ~ " ->> 'ddd') || (" ~ expressao ~ " ->> 'numero'))"
+  ) }}
+{%- endmacro %}

@@ -1,0 +1,205 @@
+version: 2
+
+models:
+  - name: silver_beta_devedores_padronizados
+    description: >
+      Etapa efêmera (não vira tabela) da silver do beta. Uma linha por linha lida da bronze que
+      tem JSON válido e documento, com toda a padronização já aplicada e sem deduplicar. As listas
+      de telefone, e-mail e endereço seguem como JSON (`lista_telefones`, `lista_emails`,
+      `lista_enderecos`) e os textos únicos (`email_unico`, `endereco_unico`) como vieram, para
+      `devedores_contatos` e `devedores_enderecos` abrirem em linhas. Alimenta `devedores`
+      (versão mais recente), `devedores_contatos` (todas as versões) e `devedores_enderecos`
+      (versão atual).
+
+      O JSON do beta tem 12 combinações de chaves. Nomes escolhidos para as variantes que
+      convivem (S6): documento = `cpf` ou `documento.valor` (com `tipo_documento` = `CPF` para
+      `cpf`, ou o `documento.tipo`); `nome_completo` = `nome_completo`, `nome` ou `nome_devedor`
+      (nessa ordem, a primeira preenchida); e-mail = lista `contato.emails` mais o texto
+      `contato.email`; endereço = lista `enderecos` mais o objeto `endereco`; `data_atualizacao` =
+      `atualizado_em` em ISO 8601 ou epoch em milissegundos; `renda_mensal` = número, texto
+      "R$ x,xx" ou nulo. Linha com JSON inválido (registro truncado) ou sem documento fica fora e
+      continua na bronze.
+    config:
+      materialized: ephemeral
+
+  - name: silver_beta_devedores
+    description: >
+      Devedores do provedor beta, uma linha por (tipo de documento, documento normalizado). Vale
+      a versão mais recente: maior data de atualização da fonte, depois maior data de entrega,
+      depois maior linha. O CPF fica só com dígitos, com os zeros repostos até 11 posições. O RG
+      (`documento.tipo` igual a RG) não vira CPF: fica só com letras e dígitos, sem zeros
+      repostos, e a chave inclui o tipo, para um RG nunca se confundir com um CPF de mesmo número.
+      Linha sem documento ou com JSON inválido fica fora e continua na bronze (teste `warn`).
+      Nenhuma coluna recebe marcação interpretativa: a data 2025-09-01 e as rendas `0,00` passam
+      como vieram. Os telefones, e-mails e endereços estão em `devedores_contatos` e
+      `devedores_enderecos`.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [tipo_documento, documento]
+    columns:
+      - name: tipo_documento
+        description: >-
+          Tipo do documento: `CPF` quando o JSON traz `cpf` ou `documento.tipo` CPF, `RG` quando
+          traz `documento.tipo` RG. Parte da chave da tabela.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [CPF, RG]
+      - name: documento
+        description: >-
+          Número do documento sem máscara. CPF: só dígitos, com zeros à esquerda repostos até 11
+          posições. RG: letras maiúsculas e dígitos, como veio. Parte da chave da tabela.
+        data_tests:
+          - not_null
+      - name: nome_completo
+        description: >-
+          Nome do devedor, sem espaços nas pontas. Vem de `nome_completo`, `nome` ou `nome_devedor`
+          do JSON, a primeira preenchida (o nome fixo é `nome_completo`, o mesmo do alfa). Nomes
+          com caracteres corrompidos na origem passam como vieram.
+      - name: data_nascimento
+        description: "Data de nascimento (ISO ou dd/mm/aaaa na origem); `NULL` quando vazia ou inexistente no calendário."
+      - name: cnpj_empregador
+        description: >-
+          CNPJ do empregador (`vinculo_empresa.cnpj`) em maiúsculas e sem máscara, com zeros à
+          esquerda repostos até 14 posições. `NULL` quando o provedor não informou vínculo.
+      - name: vinculo_desde
+        description: >-
+          Mês de início do vínculo com o empregador (`vinculo_empresa.desde`), em texto `AAAA-MM`
+          como veio: a origem não traz o dia, e um DATE exigiria inventá-lo.
+      - name: renda_mensal
+        description: >-
+          Renda mensal em `NUMERIC(14, 2)`, vinda de número ou de texto "R$ x,xx". `NULL` quando
+          a origem é nula; o zero informado pelo provedor fica 0.00.
+      - name: data_atualizacao
+        description: >-
+          Data de atualização do registro informada pelo provedor (`atualizado_em`, ISO 8601 ou
+          epoch em milissegundos, este no fuso do Brasil), usada para escolher a versão.
+      - name: data_entrega
+        description: >-
+          Data da entrega do arquivo de onde veio a versão: a data escrita no nome do arquivo ou,
+          no histórico, a variável `data_carga_historica` (2026-08-31, enunciado p. 1).
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_beta_devedores_contatos
+    description: >
+      Histórico de contatos do provedor beta, uma linha por (tipo de documento, documento, tipo,
+      contato normalizado). Considera todas as linhas da bronze com documento, não só a versão
+      atual do devedor: um telefone ou e-mail que saiu da versão mais recente continua
+      registrado, com a última data de entrega em que apareceu. Só existe linha para contato que
+      veio preenchido. Telefone vem da lista `contato.telefones` (texto ou objeto com `ddd` e
+      `numero`, que são concatenados); e-mail vem da lista `contato.emails` ou do texto
+      `contato.email`. O tipo do telefone e o `principal` são do provedor e vêm da aparição mais
+      recente do contato (mesma ordem da versão do devedor).
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [tipo_documento, documento, tipo, contato]
+    columns:
+      - name: tipo_documento
+        description: "Tipo do documento, como em `silver_beta.devedores`."
+        data_tests:
+          - not_null
+      - name: documento
+        description: "Documento do devedor, como em `silver_beta.devedores`."
+        data_tests:
+          - not_null
+      - name: tipo
+        description: "Tipo do contato: `telefone` ou `email`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [telefone, email]
+      - name: contato
+        description: "Telefone (só dígitos, DDD + número, sem o código do país) ou e-mail (minúsculas), conforme `tipo`."
+        data_tests:
+          - not_null
+      - name: tipo_telefone
+        description: >-
+          Tipo do telefone informado pelo provedor (`celular` ou `fixo`) na aparição mais recente
+          do contato. `NULL` para e-mail e para telefone que o provedor escreveu como texto.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [celular, fixo]
+      - name: principal
+        description: >-
+          Se o provedor marcou o telefone como principal, na aparição mais recente do contato.
+          `NULL` para e-mail e para telefone escrito como texto.
+      - name: data_primeira_entrega
+        description: "Menor data de entrega dos arquivos em que o contato apareceu."
+        data_tests:
+          - not_null
+      - name: data_ultima_entrega
+        description: "Maior data de entrega dos arquivos em que o contato apareceu."
+        data_tests:
+          - not_null
+
+  - name: silver_beta_devedores_enderecos
+    description: >
+      Endereços do provedor beta, uma linha por (tipo de documento, documento, posição na lista)
+      da versão atual do devedor (a mesma de `silver_beta.devedores`). O provedor manda uma lista
+      (`enderecos`) ou um objeto só (`endereco`); o objeto vira a posição 1. O `atual` fica como
+      veio: nenhuma regra escolhe o endereço vigente nesta camada.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [tipo_documento, documento, posicao]
+    columns:
+      - name: tipo_documento
+        description: "Tipo do documento, como em `silver_beta.devedores`."
+        data_tests:
+          - not_null
+      - name: documento
+        description: "Documento do devedor, como em `silver_beta.devedores`."
+        data_tests:
+          - not_null
+      - name: posicao
+        description: "Posição do endereço na lista da versão atual (1, 2, ...); 1 para o objeto único."
+        data_tests:
+          - not_null
+      - name: tipo
+        description: "Tipo do endereço informado pelo provedor (por exemplo `residencial`); `NULL` quando vazio."
+      - name: logradouro
+        description: "Logradouro, sem espaços nas pontas; `NULL` quando vazio."
+      - name: numero
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando vazio."
+      - name: complemento
+        description: "Complemento; `NULL` quando o provedor mandou nulo ou vazio."
+      - name: bairro
+        description: "Bairro; `NULL` quando vazio."
+      - name: cidade
+        description: "Cidade; `NULL` quando vazia."
+      - name: uf
+        description: "Sigla da UF."
+      - name: cep
+        description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições."
+      - name: atual
+        description: >-
+          Marcação `atual` do provedor, como veio (verdadeiro ou falso); `NULL` quando o provedor
+          não a enviou. Não escolhe o endereço vigente: isso é regra da gold.
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
