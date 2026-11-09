@@ -429,6 +429,119 @@
         "stage-3"
       ],
       "origin": "https://code.claude.com/docs/en/sub-agents + https://platform.claude.com/docs/en/models/overview · acesso 2026-11-09"
+    },
+    "referencias-licencas-dlt-docs-apache-2-0": {
+      "source": "raw/referencias/_licencas/dlt-docs-Apache-2.0.txt",
+      "sha256": "3bd68ce12f57c10e265b3d19b3251efa5aa40f780f590bc8bb7b1c83f85854ca",
+      "size": 11348,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:46",
+      "converted": "converted/referencias-licencas-dlt-docs-apache-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Apache License 2.0 text of the dlt repository, covering the archived dlt documentation page.",
+      "tags": [
+        "license",
+        "apache-2.0",
+        "dlt"
+      ],
+      "origin": "https://github.com/dlt-hub/dlt/blob/devel/LICENSE.txt · acesso 2026-11-09"
+    },
+    "referencias-dbt-how-we-structure-3-intermediate": {
+      "source": "raw/referencias/dbt/how-we-structure-3-intermediate.html",
+      "sha256": "487825881e3cb0db262ac0f80f26e30f3fb9139012d05b0a3f1db06136be81eb",
+      "size": 61362,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:46",
+      "converted": "converted/referencias-dbt-how-we-structure-3-intermediate.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "docling 2.149.0",
+      "summary": "dbt structure guide, intermediate layer (published HTML page): re-graining (fan out/collapse), isolating complex logic, primary key tests on re-grained models; basis for what silver may do inside one source.",
+      "tags": [
+        "reference",
+        "dbt",
+        "project-structure",
+        "intermediate",
+        "re-graining",
+        "stage-5",
+        "format-html"
+      ],
+      "origin": "https://docs.getdbt.com/best-practices/how-we-structure/3-intermediate (fonte fcccf9b no repositório docs.getdbt.com) · acesso 2026-11-09"
+    },
+    "referencias-dbt-snapshots": {
+      "source": "raw/referencias/dbt/snapshots.md",
+      "sha256": "974a0a7cf73cd401d3a94018634353280557bebd09115faa21b584f70ca47d05",
+      "size": 29059,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:46",
+      "converted": "converted/referencias-dbt-snapshots.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt snapshots page (Markdown source): type-2 SCD over mutable sources with dbt_valid_from/dbt_valid_to, timestamp vs check strategies, needs persisted state between runs; basis for rejecting full-record history in silver.",
+      "tags": [
+        "reference",
+        "dbt",
+        "snapshots",
+        "scd2",
+        "history",
+        "stage-5",
+        "format-md"
+      ],
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/72897a57aa319eeaf505cbeac04b13f98b7b7af6/website/docs/docs/build/snapshots.md · acesso 2026-11-09"
+    },
+    "referencias-dlt-destination-tables": {
+      "source": "raw/referencias/dlt/destination-tables.pdf",
+      "sha256": "9e132f5078300dc178ff73340642972842e020ff48ea18d3f2acb22794006ae6",
+      "size": 965825,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:46",
+      "converted": "converted/referencias-dlt-destination-tables.md",
+      "status": "ok",
+      "error": null,
+      "pages": 13,
+      "converter": "docling 2.149.0",
+      "summary": "dlt 1.32.0 destination tables page (PDF print, 13 pages): _dlt_load_id on every row pointing to the _dlt_loads register, _dlt_id per row, nested tables via _dlt_parent_id; basis for the load-register part of the lineage design.",
+      "tags": [
+        "reference",
+        "dlt",
+        "lineage",
+        "load-register",
+        "ingestion",
+        "stage-4",
+        "format-pdf"
+      ],
+      "origin": "https://dlthub.com/docs/general-usage/destination-tables (fonte 3ec3cfc no repositório dlt-hub/dlt) · impresso em PDF · acesso 2026-11-09"
+    },
+    "referencias-padroes-de-mercado-notas-ingestao-e-silver": {
+      "source": "raw/referencias/padroes-de-mercado/notas-ingestao-e-silver.md",
+      "sha256": "30d3d40fffa4a544ab9b083fa82cafb95993bd17510c248ac672845ffc4f51db",
+      "size": 5321,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:47",
+      "converted": "converted/referencias-padroes-de-mercado-notas-ingestao-e-silver.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Note (not a copy) of industry patterns behind ingestion and silver decisions: loaders append and track files (Auto Loader, Snowflake), universal lineage columns (Snowflake, Fivetran, Databricks, dlt, Airbyte), SCD2 vs effectivity history, Kimball bridge tables, dbt staging/intermediate scope.",
+      "tags": [
+        "reference",
+        "notes",
+        "ingestion",
+        "lineage",
+        "medallion",
+        "kimball",
+        "data-vault",
+        "stage-4",
+        "stage-5"
+      ],
+      "origin": "nota própria com as URLs das fontes · 2026-11-09"
     }
   }
 }
