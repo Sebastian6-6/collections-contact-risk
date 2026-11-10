@@ -49,3 +49,18 @@
     WHEN {{ endereco_casa_padrao(expressao, padrao_usado) }} THEN NULLIF({{ parte }}, '')
   END
 {%- endmacro %}
+
+{#
+  Sigla da UF em maiúsculas e sem espaços nas pontas ('sp' e ' SP ' dão 'SP'). Valor que não é uma
+  das 27 UFs do Brasil ('XX', 'S', 'SÃO PAULO'), vazio ou NULL dá NULL: ausência é NULL, e um
+  texto fora do domínio não é uma UF. A lista é a das unidades federativas do IBGE.
+#}
+{% macro uf_normalizada(expressao) -%}
+  {%- set uf = "UPPER(TRIM(CAST(" ~ expressao ~ " AS VARCHAR)))" -%}
+  CASE
+    WHEN {{ uf }} IN (
+      'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB'
+      , 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+    ) THEN {{ uf }}
+  END
+{%- endmacro %}

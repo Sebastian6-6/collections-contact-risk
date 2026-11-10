@@ -19,6 +19,9 @@
   atualização está no YAML do modelo `silver_gama_devedores`.
 #}
 {{ config(materialized='ephemeral') }}
+{%- set uf_origem -%}
+  COALESCE(NULLIF(TRIM(endereco_json ->> 'uf'), ''), NULLIF(TRIM(endereco_json ->> 'estado'), ''))
+{%- endset %}
 
 WITH tBase AS (
   SELECT
@@ -64,10 +67,7 @@ WITH tBase AS (
       NULLIF(TRIM(endereco_json ->> 'cidade'), '')
       , NULLIF(TRIM(endereco_json ->> 'municipio'), '')
     ) AS cidade
-    , COALESCE(
-      NULLIF(TRIM(endereco_json ->> 'uf'), '')
-      , NULLIF(TRIM(endereco_json ->> 'estado'), '')
-    ) AS uf
+    , {{ uf_normalizada(uf_origem) }} AS uf
     , LPAD({{ somente_digitos("endereco_json ->> 'cep'") }}, 8, '0') AS cep
     , {{ data_flexivel('dt_ref') }} AS dt_ref
     , {{ data_de_entrega('_arquivo', 'gama') }} AS data_entrega

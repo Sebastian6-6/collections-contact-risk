@@ -42,7 +42,7 @@ WITH tBase AS (
     , {{ email_normalizado('email') }} AS email
     , NULLIF(TRIM(endereco), '') AS endereco
     , LPAD({{ somente_digitos('cep') }}, 8, '0') AS cep
-    , NULLIF(TRIM(uf), '') AS uf
+    , {{ uf_normalizada('uf') }} AS uf
     , {{ data_flexivel('data_atualizacao') }} AS data_atualizacao
     , {{ data_de_entrega('_arquivo', 'alfa') }} AS data_entrega
     , _arquivo

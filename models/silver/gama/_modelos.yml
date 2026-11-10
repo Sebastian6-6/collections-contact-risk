@@ -81,7 +81,13 @@ models:
       - name: cidade
         description: "Cidade, de `cidade` ou `municipio` conforme o formato do endereço."
       - name: uf
-        description: "Sigla da UF, de `uf` ou `estado` conforme o formato do endereço."
+        description: >-
+          Sigla da UF, de `uf` ou `estado` conforme o formato do endereço, em maiúsculas e sem
+          espaços nas pontas. Valor fora das 27 UFs vira `NULL`; `NULL` também quando vazio.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO]
       - name: cep
         description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições (o provedor manda número em alguns formatos)."
       - name: dt_ref

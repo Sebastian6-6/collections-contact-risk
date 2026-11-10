@@ -121,11 +121,11 @@ unit_tests:
         rows: |
           SELECT 'f1' AS _arquivo, 9 AS _linha, CAST('[{"logradouro": "Rua Antiga", "atual": true}]' AS JSON) AS lista_enderecos, CAST(NULL AS JSON) AS endereco_unico
           UNION ALL
-          SELECT 'f2', 1, CAST('[{"tipo": "residencial", "logradouro": " Rua A ", "numero": "S/N", "complemento": null, "bairro": "Centro", "cidade": "Santos", "uf": "SP", "cep": "11010-000", "atual": true}, {"tipo": "comercial", "logradouro": "Rua B", "numero": "10", "complemento": "sala 2", "bairro": "Gonzaga", "cidade": "Santos", "uf": "SP", "cep": "7359422", "atual": false}]' AS JSON), CAST(NULL AS JSON)
+          SELECT 'f2', 1, CAST('[{"tipo": "residencial", "logradouro": " Rua A ", "numero": "S/N", "complemento": null, "bairro": "Centro", "cidade": "Santos", "uf": " sp ", "cep": "11010-000", "atual": true}, {"tipo": "comercial", "logradouro": "Rua B", "numero": "10", "complemento": "sala 2", "bairro": "Gonzaga", "cidade": "Santos", "uf": "XX", "cep": "7359422", "atual": false}]' AS JSON), CAST(NULL AS JSON)
           UNION ALL
           SELECT 'f2', 2, CAST(NULL AS JSON), CAST('{"tipo": "residencial", "logradouro": "Rua C", "numero": "5", "complemento": "", "bairro": "Boqueirao", "cidade": "Santos", "uf": "SP", "cep": "11055300", "atual": true}' AS JSON)
     expect:
       rows:
         - {tipo_documento: "CPF", documento: "123", posicao: 1, tipo: "residencial", logradouro: "Rua A", numero: "S/N", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: true, _arquivo: "f2", _linha: 1}
-        - {tipo_documento: "CPF", documento: "123", posicao: 2, tipo: "comercial", logradouro: "Rua B", numero: "10", complemento: "sala 2", bairro: "Gonzaga", cidade: "Santos", uf: "SP", cep: "07359422", atual: false, _arquivo: "f2", _linha: 1}
+        - {tipo_documento: "CPF", documento: "123", posicao: 2, tipo: "comercial", logradouro: "Rua B", numero: "10", complemento: "sala 2", bairro: "Gonzaga", cidade: "Santos", uf: null, cep: "07359422", atual: false, _arquivo: "f2", _linha: 1}
         - {tipo_documento: "CPF", documento: "456", posicao: 1, tipo: "residencial", logradouro: "Rua C", numero: "5", complemento: null, bairro: "Boqueirao", cidade: "Santos", uf: "SP", cep: "11055300", atual: true, _arquivo: "f2", _linha: 2}

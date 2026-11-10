@@ -71,7 +71,7 @@ SELECT
   , NULLIF(TRIM(endereco_json ->> 'complemento'), '') AS complemento
   , NULLIF(TRIM(endereco_json ->> 'bairro'), '') AS bairro
   , NULLIF(TRIM(endereco_json ->> 'cidade'), '') AS cidade
-  , NULLIF(TRIM(endereco_json ->> 'uf'), '') AS uf
+  , {{ uf_normalizada("endereco_json ->> 'uf'") }} AS uf
   , LPAD({{ somente_digitos("endereco_json ->> 'cep'") }}, 8, '0') AS cep
   , CAST(endereco_json ->> 'atual' AS BOOLEAN) AS atual
   , _arquivo
