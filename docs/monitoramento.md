@@ -56,7 +56,31 @@ flowchart LR
 **O que fica para produção:**
 
 - **Agendamento:** rodar a pipeline uma vez por dia, depois do horário combinado de entrega dos provedores.
-- **Notificação:** ler o status do teste `entrega_recente_com_alerta` em `target/run_results.json`, o arquivo de resultados que o dbt grava a cada execução, e mandar as linhas do alerta ao responsável pelo provedor.
+- **Notificação por provedor:** ler o status do teste `entrega_recente_com_alerta` em `target/run_results.json`, o arquivo de resultados que o dbt grava a cada execução, e mandar as linhas do alerta ao responsável pelo provedor. O e-mail da seção 4 só avisa que a pipeline falhou ou teve WARN, sem as linhas do alerta.
 - **Dia perdido no próprio dia:** comparar os provedores esperados com os arquivos que chegaram, para avisar a falta no mesmo dia, e não só quando chegar a entrega seguinte.
 - **Carga incremental:** quando reler tudo ficar caro, pular o arquivo já carregado pelo caminho e pelo hash ([decisoes-de-modelagem.md](decisoes-de-modelagem.md), seção 3). Hoje a pipeline completa leva cerca de 30,7 s (mediana de 3 execuções em 2026-11-10).
 - **Recalibração:** revisar a janela e o limite com alguns meses de histórico, contando os alarmes falsos fora da amostra de calibração.
+
+## 4. Alerta por e-mail
+
+`scripts/notificar_falha.py` manda um e-mail curto, com o motivo e as últimas 20 linhas de `logs/dbt.log`, quando a ingestão falha ou o `dbt build` termina com erro. Só usa a biblioteca padrão (`smtplib`), e o código de saída da pipeline não muda.
+
+A configuração vem só de variáveis de ambiente; nada é gravado em arquivo. Sem elas, o script imprime que o alerta está desligado e não faz nada, então um clone limpo e o CI seguem iguais.
+
+| Variável | Exemplo |
+|---|---|
+| `ALERTA_SMTP_HOST` | `smtp.exemplo.com` |
+| `ALERTA_SMTP_PORTA` | `587` (usa STARTTLS) |
+| `ALERTA_SMTP_USUARIO` | `usuario` |
+| `ALERTA_SMTP_SENHA` | a senha ou senha de aplicativo |
+| `ALERTA_EMAIL_DE` | `pipeline@exemplo.com` |
+| `ALERTA_EMAIL_PARA` | `responsavel@exemplo.com` |
+
+```bash
+export ALERTA_SMTP_HOST=smtp.exemplo.com ALERTA_SMTP_PORTA=587 ALERTA_SMTP_USUARIO=usuario
+export ALERTA_SMTP_SENHA=... ALERTA_EMAIL_DE=pipeline@exemplo.com ALERTA_EMAIL_PARA=responsavel@exemplo.com
+python pipeline.py                 # avisa só na falha
+python pipeline.py --avisar-warn   # avisa também quando o dbt build termina com WARN
+```
+
+O aviso de WARN é opcional e vem desligado, porque os 9 WARN de hoje são esperados. Os testes usam um servidor SMTP falso; o envio real não foi testado, porque depende de credenciais do dono.

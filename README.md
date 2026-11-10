@@ -37,7 +37,7 @@ A pipeline lê tudo, consolida uma base única por CPF, cruza o empregador com o
 | [docs/decisoes-de-modelagem.md](docs/decisoes-de-modelagem.md) | cada decisão, com as opções, os trade-offs e a página do enunciado |
 | [docs/perfil-das-fontes.md](docs/perfil-das-fontes.md) | o que os arquivos recebidos contêm e os problemas de qualidade e de entrega |
 | [docs/ingestao.md](docs/ingestao.md) | o componente de ingestão multi-fonte |
-| [docs/monitoramento.md](docs/monitoramento.md) | os incidentes das entregas diárias e o alerta |
+| [docs/monitoramento.md](docs/monitoramento.md) | os incidentes das entregas diárias, o alerta e o e-mail de falha |
 | [docs/contratos-de-dados.md](docs/contratos-de-dados.md) | o que cada provedor entrega e o que a gold recebe da silver |
 | [docs/erd.md](docs/erd.md) · [docs/dicionario-de-dados.md](docs/dicionario-de-dados.md) | o ERD em Mermaid e o dicionário com a justificativa de cada tipo |
 | [docs/qualidade-e-convencoes.md](docs/qualidade-e-convencoes.md) | cada regra do repositório e a checagem que a garante |
@@ -85,6 +85,8 @@ dbt show --select lista_nao_contatar # qualquer consulta de analyses/
 
 `python pipeline.py` apaga `database/collections_contact_risk.duckdb`, lê todos os arquivos e roda o `dbt build` com os testes. Duas execuções a partir do mesmo estado dão o mesmo resultado (p. 2), e o CI confere isso rodando a pipeline duas vezes.
 
+Se as variáveis `ALERTA_*` estiverem definidas, a pipeline manda um e-mail quando a ingestão ou o `dbt build` falham; sem elas, nada muda ([Alerta por e-mail](docs/monitoramento.md#4-alerta-por-e-mail)).
+
 O download da Receita é opcional: o extrato usado já está versionado em `external_data/receita/2026-10/`. Para baixar de novo, `python -m ingestion.main --baixar receita` e depois `python pipeline.py` ([ingestao.md, seção 4](docs/ingestao.md#4-a-receita-como-exemplo-de-api)).
 
 ---
@@ -96,7 +98,7 @@ O download da Receita é opcional: o extrato usado já está versionado em `exte
 | `ingestion/` | leitura dos arquivos das fontes para a bronze, sem transformação ([docs/ingestao.md](docs/ingestao.md)) |
 | `models/` | o dbt por camada: `bronze/` (contrato das fontes, sem SQL), `silver/<fonte>/` e `gold/<domínio>/`. Em `gold/<domínio>/`, os modelos sem `dim_` ou `ft_` são etapas efêmeras e não viram tabela |
 | `analyses/` | as consultas das análises, rodadas com `dbt show --select <consulta>` |
-| `scripts/` | a medição da régua, a geração do dicionário e a checagem de execuções idênticas |
+| `scripts/` | a medição da régua, a geração do dicionário, a checagem de execuções idênticas e o e-mail de alerta |
 | `tests/` | os testes do pytest e os testes de dados do dbt |
 | `macros/` | a padronização da silver e as regras da gold, como a régua e os alertas |
 | `contact_data/` | os arquivos recebidos dos provedores e o histórico de contatos: a zona bruta imutável |
@@ -172,7 +174,6 @@ Os números, as consultas e as margens estão em [docs/analises.md](docs/analise
 ## 🔭 Com mais tempo
 
 - **Um job de CI com serviço PostgreSQL**, para executar as versões PostgreSQL das macros e fechar o primeiro limite.
-- **Alerta por e-mail** quando a pipeline falha ou o teste de entrega dá aviso; hoje o aviso fica no `run_results.json` do dbt.
 - **Uma tabela de presença por entrega** na silver, para saber se um par sumiu das entregas e avisar o dia perdido no próprio dia.
 - **A régua como pontuação de 0 a 100 com faixas**, com os sinais que já estão em colunas, para usar o provedor único sem mandar 55% das tentativas para `atencao`; e cada tentativa avaliada com a régua de sete dias antes.
 - **Banco persistido com carga incremental**, pulando o arquivo já carregado pelo caminho e pelo hash, quando reler tudo ficar caro ([decisões, seção 3](docs/decisoes-de-modelagem.md#3-ingestão)).
