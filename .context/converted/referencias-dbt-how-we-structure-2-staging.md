@@ -2,12 +2,14 @@
 id: referencias-dbt-how-we-structure-2-staging
 source: raw/referencias/dbt/how-we-structure-2-staging.md
 origin: https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/2-staging.md · acesso 2026-11-09
-sha256: 7f1059072d0a48ad3ba1d5ff910486859aeda1c87229d8950e8513b3d941480f
+sha256: cb5b94b9b68d86f1b492e752a5ba03441fd99784a10803cadf7d537e8e05cd48
 converter: plain
-converted: 2026-11-09 07:43
+converted: 2026-11-10 03:20
 pages: 0
 kind: document
 ---
+<!-- Source: https://docs.getdbt.com/best-practices/how-we-structure/2-staging . Version: "current" docs (the page shows no version number). Accessed 2026-11-10: the passage used by this project ("Materialized as views" and its reasons) matches the live page that day. License: Apache 2.0 (see ../_licencas/docs-getdbt-Apache-2.0.md). Header added later; content unchanged. -->
+
 The staging layer is where our journey begins. This is the foundation of our project, where we bring all the individual components we're going to use to build our more complex and useful models into the project.
 
 We'll use an analogy for working with dbt throughout this guide: thinking modularly in terms of atoms, molecules, and more complex outputs like proteins or cells (we apologize in advance to any chemists or biologists for our inevitable overstretching of this metaphor). Within that framework, if our source system data is a soup of raw energy and quarks, then you can think of the staging layer as condensing and refining this material into the individual atoms we’ll later build more intricate and useful structures with.
