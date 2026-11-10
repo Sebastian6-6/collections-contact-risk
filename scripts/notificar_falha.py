@@ -9,6 +9,7 @@ e o CI se comportam como antes.
 
 import os
 import smtplib
+import ssl
 from collections.abc import Mapping
 from email.message import EmailMessage
 from pathlib import Path
@@ -55,7 +56,8 @@ def notificar(
 
     host, porta = ambiente["ALERTA_SMTP_HOST"], int(ambiente["ALERTA_SMTP_PORTA"])
     with smtplib.SMTP(host, porta) as servidor:
-        servidor.starttls()
+        # O contexto padrão confere o certificado do servidor antes de enviar a senha.
+        servidor.starttls(context=ssl.create_default_context())
         servidor.login(ambiente["ALERTA_SMTP_USUARIO"], ambiente["ALERTA_SMTP_SENHA"])
         servidor.send_message(mensagem)
     print("[OK] alerta enviado por e-mail")

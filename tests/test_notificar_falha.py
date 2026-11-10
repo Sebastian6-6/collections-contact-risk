@@ -32,7 +32,7 @@ class SmtpFalso:
     def __exit__(self, *erro):
         return False
 
-    def starttls(self):
+    def starttls(self, context=None):
         self.tls = True
 
     def login(self, usuario, senha):
