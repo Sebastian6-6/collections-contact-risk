@@ -2,9 +2,9 @@
 id: referencias-ruff-configuration-0-17-4
 source: raw/referencias/ruff/configuration-0.17.4.md
 origin: https://github.com/astral-sh/ruff/blob/0.17.4/docs/configuration.md · acesso 2026-11-09
-sha256: ad98019d25c70e6f4f8e149a3d496daee5a617cc32fb2926f03acd35273cb252
+sha256: 33b4b1a9c063d3c0c3aec64f5e9aa62514f23026861e96e693576c0145fb90ea
 converter: plain
-converted: 2026-11-09 07:43
+converted: 2026-11-10 09:10
 pages: 0
 kind: document
 ---

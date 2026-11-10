@@ -108,7 +108,9 @@ models:
         description: >-
           Data de nascimento pela maioria dos provedores, só entre datas confiáveis. `NULL` quando
           não há data confiável ou quando há empate, inclusive dia e mês trocados (ponto 9/b2: é a
-          falta de um valor confiável, e não uma data recebida trocada).
+          falta de um valor confiável, e não uma data recebida trocada). Tipo `DATE`: rejeita data
+          inválida e filtra por período sem converter texto (0,004 s contra 0,076 s em 5 milhões
+          de linhas).
 
   - name: devedores_versao_vigente
     description: >
@@ -155,7 +157,8 @@ models:
             colunas: [sk_devedor, logradouro, numero_endereco, complemento, bairro, cidade, uf, cep, endereco]
     columns:
       - name: sk_endereco
-        description: "Chave substituta: a posição do endereço na ordem de devedor e das partes. Determinística (G6)."
+        description: "Chave substituta: a posição do endereço na ordem de devedor e das partes. Determinística (G6). `INTEGER` de 4 bytes: junta mais rápido que o `md5` da chave natural
+          (0,204 s contra 0,279 s) e não é reversível a um documento."
         data_tests:
           - unique
           - not_null
@@ -409,7 +412,7 @@ models:
             colunas: [cpf, documento_original, tipo_contato, contato]
     columns:
       - name: sk_contato
-        description: "Chave substituta: a posição do par em ordem de CPF, documento, tipo e contato (G6)."
+        description: "Chave substituta: a posição do par em ordem de CPF, documento, tipo e contato (G6). `INTEGER`, pelo mesmo motivo de `sk_endereco`."
         data_tests:
           - unique
           - not_null

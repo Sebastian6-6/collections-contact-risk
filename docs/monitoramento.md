@@ -17,7 +17,7 @@ Os números saem de `gold_monitoramento.ft_entrega_diaria`: uma linha por proved
 
 São 11 alertas em 5 entregas, e os 6 incidentes conhecidos aparecem. Nenhuma outra entrega gera alerta.
 
-**Data padrão 2025-09-01.** Não é problema de um dia: são cerca de 370 linhas da bronze por provedor (376 no alfa, 372 no beta e 372 na gama; em versões da silver são 372, 365 e 367, em [perfil-das-fontes.md](perfil-das-fontes.md)). com essa data de atualização, só nos arquivos históricos, e nenhum nas entregas diárias. A data fica como veio na ordenação da versão atual (decisão de 2026-11-09). Tratá-la como ausente mudaria a versão atual de no máximo 5 devedores por fonte ([decisoes-de-modelagem.md](decisoes-de-modelagem.md), 5.4). Como o histórico fica fora do monitoramento, quem vigia é o par de testes `beta_data_20250901_so_no_historico` e `gama_data_20250901_so_no_historico`, que avisam se a data aparecer numa entrega diária. O alfa não tem esse teste.
+**Data padrão 2025-09-01.** Não é problema de um dia: são cerca de 370 linhas da bronze por provedor (376 no alfa, 372 no beta e 372 na gama; em versões da silver são 372, 365 e 367, em [perfil-das-fontes.md](perfil-das-fontes.md)) com essa data de atualização, só nos arquivos históricos, e nenhum nas entregas diárias. A data fica como veio na ordenação da versão atual (decisão de 2026-11-09). Tratá-la como ausente mudaria a versão atual de no máximo 5 devedores por fonte ([decisoes-de-modelagem.md](decisoes-de-modelagem.md), 5.4). Como o histórico fica fora do monitoramento, quem vigia é o par de testes `beta_data_20250901_so_no_historico` e `gama_data_20250901_so_no_historico`, que avisam se a data aparecer numa entrega diária. O alfa não tem esse teste.
 
 ## 2. Como o alerta pega
 
@@ -58,5 +58,5 @@ flowchart LR
 - **Agendamento:** rodar a pipeline uma vez por dia, depois do horário combinado de entrega dos provedores.
 - **Notificação:** ler o status do teste `entrega_recente_com_alerta` em `target/run_results.json`, o arquivo de resultados que o dbt grava a cada execução, e mandar as linhas do alerta ao responsável pelo provedor.
 - **Dia perdido no próprio dia:** comparar os provedores esperados com os arquivos que chegaram, para avisar a falta no mesmo dia, e não só quando chegar a entrega seguinte.
-- **Carga incremental:** quando reler tudo ficar caro, pular o arquivo já carregado pelo caminho e pelo hash ([decisoes-de-modelagem.md](decisoes-de-modelagem.md), seção 3). Hoje a pipeline completa leva cerca de 6,5 s.
+- **Carga incremental:** quando reler tudo ficar caro, pular o arquivo já carregado pelo caminho e pelo hash ([decisoes-de-modelagem.md](decisoes-de-modelagem.md), seção 3). Hoje a pipeline completa leva cerca de 30,7 s (mediana de 3 execuções em 2026-11-10).
 - **Recalibração:** revisar a janela e o limite com alguns meses de histórico, contando os alarmes falsos fora da amostra de calibração.

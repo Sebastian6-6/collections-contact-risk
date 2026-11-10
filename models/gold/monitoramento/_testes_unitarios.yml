@@ -74,14 +74,14 @@ unit_tests:
           ) AS tLinhas (provedor, dt_referencia, qt_registros, desc_cabecalho)
     expect:
       rows:
-        - {provedor: alfa, dt_referencia: 2026-09-07, tp_dia: util, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}
-        - {provedor: alfa, dt_referencia: 2026-09-08, tp_dia: util, qt_media_movel: 100, qt_entregas_base: 1, tx_variacao_media: null, situacao_volume: sem_base}
-        - {provedor: alfa, dt_referencia: 2026-09-09, tp_dia: util, qt_media_movel: 100, qt_entregas_base: 2, tx_variacao_media: null, situacao_volume: sem_base}
-        - {provedor: alfa, dt_referencia: 2026-09-10, tp_dia: util, qt_media_movel: 100, qt_entregas_base: 3, tx_variacao_media: 0, situacao_volume: normal}
-        - {provedor: alfa, dt_referencia: 2026-09-11, tp_dia: util, qt_media_movel: 100, qt_entregas_base: 4, tx_variacao_media: 0, situacao_volume: normal}
-        - {provedor: alfa, dt_referencia: 2026-09-12, tp_dia: fim_de_semana, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}
-        - {provedor: alfa, dt_referencia: 2026-09-13, tp_dia: fim_de_semana, qt_media_movel: 50, qt_entregas_base: 1, tx_variacao_media: null, situacao_volume: sem_base}
-        - {provedor: alfa, dt_referencia: 2026-09-14, tp_dia: util, qt_media_movel: 100, qt_entregas_base: 5, tx_variacao_media: 3, situacao_volume: acima}
-        - {provedor: alfa, dt_referencia: 2026-09-15, tp_dia: util, qt_media_movel: 160, qt_entregas_base: 5, tx_variacao_media: -0.875, situacao_volume: abaixo}
-        - {provedor: alfa, dt_referencia: 2026-09-16, tp_dia: util, qt_media_movel: 144, qt_entregas_base: 5, tx_variacao_media: 0.1111, situacao_volume: normal}
-        - {provedor: gama, dt_referencia: 2026-09-14, tp_dia: util, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-07, tipo_dia: util, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-08, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 1, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-09, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 2, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-10, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 3, tx_variacao_media: 0, situacao_volume: normal}
+        - {provedor: alfa, dt_referencia: 2026-09-11, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 4, tx_variacao_media: 0, situacao_volume: normal}
+        - {provedor: alfa, dt_referencia: 2026-09-12, tipo_dia: fim_de_semana, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-13, tipo_dia: fim_de_semana, qt_media_movel: 50, qt_entregas_base: 1, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-14, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 5, tx_variacao_media: 3, situacao_volume: acima}
+        - {provedor: alfa, dt_referencia: 2026-09-15, tipo_dia: util, qt_media_movel: 160, qt_entregas_base: 5, tx_variacao_media: -0.875, situacao_volume: abaixo}
+        - {provedor: alfa, dt_referencia: 2026-09-16, tipo_dia: util, qt_media_movel: 144, qt_entregas_base: 5, tx_variacao_media: 0.1111, situacao_volume: normal}
+        - {provedor: gama, dt_referencia: 2026-09-14, tipo_dia: util, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}
