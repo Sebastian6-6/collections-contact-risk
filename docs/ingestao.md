@@ -69,7 +69,7 @@ Nos quatro casos, a tabela é declarada em `models/bronze/<fonte>/_fontes.yml`, 
 
 ## 4. A Receita como exemplo de API
 
-O enunciado pede para "cruzar as informações de empregador com os dados abertos do CNPJ da Receita Federal" (p. 1) e demonstrar "o que a base de CNPJ agrega à esteira de cobrança" (p. 2). A Receita publica por mês 37 zips, com 7.808.752.942 bytes (7,8 GB) e 223.636.289 registros em 2026-10, contados pelo baixador. O projeto precisa só das empresas recebidas dos provedores (13 raízes de CNPJ).
+O enunciado pede para "cruzar as informações de empregador com os dados abertos do CNPJ da Receita Federal" (p. 1) e demonstrar "o que a base de CNPJ agrega à esteira de cobrança" (p. 2). A Receita publica por mês 37 zips, com 7.808.752.942 bytes (7,8 GB) e 223.636.289 registros em 2026-10, contados pelo baixador. O projeto precisa só das empresas recebidas dos provedores (13 raízes de CNPJ). Medido: 10 das 13 raízes têm registro na Receita, mas só 8 dos 13 CNPJs existem como estabelecimento; os 2 restantes (raízes `04182736` e `51930487`) chegam com outra ordem e outro DV, um achado de qualidade do dado recebido.
 
 **Acesso por WebDAV.** O download oficial fica num compartilhamento público do Nextcloud da Receita. O cliente `ingestion/webdav.py` usa o WebDAV público desse compartilhamento: `PROPFIND` para listar a pasta do mês (tamanho e data de cada arquivo) e `GET` com retomada (`Range`) para baixar; o usuário é o token do compartilhamento, e a senha é vazia. É o mecanismo padrão do Nextcloud, e não uma API documentada pela Receita. Usa só a biblioteca padrão do Python.
 
