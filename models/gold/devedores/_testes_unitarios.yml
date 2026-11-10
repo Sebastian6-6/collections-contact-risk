@@ -296,3 +296,81 @@ unit_tests:
         - {sk_endereco: 4, sk_devedor: 2, tipo_endereco: null, situacao_endereco: "anterior", endereco: "RUA A, 20", logradouro: "RUA A", numero_endereco: "20", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e5", _linha: 5, _hash_arquivo: "hx"}
         - {sk_endereco: 5, sk_devedor: 3, tipo_endereco: null, situacao_endereco: "atual", endereco: "RUA A, 30", logradouro: "RUA A", numero_endereco: "30", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e6", _linha: 6, _hash_arquivo: "hx"}
         - {sk_endereco: 6, sk_devedor: null, tipo_endereco: null, situacao_endereco: "anterior", endereco: "RUA A, 40", logradouro: "RUA A", numero_endereco: "40", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e7", _linha: 7, _hash_arquivo: "hx"}
+
+  - name: dim_contato_aplica_a_regua_aos_sinais_de_contato_devedor_e_tentativa
+    description: >
+      G4 e G5. Contato exclusivo e sem alerta é `liberado`; contato de dois CPFs que se sobrepõem
+      é `compartilhado` (`atencao`); contato que passa de um CPF para outro depois da última
+      entrega do primeiro é `migrado` e bloqueia os dois pares. `opt_out` numa tentativa bloqueia
+      o contato para todos os CPFs dele; `falecido` bloqueia todos os pares do devedor, e vence a
+      migração; `numero_errado` bloqueia só o par. Contato sem devedor é bloqueado, e documento
+      ligado por correção é `atencao`. As contagens de tentativas saem das ligadas ao par.
+    model: dim_contato
+    given:
+      - input: ref('devedores_contatos_pares')
+        format: sql
+        rows: |
+          SELECT
+            CAST(sk_contato AS INTEGER) AS sk_contato
+            , CAST(sk_devedor AS INTEGER) AS sk_devedor
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(tipo_contato AS VARCHAR) AS tipo_contato
+            , CAST(contato AS VARCHAR) AS contato
+            , CAST(tipo_conflito_cadastral AS VARCHAR) AS tipo_conflito_cadastral
+            , CAST(situacao_documento AS VARCHAR) AS situacao_documento
+            , CAST(documento_original AS VARCHAR) AS documento_original
+            , CAST(situacao_entrega AS VARCHAR) AS situacao_entrega
+            , CAST(qt_provedores AS INTEGER) AS qt_provedores
+            , CAST(dt_primeira_entrega AS DATE) AS dt_primeira_entrega
+            , CAST(dt_ultima_entrega AS DATE) AS dt_ultima_entrega
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            (1, 1, 'c1', 'telefone', '111', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f1', 1, 'h')
+            , (2, 1, 'c1', 'telefone', '222', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f2', 2, 'h')
+            , (3, 2, 'c2', 'telefone', '222', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-05-01', DATE '2026-09-30', 'f3', 3, 'h')
+            , (4, 3, 'c3', 'telefone', '333', 'nenhum', 'cpf_valido', NULL, 'ausente', 1, DATE '2026-01-01', DATE '2026-03-31', 'f4', 4, 'h')
+            , (5, 4, 'c4', 'telefone', '333', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-06-01', DATE '2026-09-30', 'f5', 5, 'h')
+            , (6, 1, 'c1', 'telefone', '444', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f6', 6, 'h')
+            , (7, 2, 'c2', 'telefone', '444', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-02-01', DATE '2026-09-30', 'f7', 7, 'h')
+            , (8, 3, 'c3', 'email', 'a@x', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f8', 8, 'h')
+            , (9, 3, 'c3', 'telefone', '666', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f9', 9, 'h')
+            , (10, 5, 'c5', 'telefone', '777', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f10', 10, 'h')
+            , (11, NULL, NULL, 'telefone', '888', 'nenhum', 'sem_documento', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f11', 11, 'h')
+            , (12, 5, 'c5', 'telefone', '999', 'nenhum', 'cpf_corrigido', '12345678900', 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f12', 12, 'h')
+          ) AS tLinhas (sk_contato, sk_devedor, cpf, tipo_contato, contato, tipo_conflito_cadastral, situacao_documento, documento_original, situacao_entrega, qt_provedores, dt_primeira_entrega, dt_ultima_entrega, _arquivo, _linha, _hash_arquivo)
+      - input: ref('cobranca_tentativas')
+        format: sql
+        rows: |
+          SELECT
+            CAST(contato_id AS VARCHAR) AS contato_id
+            , CAST(tipo_contato AS VARCHAR) AS tipo_contato
+            , CAST(contato AS VARCHAR) AS contato
+            , CAST(resultado AS VARCHAR) AS resultado
+            , CAST(tipo_desfecho AS VARCHAR) AS tipo_desfecho
+            , CAST(dt_tentativa AS DATE) AS dt_tentativa
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(sk_contato AS INTEGER) AS sk_contato
+          FROM (
+            VALUES
+            ('t1', 'telefone', '444', 'opt_out', 'opt_out', DATE '2026-09-05', 'c1', 6)
+            , ('t2', 'email', 'a@x', 'falecido', 'falecido', DATE '2026-09-06', 'c3', 8)
+            , ('t3', 'telefone', '777', 'numero_errado', 'terceiro', DATE '2026-09-07', 'c5', 10)
+            , ('t4', 'telefone', '777', 'entregue', 'sem_confirmacao', DATE '2026-09-08', 'c5', 10)
+          ) AS tLinhas (contato_id, tipo_contato, contato, resultado, tipo_desfecho, dt_tentativa, cpf, sk_contato)
+    expect:
+      rows:
+        - {sk_contato: 1, sk_devedor: 1, cpf: "c1", tipo_contato: "telefone", contato: "111", nivel_risco: "liberado", desc_motivo_risco: "sem sinal de risco", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: null, _arquivo: "f1", _linha: 1, _hash_arquivo: "h"}
+        - {sk_contato: 2, sk_devedor: 1, cpf: "c1", tipo_contato: "telefone", contato: "222", nivel_risco: "atencao", desc_motivo_risco: "contato compartilhado entre devedores", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "compartilhado", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-05-01", dt_alerta_historico: null, _arquivo: "f2", _linha: 2, _hash_arquivo: "h"}
+        - {sk_contato: 3, sk_devedor: 2, cpf: "c2", tipo_contato: "telefone", contato: "222", nivel_risco: "atencao", desc_motivo_risco: "contato compartilhado entre devedores", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "compartilhado", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-05-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-05-01", dt_alerta_historico: null, _arquivo: "f3", _linha: 3, _hash_arquivo: "h"}
+        - {sk_contato: 4, sk_devedor: 3, cpf: "c3", tipo_contato: "telefone", contato: "333", nivel_risco: "bloqueado", desc_motivo_risco: "falecido: devedor falecido registrado em contato", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "migrado", tipo_alerta_historico: "falecido", situacao_entrega: "ausente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-03-31", dt_situacao_compartilhamento: "2026-06-01", dt_alerta_historico: "2026-09-06", _arquivo: "f4", _linha: 4, _hash_arquivo: "h"}
+        - {sk_contato: 5, sk_devedor: 4, cpf: "c4", tipo_contato: "telefone", contato: "333", nivel_risco: "bloqueado", desc_motivo_risco: "contato migrado: passou a outro CPF", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "migrado", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-06-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-06-01", dt_alerta_historico: null, _arquivo: "f5", _linha: 5, _hash_arquivo: "h"}
+        - {sk_contato: 6, sk_devedor: 1, cpf: "c1", tipo_contato: "telefone", contato: "444", nivel_risco: "bloqueado", desc_motivo_risco: "opt_out: titular do contato pediu para não ser contatado", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "compartilhado", tipo_alerta_historico: "opt_out", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 1, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-02-01", dt_alerta_historico: "2026-09-05", _arquivo: "f6", _linha: 6, _hash_arquivo: "h"}
+        - {sk_contato: 7, sk_devedor: 2, cpf: "c2", tipo_contato: "telefone", contato: "444", nivel_risco: "bloqueado", desc_motivo_risco: "opt_out: titular do contato pediu para não ser contatado", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "compartilhado", tipo_alerta_historico: "opt_out", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-02-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-02-01", dt_alerta_historico: "2026-09-05", _arquivo: "f7", _linha: 7, _hash_arquivo: "h"}
+        - {sk_contato: 8, sk_devedor: 3, cpf: "c3", tipo_contato: "email", contato: "a@x", nivel_risco: "bloqueado", desc_motivo_risco: "falecido: devedor falecido registrado em contato", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "falecido", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 1, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: "2026-09-06", _arquivo: "f8", _linha: 8, _hash_arquivo: "h"}
+        - {sk_contato: 9, sk_devedor: 3, cpf: "c3", tipo_contato: "telefone", contato: "666", nivel_risco: "bloqueado", desc_motivo_risco: "falecido: devedor falecido registrado em contato", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "falecido", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: "2026-09-06", _arquivo: "f9", _linha: 9, _hash_arquivo: "h"}
+        - {sk_contato: 10, sk_devedor: 5, cpf: "c5", tipo_contato: "telefone", contato: "777", nivel_risco: "bloqueado", desc_motivo_risco: "terceiro: contato informou não ser o devedor", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nao_e_o_devedor", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 2, qt_tentativas_terceiro: 1, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: "2026-09-07", _arquivo: "f10", _linha: 10, _hash_arquivo: "h"}
+        - {sk_contato: 11, sk_devedor: null, cpf: null, tipo_contato: "telefone", contato: "888", nivel_risco: "bloqueado", desc_motivo_risco: "contato sem devedor identificado", situacao_documento: "sem_documento", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 0, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: null, _arquivo: "f11", _linha: 11, _hash_arquivo: "h"}
+        - {sk_contato: 12, sk_devedor: 5, cpf: "c5", tipo_contato: "telefone", contato: "999", nivel_risco: "atencao", desc_motivo_risco: "documento ligado por correção ou por RG", situacao_documento: "cpf_corrigido", documento_original: "12345678900", situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: null, _arquivo: "f12", _linha: 12, _hash_arquivo: "h"}

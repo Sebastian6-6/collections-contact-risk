@@ -1,8 +1,8 @@
 {#
   Régua de risco de contato (G4a, G4b e G5; seção 9.9 de docs/decisoes-de-modelagem.md).
 
-  ESQUELETO do passo 4.2: as regras de nível e motivo estão completas; o cálculo dos sinais
-  (`tSinaisDoPar`) é feito no passo 4.5, que também usa `data_corte`.
+  As regras de nível e motivo estão aqui; o cálculo dos sinais (`tSinaisDoPar`) é da macro
+  `regua_sinais_do_par` (passo 4.5), que também usa `data_corte`.
 
   Grão da saída: uma linha por par devedor x contato de `sinais`.
   Entrada: a CTE `sinais` (padrão `tSinaisDoPar`) com as colunas

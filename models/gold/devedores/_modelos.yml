@@ -285,3 +285,160 @@ models:
         description: "Linha do arquivo da última versão do período."
       - name: _hash_arquivo
         description: "Hash do arquivo da última versão do período."
+
+  - name: devedores_contatos_registros
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Os pares documento × contato das três
+      fontes, de todas as versões, no mesmo formato, com a última entrega de cada provedor.
+      Alimenta `devedores_contatos_pares`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_contatos_pares
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Um contato normalizado de um devedor
+      (`cpf`), juntando os documentos ligados a ele; o contato de documento vazio ou de RG sem
+      ligação fica numa linha por documento, com `cpf` NULL. Traz o melhor documento pelo qual o
+      contato chegou, a presença nas entregas e a rastreabilidade da aparição mais recente.
+      Alimenta `dim_contato` e a ligação das tentativas.
+    config:
+      materialized: ephemeral
+
+  - name: cobranca_tentativas
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. As tentativas da Cobrança com o
+      devedor do `cpf_alvo`, a classe do desfecho (macro `tipo_desfecho`) e a ligação ao par:
+      primeiro o par (CPF, contato), depois o contato sem devedor de mesmo valor, senão sem
+      ligação. Alimenta a régua (`dim_contato`) e `ft_tentativa_contato`.
+    config:
+      materialized: ephemeral
+
+  - name: dim_contato
+    description: >
+      Um contato normalizado de um devedor, com a régua de risco aplicada ao par (G4, G5). O
+      contato de documento vazio ou de RG sem ligação fica numa linha com `sk_devedor` NULL e
+      sempre bloqueado. Os sinais saem de `regua_sinais_do_par` e o nível e o motivo, de
+      `regua_de_risco` (sem data de corte: a régua de operação). A lista de não-contatar é esta
+      tabela com `nivel_risco = 'bloqueado'`.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [cpf, documento_original, tipo_contato, contato]
+    columns:
+      - name: sk_contato
+        description: "Chave substituta: a posição do par em ordem de CPF, documento, tipo e contato (G6)."
+        data_tests:
+          - unique
+          - not_null
+      - name: sk_devedor
+        description: "Devedor do contato. `NULL` quando o documento é vazio ou é um RG sem ligação."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_devedor')
+                field: sk_devedor
+      - name: cpf
+        description: "CPF do devedor, só dígitos. `NULL` quando o contato não tem devedor."
+      - name: tipo_contato
+        description: "`telefone` ou `email`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [telefone, email]
+      - name: contato
+        description: "Telefone (DDD + número) ou e-mail em minúsculas, como a silver o normalizou."
+        data_tests:
+          - not_null
+      - name: nivel_risco
+        description: >-
+          `liberado` (mensagem de cobrança), `atencao` (contato sem expor a dívida) ou `bloqueado`
+          (sem contato; lista de não-contatar).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [liberado, atencao, bloqueado]
+      - name: desc_motivo_risco
+        description: >-
+          Motivo principal do nível pela prioridade falecido > opt_out > disse não ser o devedor >
+          contato migrado > contato sem devedor > compartilhado > conflito de identidade >
+          documento ligado > CPF inválido. Os demais motivos ficam visíveis nas colunas de sinal.
+        data_tests:
+          - not_null
+      - name: situacao_documento
+        description: "Por qual documento o contato chegou ao devedor, o melhor entre os que o trouxeram."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [cpf_valido, cpf_corrigido, rg_por_nome_nascimento, cpf_invalido, sem_documento]
+      - name: documento_original
+        description: >-
+          Documento como foi recebido, quando não é `cpf_valido` (CPF corrigido, RG ou CPF
+          inválido). `NULL` quando o documento é o CPF válido do devedor ou está vazio.
+      - name: situacao_compartilhamento
+        description: >-
+          `compartilhado` quando mais de um CPF tem o contato; `migrado` quando um CPF passou a
+          tê-lo só depois da última entrega de outro; `exclusivo` nos demais. Vale para todos os
+          pares do contato.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [exclusivo, compartilhado, migrado]
+      - name: tipo_alerta_historico
+        description: >-
+          Alerta das tentativas, pela prioridade falecido > opt_out > nao_e_o_devedor: `falecido`
+          em qualquer contato do devedor, `opt_out` em qualquer tentativa ao contato,
+          `nao_e_o_devedor` (`numero_errado` ou `nao_conhece_devedor`) no par; `nenhum` sem alerta.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [nenhum, falecido, opt_out, nao_e_o_devedor]
+      - name: situacao_entrega
+        description: >-
+          `presente` quando algum provedor mandou o par na última entrega dele; `ausente` nos
+          demais (ponto 7, só na régua de operação). Uma versão atual da gama com a lista cortada
+          também aparece como `ausente`.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [presente, ausente]
+      - name: qt_provedores
+        description: "Quantos provedores mandaram o par. `qt_provedores = 1` é o provedor único."
+        data_tests:
+          - not_null
+      - name: qt_devedores_mesmo_contato
+        description: "Quantos CPFs têm o mesmo contato. 0 no contato sem devedor que nenhum CPF tem."
+        data_tests:
+          - not_null
+      - name: qt_tentativas
+        description: "Tentativas da Cobrança ligadas ao par."
+        data_tests:
+          - not_null
+      - name: qt_tentativas_terceiro
+        description: "Tentativas ligadas ao par com resultado `numero_errado` ou `nao_conhece_devedor`."
+        data_tests:
+          - not_null
+      - name: dt_primeira_entrega
+        description: "Menor primeira entrega entre os provedores e documentos do par."
+      - name: dt_ultima_entrega
+        description: "Maior última entrega entre os provedores e documentos do par."
+      - name: dt_situacao_compartilhamento
+        description: >-
+          Quando o contato passou a `migrado` (primeira entrega do CPF que o recebeu) ou a
+          `compartilhado` (primeira entrega do segundo CPF). `NULL` quando exclusivo. Informativa:
+          a validação recalcula os sinais pela data de corte.
+      - name: dt_alerta_historico
+        description: >-
+          Data da primeira tentativa do alerta escolhido. `NULL` quando `tipo_alerta_historico` é
+          `nenhum`. Informativa.
+      - name: _arquivo
+        description: "Arquivo da aparição mais recente do par."
+      - name: _linha
+        description: "Linha do arquivo da mesma aparição."
+      - name: _hash_arquivo
+        description: "Hash do arquivo da mesma aparição."
