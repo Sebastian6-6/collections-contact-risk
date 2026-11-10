@@ -263,17 +263,6 @@ def test_nada_depende_do_horario_nem_do_caminho_da_maquina(tmp_path):
     assert str(tmp_path).encode() not in primeira["ORIGEM.md"]
 
 
-def test_com_mais_de_um_trabalhador_o_resultado_e_o_mesmo(tmp_path):
-    _, um, _ = _montar(tmp_path)
-    outro = tmp_path / "outro"
-    outro.mkdir()
-    _, dois, _ = _montar(outro, parametros=_parametros(trabalhadores=2))
-
-    assert {p.name: p.read_bytes() for p in um.iterdir()} == {
-        p.name: p.read_bytes() for p in dois.iterdir()
-    }
-
-
 def test_zip_ja_no_cache_com_o_tamanho_certo_nao_e_baixado_de_novo(tmp_path):
     cliente, _, _ = _montar(tmp_path)
     assert sorted(cliente.baixados) == sorted(cliente.arquivos)
@@ -349,7 +338,7 @@ def test_parametros_desconhecidos_ou_ausentes_dizem_quais():
         ({"filtradas": []}, "filtradas"),
         ({"raizes_de": []}, "raizes_de"),
         ({"raizes_de": [{"tabela": "x; DROP", "coluna": "c"}]}, "x; DROP"),
-        ({"trabalhadores": 0}, "trabalhadores"),
+        ({"trabalhadores": 2}, "trabalhadores"),
     ],
 )
 def test_parametros_invalidos_dizem_qual(troca, trecho):

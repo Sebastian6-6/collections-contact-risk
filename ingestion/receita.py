@@ -2,7 +2,7 @@
 
 A Receita publica por mês 37 zips (7,8 GB) com o cadastro de todas as empresas do país. O
 projeto precisa só das empresas recebidas dos provedores. Este módulo baixa os zips para um
-cache fora do git, confere cada um (tamanho, CRC e sha256) e grava numa pasta versionada:
+cache fora do git, confere tamanho e CRC, calcula o sha256 e grava numa pasta versionada:
 
 - as tabelas de domínio (`completas`) inteiras;
 - das demais (`filtradas`), os registros cuja raiz de CNPJ (8 primeiros caracteres) foi
@@ -19,9 +19,7 @@ import hashlib
 import re
 import zipfile
 from collections.abc import Iterator, Sequence
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
-from itertools import repeat
 from pathlib import Path
 from typing import Protocol
 
@@ -53,7 +51,6 @@ CAMPOS_OBRIGATORIOS = (
     "filtradas",
     "raizes_de",
 )
-CAMPOS_OPCIONAIS = ("trabalhadores",)
 
 LICENCA = (
     "Creative Commons Attribution (campo de licença do conjunto no dados.gov.br, sem a versão; "
@@ -86,14 +83,13 @@ class ParametrosReceita:
     completas: tuple[str, ...]
     filtradas: tuple[str, ...]
     raizes_de: tuple[OrigemDeRaizes, ...]
-    trabalhadores: int = 1
 
 
 def ler_parametros(brutos: object) -> ParametrosReceita:
     """Valida o mapa de parâmetros e o devolve tipado; o erro diz qual campo está errado."""
     if not isinstance(brutos, dict):
         raise ErroDeIngestao("receita: 'parametros' é um mapa")
-    if desconhecidos := sorted(set(brutos) - {*CAMPOS_OBRIGATORIOS, *CAMPOS_OPCIONAIS}):
+    if desconhecidos := sorted(set(brutos) - set(CAMPOS_OBRIGATORIOS)):
         raise ErroDeIngestao(f"receita: parâmetro(s) desconhecido(s): {', '.join(desconhecidos)}")
     if ausentes := [campo for campo in CAMPOS_OBRIGATORIOS if campo not in brutos]:
         raise ErroDeIngestao(f"receita: parâmetro(s) ausente(s): {', '.join(ausentes)}")
@@ -106,7 +102,6 @@ def ler_parametros(brutos: object) -> ParametrosReceita:
         completas=_nomes(brutos["completas"], "completas"),
         filtradas=_nomes(brutos["filtradas"], "filtradas"),
         raizes_de=_origens_de_raizes(brutos["raizes_de"]),
-        trabalhadores=brutos.get("trabalhadores", 1),
     )
     _conferir(parametros)
     return parametros
@@ -136,8 +131,6 @@ def _conferir(parametros: ParametrosReceita) -> None:
         raise ErroDeIngestao("receita: 'filtradas' precisa de ao menos uma tabela")
     if repetidas := sorted(set(parametros.completas) & set(parametros.filtradas)):
         raise ErroDeIngestao(f"receita: {', '.join(repetidas)} está em 'completas' e 'filtradas'")
-    if not isinstance(parametros.trabalhadores, int) or parametros.trabalhadores < 1:
-        raise ErroDeIngestao("receita: 'trabalhadores' é um inteiro a partir de 1")
     for origem in parametros.raizes_de:
         if not PADRAO_DE_TABELA.fullmatch(origem.tabela):
             raise ErroDeIngestao(f"receita: tabela '{origem.tabela}' de 'raizes_de' inválida")
@@ -354,15 +347,6 @@ def _baixar_para_o_cache(
     return caminhos
 
 
-def _filtrar_todos(
-    caminhos: Sequence[Path], raizes: frozenset[str] | None, trabalhadores: int
-) -> list[ResultadoZip]:
-    if trabalhadores == 1:
-        return [filtrar_zip(caminho, raizes) for caminho in caminhos]
-    with ProcessPoolExecutor(max_workers=trabalhadores) as executor:
-        return list(executor.map(filtrar_zip, caminhos, repeat(raizes)))
-
-
 def montar_extrato(
     cliente: Cliente,
     parametros: ParametrosReceita,
@@ -385,9 +369,7 @@ def montar_extrato(
     for entidade, arquivos in por_entidade.items():
         alvo = None if entidade in parametros.completas else filtro
         print(f"[LENDO] {entidade}: {len(arquivos)} zip(s)", flush=True)
-        resultados[entidade] = _filtrar_todos(
-            [caminhos[arquivo.nome] for arquivo in arquivos], alvo, parametros.trabalhadores
-        )
+        resultados[entidade] = [filtrar_zip(caminhos[arquivo.nome], alvo) for arquivo in arquivos]
     conteudos = {
         entidade: b"".join(resultado.selecionado for resultado in lidos)
         for entidade, lidos in resultados.items()

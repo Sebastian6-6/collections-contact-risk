@@ -64,7 +64,6 @@ cobranca:
 #   completas            tabelas de domínio, gravadas inteiras
 #   filtradas            tabelas gravadas só com as raízes de CNPJ recebidas
 #   raizes_de            colunas da silver com o CNPJ completo (14 caracteres)
-#   trabalhadores        processos para ler os zips em paralelo (padrão: 1)
 receita:
   _baixar:
     origem: receita
@@ -75,7 +74,6 @@ receita:
       url_webdav: https://arquivos.receitafederal.gov.br/public.php/webdav
       token: YggdBLfdninEJX9
       cache: .cache/receita
-      trabalhadores: 4
       completas: [cnaes, motivos, municipios, naturezas, paises, qualificacoes]
       filtradas: [empresas, estabelecimentos, simples, socios]
       raizes_de:
