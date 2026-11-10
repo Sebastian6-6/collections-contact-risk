@@ -11,16 +11,16 @@ WITH tVersoes AS (
     , nome
     , data_nascimento
     , cnpj_empregador_raw
-    , estado_civil
-    , qtd_dependentes
-    , score_externo
-    , escolaridade
-    , possui_imovel
-    , fonte_score
+    , atributos_extra_estado_civil
+    , atributos_extra_qtd_dependentes
+    , atributos_extra_score_externo
+    , atributos_extra_escolaridade
+    , atributos_extra_possui_imovel
+    , atributos_extra_fonte_score
     , endereco
     , logradouro
     , numero
-    , complemento
+    , endereco_json_complemento
     , bairro
     , cidade
     , uf
@@ -49,16 +49,16 @@ SELECT
   , nome
   , data_nascimento
   , cnpj_empregador_raw
-  , estado_civil
-  , qtd_dependentes
-  , score_externo
-  , escolaridade
-  , possui_imovel
-  , fonte_score
+  , atributos_extra_estado_civil
+  , atributos_extra_qtd_dependentes
+  , atributos_extra_score_externo
+  , atributos_extra_escolaridade
+  , atributos_extra_possui_imovel
+  , atributos_extra_fonte_score
   , endereco
   , logradouro
   , numero
-  , complemento
+  , endereco_json_complemento
   , bairro
   , cidade
   , uf

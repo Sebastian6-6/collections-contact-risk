@@ -8,12 +8,12 @@
 #}
 WITH tVersoes AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , nome_completo
     , data_nascimento
-    , cnpj_empregador
-    , vinculo_desde
+    , vinculo_empresa_cnpj
+    , vinculo_empresa_desde
     , renda_mensal
     , atualizado_em
     , data_entrega
@@ -21,7 +21,7 @@ WITH tVersoes AS (
     , _linha
     , _hash_arquivo
     , ROW_NUMBER() OVER (
-      PARTITION BY tipo_documento, documento
+      PARTITION BY documento_tipo, documento
       ORDER BY
         atualizado_em DESC NULLS LAST
         , data_entrega DESC NULLS LAST
@@ -35,12 +35,12 @@ WITH tVersoes AS (
 )
 
 SELECT
-  tipo_documento
+  documento_tipo
   , documento
   , nome_completo
   , data_nascimento
-  , cnpj_empregador
-  , vinculo_desde
+  , vinculo_empresa_cnpj
+  , vinculo_empresa_desde
   , renda_mensal
   , atualizado_em
   , data_entrega

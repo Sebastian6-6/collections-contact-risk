@@ -15,7 +15,8 @@
     - `endereco` = "logradouro, numero - bairro", com `cidade` e `uf`.
   Nos dois formatos de texto, as partes só saem quando o texto casa inteiro com o padrão estrito
   (S7); senão ficam `NULL` e o texto original continua em `endereco`.
-  `dt_ref` e `cnpj_empregador_raw` mantêm o nome da fonte; a medição de `dt_ref` como data de
+  Os campos de `atributos_extra` e o `complemento` do `endereco_json` viram colunas `<objeto>_<chave>`
+  (`atributos_extra_score_externo`, `endereco_json_complemento`). `dt_ref` e `cnpj_empregador_raw` mantêm o nome da fonte; a medição de `dt_ref` como data de
   atualização está no YAML do modelo `silver_gama_devedores`.
 #}
 {{ config(materialized='ephemeral') }}
@@ -47,12 +48,18 @@ WITH tBase AS (
     , nome
     , {{ data_flexivel('data_nascimento') }} AS data_nascimento
     , {{ cnpj_normalizado('cnpj_empregador_raw') }} AS cnpj_empregador_raw
-    , NULLIF(TRIM(atributos_json ->> 'estado_civil'), '') AS estado_civil
-    , CAST(NULLIF(TRIM(atributos_json ->> 'qtd_dependentes'), '') AS INTEGER) AS qtd_dependentes
-    , CAST(NULLIF(TRIM(atributos_json ->> 'score_externo'), '') AS INTEGER) AS score_externo
-    , NULLIF(TRIM(atributos_json ->> 'escolaridade'), '') AS escolaridade
-    , CAST(NULLIF(TRIM(atributos_json ->> 'possui_imovel'), '') AS BOOLEAN) AS possui_imovel
-    , NULLIF(TRIM(atributos_json ->> 'fonte_score'), '') AS fonte_score
+    , NULLIF(TRIM(atributos_json ->> 'estado_civil'), '') AS atributos_extra_estado_civil
+    , CAST(
+      NULLIF(TRIM(atributos_json ->> 'qtd_dependentes'), '') AS INTEGER
+    ) AS atributos_extra_qtd_dependentes
+    , CAST(
+      NULLIF(TRIM(atributos_json ->> 'score_externo'), '') AS INTEGER
+    ) AS atributos_extra_score_externo
+    , NULLIF(TRIM(atributos_json ->> 'escolaridade'), '') AS atributos_extra_escolaridade
+    , CAST(
+      NULLIF(TRIM(atributos_json ->> 'possui_imovel'), '') AS BOOLEAN
+    ) AS atributos_extra_possui_imovel
+    , NULLIF(TRIM(atributos_json ->> 'fonte_score'), '') AS atributos_extra_fonte_score
     , COALESCE(
       NULLIF(TRIM(endereco_json ->> 'rua'), '')
       , NULLIF(TRIM(endereco_json ->> 'endereco'), '')
@@ -61,7 +68,7 @@ WITH tBase AS (
     , NULLIF(TRIM(endereco_json ->> 'endereco'), '') AS endereco_rua_bairro
     , NULLIF(TRIM(endereco_json ->> 'logradouro'), '') AS logradouro_origem
     , NULLIF(TRIM(endereco_json ->> 'numero'), '') AS numero_origem
-    , NULLIF(TRIM(endereco_json ->> 'complemento'), '') AS complemento
+    , NULLIF(TRIM(endereco_json ->> 'complemento'), '') AS endereco_json_complemento
     , NULLIF(TRIM(endereco_json ->> 'bairro'), '') AS bairro_origem
     , COALESCE(
       NULLIF(TRIM(endereco_json ->> 'cidade'), '')
@@ -83,12 +90,12 @@ SELECT
   , nome
   , data_nascimento
   , cnpj_empregador_raw
-  , estado_civil
-  , qtd_dependentes
-  , score_externo
-  , escolaridade
-  , possui_imovel
-  , fonte_score
+  , atributos_extra_estado_civil
+  , atributos_extra_qtd_dependentes
+  , atributos_extra_score_externo
+  , atributos_extra_escolaridade
+  , atributos_extra_possui_imovel
+  , atributos_extra_fonte_score
   , endereco
   , COALESCE(
     logradouro_origem
@@ -100,7 +107,7 @@ SELECT
     , {{ endereco_parte('endereco_rua', 2, endereco_padrao_rua()) }}
     , {{ endereco_parte('endereco_rua_bairro', 2, endereco_padrao_rua_bairro()) }}
   ) AS numero
-  , complemento
+  , endereco_json_complemento
   , COALESCE(
     bairro_origem
     , {{ endereco_parte('endereco_rua_bairro', 3, endereco_padrao_rua_bairro()) }}

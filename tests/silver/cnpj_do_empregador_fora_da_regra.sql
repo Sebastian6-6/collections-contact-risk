@@ -18,10 +18,10 @@ UNION ALL
 
 SELECT
   'silver_beta.devedores' AS tabela
-  , cnpj_empregador AS cnpj
+  , vinculo_empresa_cnpj AS cnpj
 FROM {{ ref('silver_beta_devedores') }}
 WHERE 1 = 1
-  AND LENGTH(cnpj_empregador) <> 14
+  AND LENGTH(vinculo_empresa_cnpj) <> 14
 
 UNION ALL
 

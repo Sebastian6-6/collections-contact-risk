@@ -1,8 +1,8 @@
 {#
   Etapa comum da silver do beta: toda linha da bronze com JSON válido, já padronizada e sem
   deduplicar. Grão: uma linha por linha recebida com JSON válido (`_arquivo`, `_linha`).
-  `vinculo_desde` é o mês do vínculo (AAAA-MM) e vira DATE no dia 01.
-  Documento vazio ou só com zeros vira `documento` NULL (e `tipo_documento` também, já que não há
+  `vinculo_empresa_desde` é o mês do vínculo (AAAA-MM) e vira DATE no dia 01.
+  Documento vazio ou só com zeros vira `documento` NULL (e `documento_tipo` também, já que não há
   documento para tipar), e a linha continua aqui: `devedores` a deixa de fora (não há chave) e
   `devedores_contatos` guarda os contatos dela sem documento. É efêmera: não vira tabela. Existe para `devedores` (que fica com a
   versão mais recente) e para `devedores_contatos` e `devedores_enderecos` (que abrem as listas)
@@ -42,7 +42,7 @@ WITH tBase AS (
     , COALESCE(
       NULLIF(UPPER(TRIM((registro_json -> 'documento') ->> 'tipo')), '')
       , CASE WHEN NULLIF(TRIM(registro_json ->> 'cpf'), '') IS NOT NULL THEN 'CPF' END
-    ) AS tipo_documento
+    ) AS documento_tipo
     , COALESCE(
       NULLIF(TRIM(registro_json ->> 'cpf'), '')
       , NULLIF(TRIM((registro_json -> 'documento') ->> 'valor'), '')
@@ -53,8 +53,9 @@ WITH tBase AS (
       , NULLIF(TRIM(registro_json ->> 'nome_devedor'), '')
     ) AS nome_completo
     , registro_json ->> 'data_nascimento' AS data_nascimento
-    , {{ cnpj_sem_mascara("(registro_json -> 'vinculo_empresa') ->> 'cnpj'") }} AS cnpj_empregador
-    , NULLIF(TRIM((registro_json -> 'vinculo_empresa') ->> 'desde'), '') AS vinculo_desde
+    , {{ cnpj_sem_mascara("(registro_json -> 'vinculo_empresa') ->> 'cnpj'") }}
+      AS vinculo_empresa_cnpj
+    , NULLIF(TRIM((registro_json -> 'vinculo_empresa') ->> 'desde'), '') AS vinculo_empresa_desde
     , registro_json ->> 'renda_mensal' AS renda_mensal
     , registro_json ->> 'atualizado_em' AS atualizado_em
     , (registro_json -> 'contato') -> 'telefones' AS lista_telefones
@@ -69,15 +70,15 @@ WITH tBase AS (
 
 , tPadronizada AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , CASE
-      WHEN tipo_documento = 'CPF' THEN {{ cpf_normalizado('documento_origem') }}
+      WHEN documento_tipo = 'CPF' THEN {{ cpf_normalizado('documento_origem') }}
       ELSE {{ nulo_se_so_zeros(documento_alfanumerico) }}
     END AS documento
     , nome_completo
     , {{ data_flexivel('data_nascimento') }} AS data_nascimento
-    , {{ cnpj_normalizado('cnpj_empregador') }} AS cnpj_empregador
-    , {{ mes_como_data('vinculo_desde') }} AS vinculo_desde
+    , {{ cnpj_normalizado('vinculo_empresa_cnpj') }} AS vinculo_empresa_cnpj
+    , {{ mes_como_data('vinculo_empresa_desde') }} AS vinculo_empresa_desde
     , {{ valor_monetario('renda_mensal') }} AS renda_mensal
     , {{ data_flexivel('atualizado_em') }} AS atualizado_em
     , {{ data_de_entrega('_arquivo', 'beta') }} AS data_entrega
@@ -96,8 +97,8 @@ SELECT
   documento
   , nome_completo
   , data_nascimento
-  , cnpj_empregador
-  , vinculo_desde
+  , vinculo_empresa_cnpj
+  , vinculo_empresa_desde
   , renda_mensal
   , atualizado_em
   , data_entrega
@@ -109,7 +110,7 @@ SELECT
   , _arquivo
   , _linha
   , _hash_arquivo
-  , CASE WHEN documento IS NOT NULL THEN tipo_documento END AS tipo_documento
+  , CASE WHEN documento IS NOT NULL THEN documento_tipo END AS documento_tipo
 FROM tPadronizada
 WHERE 1 = 1
-  AND (documento IS NULL OR tipo_documento IS NOT NULL)
+  AND (documento IS NULL OR documento_tipo IS NOT NULL)

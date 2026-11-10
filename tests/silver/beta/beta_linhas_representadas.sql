@@ -1,7 +1,7 @@
 {#
   Toda linha da bronze do beta com JSON válido está representada na silver: o documento existe
   em `devedores`, cada telefone e e-mail preenchido tem o par em `devedores_contatos` (com
-  `tipo_documento` e `documento` NULL quando a linha não tem documento, vazio ou só zeros, e
+  `documento_tipo` e `documento` NULL quando a linha não tem documento, vazio ou só zeros, e
   então não é devedor) e a versão
   atual de cada devedor tem em `devedores_enderecos` tantos endereços quanto a lista dela traz.
   As listas são abertas de novo aqui, a partir da etapa padronizada, sem passar pelos modelos
@@ -10,7 +10,7 @@
 #}
 WITH tTelefones AS (
   SELECT DISTINCT
-    p.tipo_documento
+    p.documento_tipo
     , p.documento
     , 'telefone' AS tipo_contato
     , {{ telefone_de_elemento_json('t.valor') }} AS contato
@@ -20,7 +20,7 @@ WITH tTelefones AS (
 
 , tEmails AS (
   SELECT DISTINCT
-    p.tipo_documento
+    p.documento_tipo
     , p.documento
     , 'email' AS tipo_contato
     , {{ email_normalizado(json_texto('e.valor')) }} AS contato
@@ -30,7 +30,7 @@ WITH tTelefones AS (
 
 , tContatos AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , tipo_contato
     , contato
@@ -39,7 +39,7 @@ WITH tTelefones AS (
   UNION
 
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , tipo_contato
     , contato
@@ -48,7 +48,7 @@ WITH tTelefones AS (
   UNION
 
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , 'email' AS tipo_contato
     , email_unico AS contato
@@ -57,13 +57,13 @@ WITH tTelefones AS (
 
 , tDocumentosPerdidos AS (
   SELECT DISTINCT
-    p.tipo_documento
+    p.documento_tipo
     , p.documento
     , CAST(NULL AS VARCHAR) AS tipo_contato
     , CAST(NULL AS VARCHAR) AS contato
   FROM {{ ref('silver_beta_devedores_padronizados') }} AS p
   LEFT JOIN {{ ref('silver_beta_devedores') }} AS d
-    ON p.tipo_documento = d.tipo_documento
+    ON p.documento_tipo = d.documento_tipo
       AND p.documento = d.documento
   WHERE 1 = 1
     AND p.documento IS NOT NULL
@@ -72,13 +72,13 @@ WITH tTelefones AS (
 
 , tContatosPerdidos AS (
   SELECT
-    b.tipo_documento
+    b.documento_tipo
     , b.documento
     , b.tipo_contato
     , b.contato
   FROM tContatos AS b
   LEFT JOIN {{ ref('silver_beta_devedores_contatos') }} AS s
-    ON b.tipo_documento IS NOT DISTINCT FROM s.tipo_documento
+    ON b.documento_tipo IS NOT DISTINCT FROM s.documento_tipo
       AND b.documento IS NOT DISTINCT FROM s.documento
       AND b.tipo_contato = s.tipo_contato
       AND b.contato = s.contato
@@ -89,7 +89,7 @@ WITH tTelefones AS (
 
 , tEnderecosDaVersaoAtual AS (
   SELECT
-    d.tipo_documento
+    d.documento_tipo
     , d.documento
     , 1 AS qt_enderecos
   FROM {{ ref('silver_beta_devedores') }} AS d
@@ -101,7 +101,7 @@ WITH tTelefones AS (
   UNION ALL
 
   SELECT
-    d.tipo_documento
+    d.documento_tipo
     , d.documento
     , 1 AS qt_enderecos
   FROM {{ ref('silver_beta_devedores') }} AS d
@@ -114,35 +114,35 @@ WITH tTelefones AS (
 
 , tEnderecosEsperados AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , SUM(qt_enderecos) AS qt_enderecos
   FROM tEnderecosDaVersaoAtual
   GROUP BY
-    tipo_documento
+    documento_tipo
     , documento
 )
 
 , tEnderecosSilver AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , COUNT(*) AS qt_enderecos
   FROM {{ ref('silver_beta_devedores_enderecos') }}
   GROUP BY
-    tipo_documento
+    documento_tipo
     , documento
 )
 
 , tEnderecosDivergentes AS (
   SELECT
-    e.tipo_documento
+    e.documento_tipo
     , e.documento
     , CAST(NULL AS VARCHAR) AS tipo_contato
     , CAST(NULL AS VARCHAR) AS contato
   FROM tEnderecosEsperados AS e
   LEFT JOIN tEnderecosSilver AS s
-    ON e.tipo_documento = s.tipo_documento
+    ON e.documento_tipo = s.documento_tipo
       AND e.documento = s.documento
   WHERE 1 = 1
     AND e.qt_enderecos IS DISTINCT FROM s.qt_enderecos
@@ -150,20 +150,20 @@ WITH tTelefones AS (
   UNION ALL
 
   SELECT
-    s.tipo_documento
+    s.documento_tipo
     , s.documento
     , CAST(NULL AS VARCHAR) AS tipo_contato
     , CAST(NULL AS VARCHAR) AS contato
   FROM tEnderecosSilver AS s
   LEFT JOIN tEnderecosEsperados AS e
-    ON s.tipo_documento = e.tipo_documento
+    ON s.documento_tipo = e.documento_tipo
       AND s.documento = e.documento
   WHERE 1 = 1
     AND e.documento IS NULL
 )
 
 SELECT
-  tipo_documento
+  documento_tipo
   , documento
   , tipo_contato
   , contato
@@ -172,7 +172,7 @@ FROM tDocumentosPerdidos
 UNION ALL
 
 SELECT
-  tipo_documento
+  documento_tipo
   , documento
   , tipo_contato
   , contato
@@ -181,7 +181,7 @@ FROM tContatosPerdidos
 UNION ALL
 
 SELECT
-  tipo_documento
+  documento_tipo
   , documento
   , tipo_contato
   , contato

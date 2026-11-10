@@ -1,6 +1,6 @@
 {#
   O início do vínculo do beta vem como mês, `AAAA-MM`. Um valor preenchido em outro formato (ou um
-  mês inexistente) vira NULL em `vinculo_desde`, e nenhum outro teste conta esses NULL. Só avisa
+  mês inexistente) vira NULL em `vinculo_empresa_desde`, e nenhum outro teste conta esses NULL. Só avisa
   (`warn`): cada linha devolvida é uma linha da bronze com `vinculo_empresa.desde` preenchido que a
   silver não conseguiu ler como mês.
 #}

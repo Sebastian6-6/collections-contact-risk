@@ -97,6 +97,7 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `qualidade-python`) sã
 - Nomes de tabela, coluna e arquivo com um único `_` entre as palavras, sem prefixos de camada (`stg_`, `int_` e similares). As CTEs seguem o padrão `tNomeCte` (ver "Estilo do código").
 - Na gold, só dois prefixos de tabela: `dim_` para dimensões e `ft_` para fatos.
 - A bronze e a silver mantêm os nomes de coluna da origem; só a gold renomeia para o padrão de prefixos. Quando a silver une variantes de um campo, usa um dos nomes que a fonte usa.
+- Um campo de objeto JSON aninhado que vira coluna chama-se `<objeto>_<chave>` (`vinculo_empresa_cnpj`); numa lista aberta em tabela filha, as chaves mantêm o próprio nome.
 
 ### Colunas da gold
 

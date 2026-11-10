@@ -13,7 +13,7 @@
 #}
 WITH tBase AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , atualizado_em
     , data_entrega
@@ -30,11 +30,11 @@ WITH tBase AS (
 
 , tOrdens AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , _arquivo || '#' || CAST(_linha AS VARCHAR) AS linha_origem
     , ROW_NUMBER() OVER (
-      PARTITION BY tipo_documento, documento
+      PARTITION BY documento_tipo, documento
       ORDER BY
         atualizado_em DESC NULLS LAST
         , data_entrega DESC NULLS LAST
@@ -43,7 +43,7 @@ WITH tBase AS (
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS num_modelo
     , ROW_NUMBER() OVER (
-      PARTITION BY tipo_documento, documento
+      PARTITION BY documento_tipo, documento
       ORDER BY
         atualizado_em_sem_sentinela DESC NULLS LAST
         , data_entrega DESC NULLS LAST
@@ -52,7 +52,7 @@ WITH tBase AS (
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS num_sentinela
     , ROW_NUMBER() OVER (
-      PARTITION BY tipo_documento, documento
+      PARTITION BY documento_tipo, documento
       ORDER BY
         data_entrega DESC NULLS LAST
         , atualizado_em DESC NULLS LAST
@@ -61,7 +61,7 @@ WITH tBase AS (
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS num_entrega_primeiro
     , ROW_NUMBER() OVER (
-      PARTITION BY tipo_documento, documento
+      PARTITION BY documento_tipo, documento
       ORDER BY
         data_entrega DESC NULLS LAST
         , _arquivo DESC
@@ -73,7 +73,7 @@ WITH tBase AS (
 
 , tVencedores AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , MAX(CASE WHEN num_modelo = 1 THEN linha_origem END) AS v_modelo
     , MAX(CASE WHEN num_sentinela = 1 THEN linha_origem END) AS v_sentinela
@@ -81,7 +81,7 @@ WITH tBase AS (
     , MAX(CASE WHEN num_so_entrega = 1 THEN linha_origem END) AS v_so_entrega
   FROM tOrdens
   GROUP BY
-    tipo_documento
+    documento_tipo
     , documento
 )
 

@@ -6,7 +6,7 @@
 #}
 WITH tListas AS (
   SELECT
-    d.tipo_documento
+    d.documento_tipo
     , d.documento
     , CAST(l.posicao AS INTEGER) AS posicao
     , l.valor AS endereco_json
@@ -22,7 +22,7 @@ WITH tListas AS (
 
 , tUnicos AS (
   SELECT
-    d.tipo_documento
+    d.documento_tipo
     , d.documento
     , CAST(1 AS INTEGER) AS posicao
     , p.endereco_unico AS endereco_json
@@ -39,7 +39,7 @@ WITH tListas AS (
 
 , tEnderecos AS (
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , posicao
     , endereco_json
@@ -51,7 +51,7 @@ WITH tListas AS (
   UNION ALL
 
   SELECT
-    tipo_documento
+    documento_tipo
     , documento
     , posicao
     , endereco_json
@@ -62,7 +62,7 @@ WITH tListas AS (
 )
 
 SELECT
-  tipo_documento
+  documento_tipo
   , documento
   , posicao
   , NULLIF(TRIM(endereco_json ->> 'tipo'), '') AS tipo

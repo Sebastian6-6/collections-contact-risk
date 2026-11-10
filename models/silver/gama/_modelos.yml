@@ -57,18 +57,18 @@ models:
           base, teste `cnpj_do_empregador_fora_da_regra`). Todo valor de 14 caracteres tem dígitos
           verificadores válidos (teste `cnpj_do_empregador_com_digito_verificador_valido`).
           `NULL` quando o provedor não informou.
-      - name: estado_civil
+      - name: atributos_extra_estado_civil
         description: "Estado civil de `atributos_extra`; `NULL` quando a chave não veio."
-      - name: qtd_dependentes
+      - name: atributos_extra_qtd_dependentes
         description: "Quantidade de dependentes de `atributos_extra`; `NULL` quando a chave não veio, e o 0 informado fica 0."
-      - name: score_externo
+      - name: atributos_extra_score_externo
         description: "Score de um birô externo, de `atributos_extra`; `NULL` quando a chave não veio."
-      - name: escolaridade
+      - name: atributos_extra_escolaridade
         description: "Escolaridade de `atributos_extra`; `NULL` quando a chave não veio."
-      - name: possui_imovel
+      - name: atributos_extra_possui_imovel
         description: "Se o devedor possui imóvel, de `atributos_extra`; `NULL` quando a chave não veio."
-      - name: fonte_score
-        description: "Birô de onde vem o `score_externo`, de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_fonte_score
+        description: "Birô de onde vem o `atributos_extra_score_externo`, de `atributos_extra`; `NULL` quando a chave não veio."
       - name: endereco
         description: >-
           Texto do endereço como veio, nos formatos `rua` ("logradouro, numero") e `endereco`
@@ -79,7 +79,7 @@ models:
           padrão estrito; `NULL` quando não casa.
       - name: numero
         description: "Número do endereço (pode ser `S/N`), com a mesma regra do logradouro."
-      - name: complemento
+      - name: endereco_json_complemento
         description: "Complemento; só existe no formato de colunas separadas, e `NULL` quando não há."
       - name: bairro
         description: >-
