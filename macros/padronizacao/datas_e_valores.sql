@@ -128,3 +128,32 @@
 {% macro duckdb__timestamp_ou_nulo(expressao) -%}
   TRY_CAST(NULLIF(TRIM({{ expressao }}), '') AS TIMESTAMP)
 {%- endmacro %}
+
+{#
+  Data AAAAMMDD, o formato das datas da Receita, como DATE. '00000000' é a data ausente da origem
+  (ausência é NULL, nunca uma data inventada); texto vazio, fora do formato ou com data que não
+  existe no calendário ('20260230') também dá NULL.
+#}
+{% macro data_compacta(expressao) -%}
+  {%- set texto = "TRIM(CAST(" ~ expressao ~ " AS VARCHAR))" -%}
+  CASE
+    WHEN {{ texto }} ~ '^[0-9]{8}$' AND {{ texto }} <> '00000000'
+      THEN {{ data_iso_ou_nulo(
+        "SUBSTRING(" ~ texto ~ ", 1, 4) || '-' || SUBSTRING(" ~ texto ~ ", 5, 2) || '-' || SUBSTRING(" ~ texto ~ ", 7, 2)"
+      ) }}
+  END
+{%- endmacro %}
+
+{#
+  Valor com vírgula decimal e sem separador de milhar ('14202162483,70'), como NUMERIC(18, 2): o
+  capital social chega a 12 dígitos antes da vírgula, e NUMERIC(14, 2) não deixaria folga. Só vale
+  dígitos com vírgula (ou ponto) decimal opcional; vazio ou qualquer outro formato dá NULL. '0,00'
+  dá 0.00: é o valor que a Receita informou. Difere de `valor_monetario`, que aceita 'R$' e ponto
+  de milhar.
+#}
+{% macro valor_decimal_virgula(expressao) -%}
+  {%- set decimal = "REPLACE(TRIM(CAST(" ~ expressao ~ " AS VARCHAR)), ',', '.')" -%}
+  CASE
+    WHEN {{ decimal }} ~ '^[0-9]+([.][0-9]+)?$' THEN CAST({{ decimal }} AS NUMERIC(18, 2))
+  END
+{%- endmacro %}

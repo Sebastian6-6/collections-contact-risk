@@ -20,6 +20,33 @@ vars:
     beta: "contact_data/provedor_beta.jsonl"
     gama: "contact_data/provedor_gama.csv"
 
+  # Feriados nacionais de 2026 para a janela de horário de contato (G7). Fontes (planalto.gov.br):
+  # Lei 662/1949, art. 1º, com a redação da Lei 10.607/2002 (lida em 2026-11-10): 1º de janeiro, 21
+  # de abril, 1º de maio, 7 de setembro, 2 de novembro, 15 de novembro e 25 de dezembro; Lei
+  # 6.802/1980: 12 de outubro (Nossa Senhora Aparecida); Lei 14.759/2023: 20 de novembro (Dia
+  # Nacional de Zumbi e da Consciência Negra). Só os feriados nacionais fixos. Não verificado:
+  # feriados criados por lei posterior às citadas, os móveis (Carnaval, Sexta-feira Santa, Corpus
+  # Christi), os estaduais e os municipais.
+  feriados_nacionais_2026:
+    - "2026-01-01"
+    - "2026-04-21"
+    - "2026-05-01"
+    - "2026-09-07"
+    - "2026-10-12"
+    - "2026-11-02"
+    - "2026-11-15"
+    - "2026-11-20"
+    - "2026-12-25"
+
+  # Monitoramento diário das entregas (`ft_entrega_diaria`). A média móvel usa as entregas
+  # anteriores do mesmo provedor e tipo de dia; a janela, o limiar e a base mínima foram medidos
+  # sobre as entregas de setembro/2026 (a medição está no corpo do commit do monitoramento).
+  janela_media_movel: 5
+  limite_variacao_volume: 0.5
+  base_minima_media_movel: 3
+  # Parte das linhas de uma entrega (repetidas ou atrasadas) a partir da qual o alerta dispara.
+  limite_registros_anormais: 0.25
+
 clean-targets:
   - target
   - dbt_packages

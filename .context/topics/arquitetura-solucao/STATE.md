@@ -2,7 +2,7 @@
 topic: arquitetura-solucao
 status: active
 created: 2026-11-08
-updated: 2026-11-09 20:33
+updated: 2026-11-10 04:42
 scope:
   - contact_data/
   - AGENTS.md
@@ -19,7 +19,7 @@ Design the whole solution and organize the repository stage by stage, grounded i
   - Library candidates for normalization (proposed by the user 2026-11-08; their claims are NOT verified yet, check official docs first): phonenumbers (validity + fixed/mobile type), validate-docbr or br-kit (CPF/CNPJ DV; br-kit said to support alphanumeric CNPJ), email-validator (must use check_deliverability=False: default does DNS lookups), rapidfuzz (token-order-insensitive name similarity). Native alternatives: regex DDD + 9th digit, module-11 in SQL, LOWER(TRIM()), strip_accents/unaccent, jaro_winkler/levenshtein.
   - Entry rule for any library (user, 2026-11-08): all of — works offline (no API/DNS during the pipeline); deterministic with pinned version (phonenumbers ships new numbering metadata each release); changes a business decision, not just a format. Gain must be measured on this data, not assumed.
   - Notes from Stage 1 data: phone type may already be decidable natively (BR mobile = 11 digits with 9 as first subscriber digit; confirm in Anatel numbering plan) and beta/gama carry a provider-declared phone `tipo` to compare against; data is synthetic, so "invalid by the real numbering plan" may be noise, not signal: test it against numero_errado/nao_conhece_devedor outcomes. Name similarity likely matters MORE than rated: 510 CPFs have differing names across providers (91 clearly another person), and merging another person's contacts into a debtor is exactly the third-party risk the brief targets (p.1). CPF/CNPJ DV is ~20 lines either way (already done in profiling, incl. alphanumeric rule).
-- [ ] Stage 6 — Gold: debtor registry, contacts, contact-risk scale, do-not-contact list → own session; the existing PLAN.md there is an UNAPPROVED draft
+- [ ] Stage 6 — Gold: design CLOSED 2026-11-10, modelo-gold-e-regua/PLAN.md approved (execution pending on branch feat/modelo-gold-e-regua)
 - [ ] Stage 7 — CNPJ enrichment from Receita Federal open data (reproducible acquisition) → own session; the existing PLAN.md there is an UNAPPROVED draft
 - [ ] Stage 8 — Data quality and daily volume monitoring (moving average) → own session; the existing PLAN.md there is an UNAPPROVED draft
 - [ ] Stage 9 — Analysis: scale validation against contatos_realizados, calibration, error patterns → own session; the existing PLAN.md there is an UNAPPROVED draft
@@ -27,15 +27,13 @@ Design the whole solution and organize the repository stage by stage, grounded i
   - Main README: author section with LinkedIn badge https://www.linkedin.com/in/pedro-piassi6/ (same style as the skill README); case origin described neutrally; 1st person singular or impersonal voice
 
 
-- [x] Master PLAN.md rewritten 2026-11-09 for the stage-by-stage flow (reviewed against the brief: added stage-8 day investigation, stage-6 segmentation and channel strategy, stage-9 predictive weight and adjustment proposals, stage-10 README items and GitHub publication, 8-12 h budget)
-- [ ] Get the owner's 3 decisions blocking the ingestion merge (sentinel rule, S6 renames, document "0") and the agent format choices; then merge feat/ingestao-e-padronizacao into develop
 
 ## Where we stopped
-- RESUME HERE: finish the ingestion topic first (steps in ingestao-e-padronizacao/STATE.md, 'RESUME HERE'); the master PLAN.md was rewritten and is current; then the stage 6 session continues.
+- RESUME HERE (2026-11-10): ingestion merged into develop (2fb4b44); stage 6 design closed, modelo-gold-e-regua/PLAN.md approved, execution next on feat/modelo-gold-e-regua. Gold naming in that plan (Annex A) supersedes the 2026-11-09 gold column naming/order decisions below (num_, cod_, tp_, sit_, sigla_, desc_provedores_origem). Next design stages: 7 (CNPJ), 8 (monitoring), 9 (analysis), 10 (delivery).
 - 2026-11-09 session (ingestion review): stages 4-5 redesigned with the owner, executed by agents and reviewed; branch feat/ingestao-e-padronizacao has 19 commits, verifier green except as reported; NOT merged (3 owner decisions pending in ingestao-e-padronizacao/STATE.md). Old branch arquivo/ingestao-v1 deleted 2026-11-09 (owner OK).
 - Flow now: one session per design stage (0-10): decide one by one with verified sources, execute at the end, /c save, storytelling chapter, hand off. Old PLAN.md files of gold/monitoring/delivery and the master plan carry "Rascunho não aprovado / Superado" banners.
 - A parallel gold-design session (stage 6) was opened by the owner on 2026-11-09 with a prompt that limits it to its own topic memory; it found the silver lineage gap fixed in ad7c7cd.
-- Next: owner decides the ingestion pendings -> merge; continue the stage 6 session; rewrite the master plan.
+- (2026-11-09 'Next' line done: ingestion merged, stage 6 closed.)
 - References of this session archived in three formats (see Plan).
 
 ## Design log (stages 0-5, kept for reference)
@@ -70,10 +68,10 @@ Design the whole solution and organize the repository stage by stage, grounded i
 
 ## Pending
 <!-- Unconfirmed questions: "- [?] question (where it came up, date)". Never treat them as a standard until the user answers. -->
-- [?] Contact-hour rules: SP Lei 17.832/2023 and Febraban SARB 27/2023 seen only in secondary sources; confirm primary texts before citing (Stage 1, 2026-11-08)
-- [?] Gold as a star schema (user has affinity): facts = contact attempts, daily ingestion volume; bridge debtor x contact carrying the risk level; dims = debtor, contact, channel, outcome, provider, employer. Constraint: case rule "no rows that don't exist in the source" forbids a generated calendar dimension. Decide in Stage 6 (2026-11-08)
+- [x] (resolved 2026-11-10 in modelo-gold-e-regua G7: primary texts read on al.sp.gov.br and the SARB 27/2023 PDF; window Mon-Fri 8-20h, Sat 9-14h) Contact-hour rules: SP Lei 17.832/2023 and Febraban SARB 27/2023 seen only in secondary sources; confirm primary texts before citing (Stage 1, 2026-11-08)
+- [x] (resolved 2026-11-10 in modelo-gold-e-regua G1/G2/G2b/G2d: dim_devedor, dim_contato, dim_endereco, dim_empregador, ft_vinculo_empresa, ft_tentativa_contato; no bridge, no dim_canal/dim_resultado/dim_provedor; see that PLAN.md) Gold as a star schema (user has affinity): facts = contact attempts, daily ingestion volume; bridge debtor x contact carrying the risk level; dims = debtor, contact, channel, outcome, provider, employer. Constraint: case rule "no rows that don't exist in the source" forbids a generated calendar dimension. Decide in Stage 6 (2026-11-08)
 - [?] Case window-function rule (only ROW_NUMBER and SUM with ROWS BETWEEN): moving average must be SUM/SUM(1) over a ROWS frame, and gap detection cannot use LAG; design in Stage 8 (2026-11-08)
-- [?] Gold design: star schema core (integrity, ERD) + wide analysis datasets as views in models/gold/ (user's work pattern; dbt guide favors wide denormalized marts, so the hybrid covers both). Discuss in Stage 6 (2026-11-08)
+- [x] (resolved 2026-11-10 in modelo-gold-e-regua G1: gold holds only dim_/ft_; aggregates are dbt analyses/, not views) Gold design: star schema core (integrity, ERD) + wide analysis datasets as views in models/gold/ (user's work pattern; dbt guide favors wide denormalized marts, so the hybrid covers both). Discuss in Stage 6 (2026-11-08)
 - [?] Profiling script: query the pipeline's own silver (single normalization definition) instead of separate pandas code? (Stage 2, 2026-11-08)
 
 ## Decisions

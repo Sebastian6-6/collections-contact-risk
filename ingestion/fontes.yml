@@ -10,6 +10,7 @@
 #              (nome ou glob, sem descer em subpastas). Todos vão para a mesma tabela, e um
 #              arquivo que case com duas entradas é erro, para nunca ser carregado duas vezes.
 #   encoding, separador   opcionais (padrão: utf-8 e vírgula)
+#   colunas    opcional; nomes das colunas de um CSV sem cabeçalho, na ordem do arquivo
 
 # Cada provedor é uma fonte: a carga histórica até 31/08/2026 e as entregas diárias de
 # setembro/2026 (com reenvios e dias sem arquivo) formam uma tabela só (p. 1 do enunciado).
@@ -51,3 +52,193 @@ cobranca:
     arquivos:
       - caminho: contact_data
         padrao: contatos_realizados.csv
+
+# Receita Federal: dados abertos do CNPJ. O bloco _baixar não é uma entidade: diz como trazer
+# os arquivos de fora, e só roda quando chamado (python -m ingestion.main --baixar receita,
+# depois de rodar a pipeline, porque as raízes de CNPJ saem da silver). Ele baixa os zips do
+# mês fixado para o cache (fora do git) e grava em destino o extrato versionado das empresas
+# recebidas, com o ORIGEM.md. A pipeline e o CI leem só essa pasta, sem rede. Para outro mês,
+# troque mes e destino e baixe de novo.
+#   destino              pasta versionada do extrato (a partir da raiz do repositório)
+#   url_webdav, token    WebDAV público do compartilhamento oficial; o token é o usuário
+#   completas            tabelas de domínio, gravadas inteiras
+#   filtradas            tabelas gravadas só com as raízes de CNPJ recebidas
+#   raizes_de            colunas da silver com o CNPJ completo (14 caracteres)
+receita:
+  _baixar:
+    origem: receita
+    destino: dados_externos/receita/2026-10
+    parametros:
+      mes: "2026-10"
+      url_compartilhamento: https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9
+      url_webdav: https://arquivos.receitafederal.gov.br/public.php/webdav
+      token: YggdBLfdninEJX9
+      cache: .cache/receita
+      completas: [cnaes, motivos, municipios, naturezas, paises, qualificacoes]
+      filtradas: [empresas, estabelecimentos, simples, socios]
+      raizes_de:
+        - {tabela: silver_alfa.devedores_historico, coluna: cnpj_empregador}
+        - {tabela: silver_beta.devedores_historico, coluna: vinculo_empresa_cnpj}
+        - {tabela: silver_gama.devedores_historico, coluna: cnpj_empregador_raw}
+
+# Cada tabela do extrato é uma entidade. Os arquivos não têm cabeçalho: os nomes das colunas
+# vêm do layout oficial (cnpj-metadados.pdf, 02/12/2021), na ordem do layout, em minúsculas,
+# sem acento e com '_' no lugar de espaço e pontuação (docs/contratos-de-dados.md, seção 9.1).
+# Separador ';' e encoding ISO-8859-1, como a Receita publica; as aspas seguem o CSV.
+  empresas:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - cnpj_basico
+      - razao_social_nome_empresarial
+      - natureza_juridica
+      - qualificacao_do_responsavel
+      - capital_social_da_empresa
+      - porte_da_empresa
+      - ente_federativo_responsavel
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: empresas.csv
+  estabelecimentos:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - cnpj_basico
+      - cnpj_ordem
+      - cnpj_dv
+      - identificador_matriz_filial
+      - nome_fantasia
+      - situacao_cadastral
+      - data_situacao_cadastral
+      - motivo_situacao_cadastral
+      - nome_da_cidade_no_exterior
+      - pais
+      - data_de_inicio_atividade
+      - cnae_fiscal_principal
+      - cnae_fiscal_secundaria
+      - tipo_de_logradouro
+      - logradouro
+      - numero
+      - complemento
+      - bairro
+      - cep
+      - uf
+      - municipio
+      - ddd_1
+      - telefone_1
+      - ddd_2
+      - telefone_2
+      - ddd_do_fax
+      - fax
+      - correio_eletronico
+      - situacao_especial
+      - data_da_situacao_especial
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: estabelecimentos.csv
+  simples:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - cnpj_basico
+      - opcao_pelo_simples
+      - data_de_opcao_pelo_simples
+      - data_de_exclusao_do_simples
+      - opcao_pelo_mei
+      - data_de_opcao_pelo_mei
+      - data_de_exclusao_do_mei
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: simples.csv
+  socios:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - cnpj_basico
+      - identificador_de_socio
+      - nome_do_socio_no_caso_pf_ou_razao_social_no_caso_pj
+      - cnpj_cpf_do_socio
+      - qualificacao_do_socio
+      - data_de_entrada_sociedade
+      - pais
+      - representante_legal
+      - nome_do_representante
+      - qualificacao_do_representante_legal
+      - faixa_etaria
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: socios.csv
+  cnaes:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - codigo
+      - descricao
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: cnaes.csv
+  motivos:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - codigo
+      - descricao
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: motivos.csv
+  municipios:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - codigo
+      - descricao
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: municipios.csv
+  naturezas:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - codigo
+      - descricao
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: naturezas.csv
+  paises:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - codigo
+      - descricao
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: paises.csv
+  qualificacoes:
+    origem: pasta
+    formato: csv
+    separador: ";"
+    encoding: latin-1
+    colunas:
+      - codigo
+      - descricao
+    arquivos:
+      - caminho: dados_externos/receita/2026-10
+        padrao: qualificacoes.csv
