@@ -18,6 +18,22 @@ unit_tests:
         - {documento: "10312391620", nome_completo: "ANA", email: "ana@x.com", telefone: "11900405285", logradouro: "RUA A", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", endereco: "RUA A, 10, APTO 3 - CENTRO - SANTOS", cep: "07359422", uf: "SP", salario_informado: 1400.00, data_atualizacao: "2026-07-20", data_entrega: "2026-08-31", _linha: 2}
         - {documento: "01006543201", nome_completo: "BIA", email: null, telefone: "21960476196", logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, endereco: "RUA ANA-MARIA, 10 - CENTRO - SANTOS", cep: "21897318", uf: null, salario_informado: 0.00, data_atualizacao: "2026-09-02", data_entrega: "2026-09-05", _linha: 7}
 
+  - name: silver_alfa_texto_livre_em_maiuscula_unifica_o_endereco
+    description: >
+      Nome, cargo, endereço e as partes do endereço saem em maiúscula (H4): o mesmo endereço
+      escrito em caixas diferentes vira o mesmo texto e as mesmas partes, e por isso o mesmo par
+      na `devedores_enderecos`. A UF, o e-mail e o telefone seguem as próprias regras.
+    model: silver_alfa_devedores_padronizados
+    given:
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {cpf: "103.123.916-20", documento: null, nome_completo: "Ana Souza", cargo: "analista", email: "A@X.COM", telefone: "", endereco: "Rua Açaí, 10, Apto 3 - Centro - Santos", cep: "11010000", uf: "sp", salario_informado: "", data_atualizacao: "2026-07-20", _arquivo: "contact_data/provedor_alfa.csv", _linha: 2, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "103.123.916-20", documento: null, nome_completo: "ANA SOUZA", cargo: "Analista", email: "a@x.com", telefone: "", endereco: "RUA AÇAÍ, 10, APTO 3 - CENTRO - SANTOS", cep: "11010000", uf: "SP", salario_informado: "", data_atualizacao: "2026-07-20", _arquivo: "contact_data/provedor_alfa.csv", _linha: 3, _hash_arquivo: "h1", _motivo_ilegivel: null}
+    expect:
+      rows:
+        - {nome_completo: "ANA SOUZA", cargo: "ANALISTA", email: "a@x.com", endereco: "RUA AÇAÍ, 10, APTO 3 - CENTRO - SANTOS", logradouro: "RUA AÇAÍ", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", _linha: 2}
+        - {nome_completo: "ANA SOUZA", cargo: "ANALISTA", email: "a@x.com", endereco: "RUA AÇAÍ, 10, APTO 3 - CENTRO - SANTOS", logradouro: "RUA AÇAÍ", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", _linha: 3}
+
   - name: silver_alfa_documento_vazio_ou_zerado_vira_nulo
     description: >
       Documento vazio, `0` ou `000.000.000-00` não identifica ninguém: `documento` vira `NULL` e a

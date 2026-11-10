@@ -33,14 +33,14 @@ WITH tBase AS (
 , tPadronizada AS (
   SELECT
     {{ cpf_normalizado('documento_origem') }} AS documento
-    , NULLIF(TRIM(nome_completo), '') AS nome_completo
+    , {{ texto_maiusculo("NULLIF(TRIM(nome_completo), '')") }} AS nome_completo
     , {{ data_flexivel('data_nascimento') }} AS data_nascimento
     , {{ cnpj_normalizado('cnpj_empregador') }} AS cnpj_empregador
-    , NULLIF(TRIM(cargo), '') AS cargo
+    , {{ texto_maiusculo("NULLIF(TRIM(cargo), '')") }} AS cargo
     , {{ valor_monetario('salario_informado') }} AS salario_informado
     , {{ telefone_normalizado('telefone') }} AS telefone
     , {{ email_normalizado('email') }} AS email
-    , NULLIF(TRIM(endereco), '') AS endereco
+    , {{ texto_maiusculo("NULLIF(TRIM(endereco), '')") }} AS endereco
     , LPAD({{ somente_digitos('cep') }}, 8, '0') AS cep
     , {{ uf_normalizada('uf') }} AS uf
     , {{ data_flexivel('data_atualizacao') }} AS data_atualizacao

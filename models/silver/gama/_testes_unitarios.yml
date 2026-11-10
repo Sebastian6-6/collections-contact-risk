@@ -19,10 +19,26 @@ unit_tests:
           - {documento: "999", nome: "ILEGIVEL", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "", contatos: "", endereco_json: "", atributos_extra: "", _arquivo: "contact_data/provedor_gama.csv", _linha: 8, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
     expect:
       rows:
-        - {documento: "01567032893", nome: "Ana", cnpj_empregador_raw: null, atributos_extra_estado_civil: "solteiro", atributos_extra_qtd_dependentes: 0, atributos_extra_score_externo: 625, atributos_extra_escolaridade: null, atributos_extra_possui_imovel: true, atributos_extra_fonte_score: "bureauX", endereco: "TRAVESSA Paulista, 764", logradouro: "TRAVESSA Paulista", numero: "764", endereco_json_complemento: null, bairro: null, cidade: "Rio", uf: "RJ", cep: "20638395", dt_ref: "2026-06-15", data_entrega: "2026-08-31", _linha: 2}
-        - {documento: "01006543201", nome: "Bia", cnpj_empregador_raw: "51930487200150", atributos_extra_estado_civil: "casado", atributos_extra_qtd_dependentes: null, atributos_extra_score_externo: null, atributos_extra_escolaridade: null, atributos_extra_possui_imovel: null, atributos_extra_fonte_score: null, endereco: "TV. Santos Dumont, 744 - Centro", logradouro: "TV. Santos Dumont", numero: "744", endereco_json_complemento: null, bairro: "Centro", cidade: "Santo Andre", uf: "SP", cep: "09289625", dt_ref: "2026-09-10", data_entrega: "2026-09-11", _linha: 7}
-        - {documento: "22222222222", nome: "Caio", cnpj_empregador_raw: null, atributos_extra_estado_civil: null, atributos_extra_qtd_dependentes: null, atributos_extra_score_externo: null, atributos_extra_escolaridade: null, atributos_extra_possui_imovel: null, atributos_extra_fonte_score: null, endereco: "RUA ANA-MARIA, 10", logradouro: null, numero: null, endereco_json_complemento: null, bairro: null, cidade: "Santos", uf: null, cep: "11015000", dt_ref: "2025-09-01", data_entrega: "2026-08-31", _linha: 3}
-        - {documento: "33333333333", nome: "Dora", cnpj_empregador_raw: null, atributos_extra_estado_civil: null, atributos_extra_qtd_dependentes: null, atributos_extra_score_externo: null, atributos_extra_escolaridade: null, atributos_extra_possui_imovel: null, atributos_extra_fonte_score: null, endereco: null, logradouro: "RUA B", numero: "5", endereco_json_complemento: "AP 2", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11015000", dt_ref: "2026-01-01", data_entrega: "2026-08-31", _linha: 4}
+        - {documento: "01567032893", nome: "ANA", cnpj_empregador_raw: null, atributos_extra_estado_civil: "solteiro", atributos_extra_qtd_dependentes: 0, atributos_extra_score_externo: 625, atributos_extra_escolaridade: null, atributos_extra_possui_imovel: true, atributos_extra_fonte_score: "bureauX", endereco: "TRAVESSA PAULISTA, 764", logradouro: "TRAVESSA PAULISTA", numero: "764", endereco_json_complemento: null, bairro: null, cidade: "RIO", uf: "RJ", cep: "20638395", dt_ref: "2026-06-15", data_entrega: "2026-08-31", _linha: 2}
+        - {documento: "01006543201", nome: "BIA", cnpj_empregador_raw: "51930487200150", atributos_extra_estado_civil: "casado", atributos_extra_qtd_dependentes: null, atributos_extra_score_externo: null, atributos_extra_escolaridade: null, atributos_extra_possui_imovel: null, atributos_extra_fonte_score: null, endereco: "TV. SANTOS DUMONT, 744 - CENTRO", logradouro: "TV. SANTOS DUMONT", numero: "744", endereco_json_complemento: null, bairro: "CENTRO", cidade: "SANTO ANDRE", uf: "SP", cep: "09289625", dt_ref: "2026-09-10", data_entrega: "2026-09-11", _linha: 7}
+        - {documento: "22222222222", nome: "CAIO", cnpj_empregador_raw: null, atributos_extra_estado_civil: null, atributos_extra_qtd_dependentes: null, atributos_extra_score_externo: null, atributos_extra_escolaridade: null, atributos_extra_possui_imovel: null, atributos_extra_fonte_score: null, endereco: "RUA ANA-MARIA, 10", logradouro: null, numero: null, endereco_json_complemento: null, bairro: null, cidade: "SANTOS", uf: null, cep: "11015000", dt_ref: "2025-09-01", data_entrega: "2026-08-31", _linha: 3}
+        - {documento: "33333333333", nome: "DORA", cnpj_empregador_raw: null, atributos_extra_estado_civil: null, atributos_extra_qtd_dependentes: null, atributos_extra_score_externo: null, atributos_extra_escolaridade: null, atributos_extra_possui_imovel: null, atributos_extra_fonte_score: null, endereco: null, logradouro: "RUA B", numero: "5", endereco_json_complemento: "AP 2", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11015000", dt_ref: "2026-01-01", data_entrega: "2026-08-31", _linha: 4}
+
+  - name: silver_gama_texto_livre_em_maiuscula_unifica_o_endereco
+    description: >
+      Nome, endereço (nos três formatos) e as partes saem em maiúscula (H4): o mesmo endereço em
+      caixas diferentes vira as mesmas partes, e por isso o mesmo par na `devedores_enderecos`. Os
+      `atributos_extra_*` são domínio e ficam como vieram.
+    model: silver_gama_devedores_padronizados
+    given:
+      - input: source('bronze_gama', 'devedores')
+        rows:
+          - {documento: "015.670.328-93", nome: "Ana Souza", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "15/06/2026", contatos: '[]', endereco_json: '{"endereco": "Rua Açaí, 10 - Centro", "cidade": "Santos", "uf": "SP"}', atributos_extra: '{"estado_civil": "Solteiro"}', _arquivo: "contact_data/provedor_gama.csv", _linha: 2, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {documento: "015.670.328-93", nome: "ANA SOUZA", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "15/06/2026", contatos: '[]', endereco_json: '{"logradouro": "RUA AÇAÍ", "numero": "10", "complemento": "Apto 3", "bairro": "CENTRO", "cidade": "SANTOS", "uf": "SP"}', atributos_extra: '{}', _arquivo: "contact_data/provedor_gama.csv", _linha: 3, _hash_arquivo: "h1", _motivo_ilegivel: null}
+    expect:
+      rows:
+        - {nome: "ANA SOUZA", atributos_extra_estado_civil: "Solteiro", endereco: "RUA AÇAÍ, 10 - CENTRO", logradouro: "RUA AÇAÍ", numero: "10", endereco_json_complemento: null, bairro: "CENTRO", cidade: "SANTOS", _linha: 2}
+        - {nome: "ANA SOUZA", atributos_extra_estado_civil: null, endereco: null, logradouro: "RUA AÇAÍ", numero: "10", endereco_json_complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", _linha: 3}
 
   - name: silver_gama_documento_vazio_ou_zerado_vira_nulo
     description: >
@@ -39,7 +55,7 @@ unit_tests:
           - {documento: "999", nome: "ILEGIVEL", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "", contatos: "", endereco_json: "", atributos_extra: "", _arquivo: "contact_data/provedor_gama.csv", _linha: 8, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
     expect:
       rows:
-        - {documento: null, nome: "nome", _linha: 5}
+        - {documento: null, nome: "NOME", _linha: 5}
         - {documento: null, nome: "SEM CHAVE", _linha: 6}
         - {documento: null, nome: "ZERADO", _linha: 9}
 

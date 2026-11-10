@@ -43,7 +43,7 @@ models:
           - unique
           - not_null
       - name: nome
-        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio."
+        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: data_nascimento
         description: "Data de nascimento, lida de `dd/mm/aaaa`. A data sentinela, se houver, fica como veio."
       - name: cnpj_empregador_raw
@@ -71,22 +71,25 @@ models:
         description: "Birô de onde vem o `atributos_extra_score_externo`, de `atributos_extra`; `NULL` quando a chave não veio."
       - name: endereco
         description: >-
-          Texto do endereço como veio, nos formatos `rua` ("logradouro, numero") e `endereco`
+          Texto do endereço, nos formatos `rua` ("logradouro, numero") e `endereco`
           ("logradouro, numero - bairro"). `NULL` quando o endereço veio em colunas separadas.
+          Texto livre em maiúscula (H4).
       - name: logradouro
         description: >-
           Logradouro: da coluna da origem ou, nos formatos de texto, do texto que casa com o
           padrão estrito; `NULL` quando não casa.
+          Texto livre em maiúscula (H4).
       - name: numero
-        description: "Número do endereço (pode ser `S/N`), com a mesma regra do logradouro."
+        description: "Número do endereço (pode ser `S/N`), com a mesma regra do logradouro. Texto livre em maiúscula (H4)."
       - name: endereco_json_complemento
-        description: "Complemento; só existe no formato de colunas separadas, e `NULL` quando não há."
+        description: "Complemento; só existe no formato de colunas separadas, e `NULL` quando não há. Texto livre em maiúscula (H4)."
       - name: bairro
         description: >-
           Bairro: da coluna da origem ou, no formato `endereco`, do texto que casa com o padrão
           estrito; `NULL` no formato `rua`, que não traz bairro.
+          Texto livre em maiúscula (H4).
       - name: cidade
-        description: "Cidade, de `cidade` ou `municipio` conforme o formato do endereço."
+        description: "Cidade, de `cidade` ou `municipio` conforme o formato do endereço. Texto livre em maiúscula (H4)."
       - name: uf
         description: >-
           Sigla da UF, de `uf` ou `estado` conforme o formato do endereço, em maiúsculas e sem
@@ -148,7 +151,7 @@ models:
         description: >-
           Documento do devedor, como em `silver_gama.devedores`. `NULL` nas versões de linhas de documento vazio ou zerado, que não identificam ninguém e estão aqui para a gold e para os contatos delas.
       - name: nome
-        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio."
+        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: data_nascimento
         description: "Data de nascimento, lida de `dd/mm/aaaa`. A data sentinela, se houver, fica como veio."
       - name: cnpj_empregador_raw
@@ -176,22 +179,25 @@ models:
         description: "Birô de onde vem o `atributos_extra_score_externo`, de `atributos_extra`; `NULL` quando a chave não veio."
       - name: endereco
         description: >-
-          Texto do endereço como veio, nos formatos `rua` ("logradouro, numero") e `endereco`
+          Texto do endereço, nos formatos `rua` ("logradouro, numero") e `endereco`
           ("logradouro, numero - bairro"). `NULL` quando o endereço veio em colunas separadas.
+          Texto livre em maiúscula (H4).
       - name: logradouro
         description: >-
           Logradouro: da coluna da origem ou, nos formatos de texto, do texto que casa com o
           padrão estrito; `NULL` quando não casa.
+          Texto livre em maiúscula (H4).
       - name: numero
-        description: "Número do endereço (pode ser `S/N`), com a mesma regra do logradouro."
+        description: "Número do endereço (pode ser `S/N`), com a mesma regra do logradouro. Texto livre em maiúscula (H4)."
       - name: endereco_json_complemento
-        description: "Complemento; só existe no formato de colunas separadas, e `NULL` quando não há."
+        description: "Complemento; só existe no formato de colunas separadas, e `NULL` quando não há. Texto livre em maiúscula (H4)."
       - name: bairro
         description: >-
           Bairro: da coluna da origem ou, no formato `endereco`, do texto que casa com o padrão
           estrito; `NULL` no formato `rua`, que não traz bairro.
+          Texto livre em maiúscula (H4).
       - name: cidade
-        description: "Cidade, de `cidade` ou `municipio` conforme o formato do endereço."
+        description: "Cidade, de `cidade` ou `municipio` conforme o formato do endereço. Texto livre em maiúscula (H4)."
       - name: uf
         description: >-
           Sigla da UF, de `uf` ou `estado` conforme o formato do endereço, em maiúsculas e sem
@@ -377,17 +383,17 @@ models:
         data_tests:
           - not_null
       - name: endereco
-        description: "Endereço em texto da aparição mais recente do par, como veio (aparado nas pontas). Não entra na identidade do endereço."
+        description: "Endereço em texto da aparição mais recente do par, aparado nas pontas. Não entra na identidade do endereço. Texto livre em maiúscula (H4)."
       - name: logradouro
-        description: "Logradouro, vindo do texto ou das colunas do layout; `NULL` quando não veio."
+        description: "Logradouro, vindo do texto ou das colunas do layout; `NULL` quando não veio. Texto livre em maiúscula (H4)."
       - name: numero
-        description: "Número do endereço (pode ser `S/N`); `NULL` quando não veio."
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando não veio. Texto livre em maiúscula (H4)."
       - name: endereco_json_complemento
-        description: "Complemento do endereço (`endereco_json_complemento` na histórica); `NULL` quando não há."
+        description: "Complemento do endereço (`endereco_json_complemento` na histórica); `NULL` quando não há. Texto livre em maiúscula (H4)."
       - name: bairro
-        description: "Bairro; `NULL` quando não veio."
+        description: "Bairro; `NULL` quando não veio. Texto livre em maiúscula (H4)."
       - name: cidade
-        description: "Cidade; `NULL` quando não veio."
+        description: "Cidade; `NULL` quando não veio. Texto livre em maiúscula (H4)."
       - name: uf
         description: >-
           Sigla da UF em maiúsculas e sem espaços nas pontas. Valor fora das 27 UFs vira `NULL`;

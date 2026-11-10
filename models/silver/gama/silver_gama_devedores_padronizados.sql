@@ -23,11 +23,23 @@
 {%- set uf_origem -%}
   COALESCE(NULLIF(TRIM(endereco_json ->> 'uf'), ''), NULLIF(TRIM(endereco_json ->> 'estado'), ''))
 {%- endset %}
+{%- set endereco_origem -%}
+  COALESCE(
+    NULLIF(TRIM(endereco_json ->> 'rua'), '')
+    , NULLIF(TRIM(endereco_json ->> 'endereco'), '')
+  )
+{%- endset %}
+{%- set cidade_origem -%}
+  COALESCE(
+    NULLIF(TRIM(endereco_json ->> 'cidade'), '')
+    , NULLIF(TRIM(endereco_json ->> 'municipio'), '')
+  )
+{%- endset %}
 
 WITH tBase AS (
   SELECT
     {{ cpf_normalizado('documento') }} AS documento
-    , NULLIF(TRIM(nome), '') AS nome
+    , {{ texto_maiusculo("NULLIF(TRIM(nome), '')") }} AS nome
     , data_nascimento
     , {{ cnpj_sem_mascara('cnpj_empregador_raw') }} AS cnpj_empregador_raw
     , dt_ref
@@ -60,20 +72,18 @@ WITH tBase AS (
       NULLIF(TRIM(atributos_json ->> 'possui_imovel'), '') AS BOOLEAN
     ) AS atributos_extra_possui_imovel
     , NULLIF(TRIM(atributos_json ->> 'fonte_score'), '') AS atributos_extra_fonte_score
-    , COALESCE(
-      NULLIF(TRIM(endereco_json ->> 'rua'), '')
-      , NULLIF(TRIM(endereco_json ->> 'endereco'), '')
-    ) AS endereco
-    , NULLIF(TRIM(endereco_json ->> 'rua'), '') AS endereco_rua
-    , NULLIF(TRIM(endereco_json ->> 'endereco'), '') AS endereco_rua_bairro
-    , NULLIF(TRIM(endereco_json ->> 'logradouro'), '') AS logradouro_origem
-    , NULLIF(TRIM(endereco_json ->> 'numero'), '') AS numero_origem
-    , NULLIF(TRIM(endereco_json ->> 'complemento'), '') AS endereco_json_complemento
-    , NULLIF(TRIM(endereco_json ->> 'bairro'), '') AS bairro_origem
-    , COALESCE(
-      NULLIF(TRIM(endereco_json ->> 'cidade'), '')
-      , NULLIF(TRIM(endereco_json ->> 'municipio'), '')
-    ) AS cidade
+    , {{ texto_maiusculo(endereco_origem) }} AS endereco
+    , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'rua'), '')") }} AS endereco_rua
+    , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'endereco'), '')") }}
+      AS endereco_rua_bairro
+    , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'logradouro'), '')") }}
+      AS logradouro_origem
+    , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'numero'), '')") }}
+      AS numero_origem
+    , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'complemento'), '')") }}
+      AS endereco_json_complemento
+    , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'bairro'), '')") }} AS bairro_origem
+    , {{ texto_maiusculo(cidade_origem) }} AS cidade
     , {{ uf_normalizada(uf_origem) }} AS uf
     , LPAD({{ somente_digitos("endereco_json ->> 'cep'") }}, 8, '0') AS cep
     , {{ data_flexivel('dt_ref') }} AS dt_ref

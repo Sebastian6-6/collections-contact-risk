@@ -18,9 +18,9 @@ unit_tests:
           - {registro: '{"cpf": "94502272841", "nome": "Registro Interrompido", "contato": {"telefones": [{"ddd": "1', _arquivo: "contact_data/provedor_beta.jsonl", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: null}
     expect:
       rows:
-        - {documento_tipo: "CPF", documento: "10312391620", nome_completo: "Ana Souza", data_nascimento: "1990-02-03", vinculo_empresa_cnpj: "00000000000191", vinculo_empresa_desde: "2020-05-01", renda_mensal: 4090.20, atualizado_em: "2026-07-24", data_entrega: "2026-08-31", email_unico: null, _linha: 1}
-        - {documento_tipo: "RG", documento: "161429298", nome_completo: "Bia Lima", data_nascimento: "1990-02-03", vinculo_empresa_cnpj: null, vinculo_empresa_desde: null, renda_mensal: 1400.00, atualizado_em: "2026-09-02", data_entrega: "2026-09-05", email_unico: "bia@x.com", _linha: 7}
-        - {documento_tipo: "CPF", documento: "01006543201", nome_completo: "Caio Reis", data_nascimento: null, vinculo_empresa_cnpj: null, vinculo_empresa_desde: null, renda_mensal: null, atualizado_em: "2026-09-03", data_entrega: "2026-08-31", email_unico: null, _linha: 2}
+        - {documento_tipo: "CPF", documento: "10312391620", nome_completo: "ANA SOUZA", data_nascimento: "1990-02-03", vinculo_empresa_cnpj: "00000000000191", vinculo_empresa_desde: "2020-05-01", renda_mensal: 4090.20, atualizado_em: "2026-07-24", data_entrega: "2026-08-31", email_unico: null, _linha: 1}
+        - {documento_tipo: "RG", documento: "161429298", nome_completo: "BIA LIMA", data_nascimento: "1990-02-03", vinculo_empresa_cnpj: null, vinculo_empresa_desde: null, renda_mensal: 1400.00, atualizado_em: "2026-09-02", data_entrega: "2026-09-05", email_unico: "bia@x.com", _linha: 7}
+        - {documento_tipo: "CPF", documento: "01006543201", nome_completo: "CAIO REIS", data_nascimento: null, vinculo_empresa_cnpj: null, vinculo_empresa_desde: null, renda_mensal: null, atualizado_em: "2026-09-03", data_entrega: "2026-08-31", email_unico: null, _linha: 2}
 
   - name: silver_beta_documento_vazio_ou_zerado_vira_nulo
     description: >
@@ -37,9 +37,9 @@ unit_tests:
           - {registro: '{"cpf": "94502272841", "nome": "Registro Interrompido", "contato": {"telefones": [{"ddd": "1', _arquivo: "contact_data/provedor_beta.jsonl", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: null}
     expect:
       rows:
-        - {documento_tipo: null, documento: null, nome_completo: "Sem Chave", _linha: 3}
-        - {documento_tipo: null, documento: null, nome_completo: "Zerado", _linha: 5}
-        - {documento_tipo: null, documento: null, nome_completo: "RG Zerado", _linha: 6}
+        - {documento_tipo: null, documento: null, nome_completo: "SEM CHAVE", _linha: 3}
+        - {documento_tipo: null, documento: null, nome_completo: "ZERADO", _linha: 5}
+        - {documento_tipo: null, documento: null, nome_completo: "RG ZERADO", _linha: 6}
 
   - name: silver_beta_devedores_versao_mais_recente
     description: >
@@ -161,7 +161,7 @@ unit_tests:
   - name: silver_beta_enderecos_abertos_da_linha
     description: >
       A lista de endereços ou o objeto único (posição 1) viram uma linha por endereço, com o `atual`
-      como veio, a UF fora das 27 virando NULL e o CEP de 7 dígitos ou com hífen virando 8 dígitos.
+      como veio, o texto livre em maiúscula, a UF fora das 27 virando NULL e o CEP de 7 dígitos ou com hífen virando 8 dígitos.
     model: silver_beta_devedores_enderecos_padronizados
     given:
       - input: ref('silver_beta_devedores_padronizados')
@@ -172,9 +172,26 @@ unit_tests:
           SELECT CAST(NULL AS JSON), CAST('{"tipo": "residencial", "logradouro": "Rua C", "numero": "5", "complemento": "", "bairro": "Boqueirao", "cidade": "Santos", "uf": "SP", "cep": "11055300", "atual": true}' AS JSON), 'f2', 2, 'h'
     expect:
       rows:
-        - {posicao: 1, tipo: "residencial", logradouro: "Rua A", numero: "S/N", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: true, _arquivo: "f2", _linha: 1}
-        - {posicao: 2, tipo: "comercial", logradouro: "Rua B", numero: "10", complemento: "sala 2", bairro: "Gonzaga", cidade: "Santos", uf: null, cep: "07359422", atual: false, _arquivo: "f2", _linha: 1}
-        - {posicao: 1, tipo: "residencial", logradouro: "Rua C", numero: "5", complemento: null, bairro: "Boqueirao", cidade: "Santos", uf: "SP", cep: "11055300", atual: true, _arquivo: "f2", _linha: 2}
+        - {posicao: 1, tipo: "residencial", logradouro: "RUA A", numero: "S/N", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", atual: true, _arquivo: "f2", _linha: 1}
+        - {posicao: 2, tipo: "comercial", logradouro: "RUA B", numero: "10", complemento: "SALA 2", bairro: "GONZAGA", cidade: "SANTOS", uf: null, cep: "07359422", atual: false, _arquivo: "f2", _linha: 1}
+        - {posicao: 1, tipo: "residencial", logradouro: "RUA C", numero: "5", complemento: null, bairro: "BOQUEIRAO", cidade: "SANTOS", uf: "SP", cep: "11055300", atual: true, _arquivo: "f2", _linha: 2}
+
+  - name: silver_beta_endereco_em_caixas_diferentes_vira_o_mesmo_texto
+    description: >
+      O mesmo endereço escrito em caixas diferentes sai com as mesmas partes em maiúscula (H4), e
+      por isso vira um par só na `devedores_enderecos`; `tipo` e `atual` ficam como vieram.
+    model: silver_beta_devedores_enderecos_padronizados
+    given:
+      - input: ref('silver_beta_devedores_padronizados')
+        format: sql
+        rows: |
+          SELECT CAST('[{"tipo": "residencial", "logradouro": "Rua Açaí", "numero": "10a", "complemento": "Apto 3", "bairro": "Centro", "cidade": "Santos", "uf": "SP", "cep": "11010000", "atual": true}]' AS JSON) AS lista_enderecos, CAST(NULL AS JSON) AS endereco_unico, 'f1' AS _arquivo, 1 AS _linha, 'h' AS _hash_arquivo
+          UNION ALL
+          SELECT CAST('[{"tipo": "residencial", "logradouro": "RUA AÇAÍ", "numero": "10A", "complemento": "APTO 3", "bairro": "CENTRO", "cidade": "SANTOS", "uf": "SP", "cep": "11010000", "atual": true}]' AS JSON), CAST(NULL AS JSON), 'f1', 2, 'h'
+    expect:
+      rows:
+        - {posicao: 1, tipo: "residencial", logradouro: "RUA AÇAÍ", numero: "10A", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", _linha: 1}
+        - {posicao: 1, tipo: "residencial", logradouro: "RUA AÇAÍ", numero: "10A", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", _linha: 2}
 
   - name: silver_beta_devedores_historico_versoes
     description: >

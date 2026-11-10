@@ -55,11 +55,11 @@ WITH tListas AS (
 SELECT
   posicao
   , NULLIF(TRIM(endereco_json ->> 'tipo'), '') AS tipo
-  , NULLIF(TRIM(endereco_json ->> 'logradouro'), '') AS logradouro
-  , NULLIF(TRIM(endereco_json ->> 'numero'), '') AS numero
-  , NULLIF(TRIM(endereco_json ->> 'complemento'), '') AS complemento
-  , NULLIF(TRIM(endereco_json ->> 'bairro'), '') AS bairro
-  , NULLIF(TRIM(endereco_json ->> 'cidade'), '') AS cidade
+  , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'logradouro'), '')") }} AS logradouro
+  , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'numero'), '')") }} AS numero
+  , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'complemento'), '')") }} AS complemento
+  , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'bairro'), '')") }} AS bairro
+  , {{ texto_maiusculo("NULLIF(TRIM(endereco_json ->> 'cidade'), '')") }} AS cidade
   , {{ uf_normalizada("endereco_json ->> 'uf'") }} AS uf
   , LPAD({{ somente_digitos("endereco_json ->> 'cep'") }}, 8, '0') AS cep
   , CAST(endereco_json ->> 'atual' AS BOOLEAN) AS atual

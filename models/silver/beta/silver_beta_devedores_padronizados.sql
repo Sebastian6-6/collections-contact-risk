@@ -22,6 +22,13 @@
 {%- set documento_alfanumerico -%}
   NULLIF(REGEXP_REPLACE(UPPER(documento_origem), '[^0-9A-Z]', '', 'g'), '')
 {%- endset %}
+{%- set nome_origem -%}
+  COALESCE(
+    NULLIF(TRIM(registro_json ->> 'nome_completo'), '')
+    , NULLIF(TRIM(registro_json ->> 'nome'), '')
+    , NULLIF(TRIM(registro_json ->> 'nome_devedor'), '')
+  )
+{%- endset %}
 
 WITH tBase AS (
   SELECT
@@ -47,11 +54,7 @@ WITH tBase AS (
       NULLIF(TRIM(registro_json ->> 'cpf'), '')
       , NULLIF(TRIM((registro_json -> 'documento') ->> 'valor'), '')
     ) AS documento_origem
-    , COALESCE(
-      NULLIF(TRIM(registro_json ->> 'nome_completo'), '')
-      , NULLIF(TRIM(registro_json ->> 'nome'), '')
-      , NULLIF(TRIM(registro_json ->> 'nome_devedor'), '')
-    ) AS nome_completo
+    , {{ texto_maiusculo(nome_origem) }} AS nome_completo
     , registro_json ->> 'data_nascimento' AS data_nascimento
     , {{ cnpj_sem_mascara("(registro_json -> 'vinculo_empresa') ->> 'cnpj'") }}
       AS vinculo_empresa_cnpj

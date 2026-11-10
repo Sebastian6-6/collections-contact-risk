@@ -29,7 +29,7 @@ models:
           - unique
           - not_null
       - name: nome_completo
-        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio."
+        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: data_nascimento
         description: "Data de nascimento. A data sentinela 1900-01-01 da origem fica como veio."
       - name: cnpj_empregador
@@ -43,7 +43,7 @@ models:
           verificadores válidos (teste `cnpj_do_empregador_com_digito_verificador_valido`).
           `NULL` quando o provedor não informou.
       - name: cargo
-        description: "Cargo do devedor; `NULL` quando vazio."
+        description: "Cargo do devedor; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: salario_informado
         description: >-
           Salário informado em `NUMERIC(14, 2)`. `NULL` quando vazio; o zero informado pelo
@@ -53,19 +53,20 @@ models:
       - name: email
         description: "E-mail da versão mais recente, em minúsculas; `NULL` quando vazio."
       - name: endereco
-        description: "Endereço em texto, exatamente como veio (aparado nas pontas)."
+        description: "Endereço em texto, aparado nas pontas. Texto livre em maiúscula (H4)."
       - name: logradouro
         description: >-
           Logradouro, só quando `endereco` casa inteiro com `logradouro, numero[, complemento] -
           bairro - cidade`; senão `NULL`, como todas as outras partes.
+          Texto livre em maiúscula (H4).
       - name: numero
-        description: "Número do endereço (pode ser `S/N`); `NULL` quando o endereço não casa com o padrão."
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: complemento
-        description: "Complemento do endereço; `NULL` quando não há ou o endereço não casa com o padrão."
+        description: "Complemento do endereço; `NULL` quando não há ou o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: bairro
-        description: "Bairro; `NULL` quando o endereço não casa com o padrão."
+        description: "Bairro; `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: cidade
-        description: "Cidade; `NULL` quando o endereço não casa com o padrão."
+        description: "Cidade; `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: cep
         description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições."
       - name: uf
@@ -119,7 +120,7 @@ models:
         description: >-
           Documento do devedor, como em `silver_alfa.devedores`. `NULL` nas versões de linhas de documento vazio ou zerado, que não identificam ninguém e estão aqui para a gold e para os contatos delas.
       - name: nome_completo
-        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio."
+        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: data_nascimento
         description: "Data de nascimento. A data sentinela 1900-01-01 da origem fica como veio."
       - name: cnpj_empregador
@@ -133,7 +134,7 @@ models:
           verificadores válidos (teste `cnpj_do_empregador_com_digito_verificador_valido`).
           `NULL` quando o provedor não informou.
       - name: cargo
-        description: "Cargo do devedor; `NULL` quando vazio."
+        description: "Cargo do devedor; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: salario_informado
         description: >-
           Salário informado em `NUMERIC(14, 2)`. `NULL` quando vazio; o zero informado pelo
@@ -143,19 +144,20 @@ models:
       - name: email
         description: "E-mail da versão mais recente, em minúsculas; `NULL` quando vazio."
       - name: endereco
-        description: "Endereço em texto, exatamente como veio (aparado nas pontas)."
+        description: "Endereço em texto, aparado nas pontas. Texto livre em maiúscula (H4)."
       - name: logradouro
         description: >-
           Logradouro, só quando `endereco` casa inteiro com `logradouro, numero[, complemento] -
           bairro - cidade`; senão `NULL`, como todas as outras partes.
+          Texto livre em maiúscula (H4).
       - name: numero
-        description: "Número do endereço (pode ser `S/N`); `NULL` quando o endereço não casa com o padrão."
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: complemento
-        description: "Complemento do endereço; `NULL` quando não há ou o endereço não casa com o padrão."
+        description: "Complemento do endereço; `NULL` quando não há ou o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: bairro
-        description: "Bairro; `NULL` quando o endereço não casa com o padrão."
+        description: "Bairro; `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: cidade
-        description: "Cidade; `NULL` quando o endereço não casa com o padrão."
+        description: "Cidade; `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: cep
         description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições."
       - name: uf
@@ -273,17 +275,17 @@ models:
         data_tests:
           - not_null
       - name: endereco
-        description: "Endereço em texto da aparição mais recente do par, como veio (aparado nas pontas). Não entra na identidade do endereço."
+        description: "Endereço em texto da aparição mais recente do par, aparado nas pontas. Não entra na identidade do endereço. Texto livre em maiúscula (H4)."
       - name: logradouro
-        description: "Logradouro, só quando o endereço em texto casa com o padrão; senão `NULL`, como as outras partes."
+        description: "Logradouro, só quando o endereço em texto casa com o padrão; senão `NULL`, como as outras partes. Texto livre em maiúscula (H4)."
       - name: numero
-        description: "Número do endereço (pode ser `S/N`); `NULL` quando o endereço não casa com o padrão."
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: complemento
-        description: "Complemento do endereço; `NULL` quando não há ou o endereço não casa com o padrão."
+        description: "Complemento do endereço; `NULL` quando não há ou o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: bairro
-        description: "Bairro; `NULL` quando o endereço não casa com o padrão."
+        description: "Bairro; `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: cidade
-        description: "Cidade; `NULL` quando o endereço não casa com o padrão."
+        description: "Cidade; `NULL` quando o endereço não casa com o padrão. Texto livre em maiúscula (H4)."
       - name: uf
         description: >-
           Sigla da UF em maiúsculas e sem espaços nas pontas. Valor fora das 27 UFs vira `NULL`;

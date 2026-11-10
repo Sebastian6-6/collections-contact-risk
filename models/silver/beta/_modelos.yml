@@ -63,6 +63,7 @@ models:
           do JSON, a primeira preenchida (o nome fixo é `nome_completo`, o mesmo do alfa). Os nomes
           passam como vieram, sem correção de caracteres (U+FFFD: 0 ocorrências nos 92 arquivos,
           medido em 2026-11-09).
+          Texto livre em maiúscula (H4).
       - name: data_nascimento
         description: "Data de nascimento (ISO ou dd/mm/aaaa na origem); `NULL` quando vazia ou inexistente no calendário."
       - name: vinculo_empresa_cnpj
@@ -157,6 +158,7 @@ models:
           do JSON, a primeira preenchida (o nome fixo é `nome_completo`, o mesmo do alfa). Os nomes
           passam como vieram, sem correção de caracteres (U+FFFD: 0 ocorrências nos 92 arquivos,
           medido em 2026-11-09).
+          Texto livre em maiúscula (H4).
       - name: data_nascimento
         description: "Data de nascimento (ISO ou dd/mm/aaaa na origem); `NULL` quando vazia ou inexistente no calendário."
       - name: vinculo_empresa_cnpj
@@ -302,15 +304,15 @@ models:
       - name: tipo
         description: "Tipo do endereço informado pelo provedor (por exemplo `residencial`); `NULL` quando vazio."
       - name: logradouro
-        description: "Logradouro, sem espaços nas pontas; `NULL` quando vazio."
+        description: "Logradouro, sem espaços nas pontas; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: numero
-        description: "Número do endereço (pode ser `S/N`); `NULL` quando vazio."
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: complemento
-        description: "Complemento; `NULL` quando o provedor mandou nulo ou vazio."
+        description: "Complemento; `NULL` quando o provedor mandou nulo ou vazio. Texto livre em maiúscula (H4)."
       - name: bairro
-        description: "Bairro; `NULL` quando vazio."
+        description: "Bairro; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: cidade
-        description: "Cidade; `NULL` quando vazia."
+        description: "Cidade; `NULL` quando vazia. Texto livre em maiúscula (H4)."
       - name: uf
         description: >-
           Sigla da UF em maiúsculas e sem espaços nas pontas. Valor fora das 27 UFs vira `NULL`;
@@ -436,15 +438,15 @@ models:
       - name: tipo
         description: "Tipo do endereço informado pelo provedor (por exemplo `residencial`) na aparição mais recente; `NULL` quando vazio."
       - name: logradouro
-        description: "Logradouro, sem espaços nas pontas; `NULL` quando vazio."
+        description: "Logradouro, sem espaços nas pontas; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: numero
-        description: "Número do endereço (pode ser `S/N`); `NULL` quando vazio."
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: complemento
-        description: "Complemento; `NULL` quando o provedor mandou nulo ou vazio."
+        description: "Complemento; `NULL` quando o provedor mandou nulo ou vazio. Texto livre em maiúscula (H4)."
       - name: bairro
-        description: "Bairro; `NULL` quando vazio."
+        description: "Bairro; `NULL` quando vazio. Texto livre em maiúscula (H4)."
       - name: cidade
-        description: "Cidade; `NULL` quando vazia."
+        description: "Cidade; `NULL` quando vazia. Texto livre em maiúscula (H4)."
       - name: uf
         description: >-
           Sigla da UF em maiúsculas e sem espaços nas pontas. Valor fora das 27 UFs vira `NULL`;
