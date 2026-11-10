@@ -90,7 +90,7 @@ erDiagram
   ft_entrega_diaria {
     text provedor PK
     date dt_referencia PK
-    text tp_dia
+    text tipo_dia
     int qt_arquivos
     int qt_registros
     numeric qt_media_movel

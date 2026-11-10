@@ -5,7 +5,7 @@
   por `ROW_NUMBER()` e auto-junção, sem `LAG`; maior que 1 é dia sem entrega. A primeira entrega
   não tem anterior e fica `NULL`.
   `qt_media_movel` (D3): média de `qt_registros` das entregas anteriores do mesmo provedor e do
-  mesmo tipo de dia (`tp_dia`: `util` ou `fim_de_semana`), com `SUM()` em `ROWS BETWEEN n PRECEDING
+  mesmo tipo de dia (`tipo_dia`: `util` ou `fim_de_semana`), com `SUM()` em `ROWS BETWEEN n PRECEDING
   AND 1 PRECEDING`, n = `var` `janela_media_movel`. A janela conta entregas, não dias: um dia sem
   entrega não entra como zero. `qt_entregas_base` diz com quantas a média foi feita.
   `situacao_volume`: `sem_base` com menos de `base_minima_media_movel` entregas na base, `acima`
@@ -31,7 +31,7 @@ WITH tNumeradas AS (
     , CASE
       WHEN EXTRACT(ISODOW FROM dt_referencia) IN (6, 7) THEN 'fim_de_semana'
       ELSE 'util'
-    END AS tp_dia
+    END AS tipo_dia
     , ROW_NUMBER() OVER (
       PARTITION BY provedor
       ORDER BY dt_referencia ASC
@@ -44,7 +44,7 @@ WITH tNumeradas AS (
   SELECT
     atual.provedor
     , atual.dt_referencia
-    , atual.tp_dia
+    , atual.tipo_dia
     , atual.qt_arquivos
     , atual.qt_registros
     , atual.qt_registros_repetidos
@@ -67,7 +67,7 @@ WITH tNumeradas AS (
   SELECT
     provedor
     , dt_referencia
-    , tp_dia
+    , tipo_dia
     , qt_arquivos
     , qt_registros
     , qt_registros_repetidos
@@ -77,12 +77,12 @@ WITH tNumeradas AS (
     , situacao_cabecalho
     , desc_arquivos
     , SUM(qt_registros) OVER (
-      PARTITION BY provedor, tp_dia
+      PARTITION BY provedor, tipo_dia
       ORDER BY dt_referencia ASC
       ROWS BETWEEN {{ janela }} PRECEDING AND 1 PRECEDING
     ) AS qt_registros_base
     , SUM(1) OVER (
-      PARTITION BY provedor, tp_dia
+      PARTITION BY provedor, tipo_dia
       ORDER BY dt_referencia ASC
       ROWS BETWEEN {{ janela }} PRECEDING AND 1 PRECEDING
     ) AS qt_entregas_base
@@ -93,7 +93,7 @@ WITH tNumeradas AS (
   SELECT
     provedor
     , dt_referencia
-    , tp_dia
+    , tipo_dia
     , qt_arquivos
     , qt_registros
     , qt_registros_repetidos
@@ -111,7 +111,7 @@ WITH tNumeradas AS (
   SELECT
     provedor
     , dt_referencia
-    , tp_dia
+    , tipo_dia
     , qt_arquivos
     , qt_registros
     , qt_media_movel
@@ -131,7 +131,7 @@ WITH tNumeradas AS (
 
 SELECT
   provedor
-  , tp_dia
+  , tipo_dia
   , qt_arquivos
   , qt_registros
   , CAST(qt_media_movel AS NUMERIC(12, 2)) AS qt_media_movel

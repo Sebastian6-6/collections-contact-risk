@@ -32,9 +32,9 @@ WITH tPrimeiraEntrega AS (
       END
     ) AS qt_dias_sem_entrega
     , COUNT(CASE WHEN entregas.qt_arquivos > 1 THEN 1 END) AS qt_dias_com_reenvio
-    , ROUND(AVG(CASE WHEN entregas.tp_dia = 'util' THEN entregas.qt_registros END), 1)
+    , ROUND(AVG(CASE WHEN entregas.tipo_dia = 'util' THEN entregas.qt_registros END), 1)
       AS vl_media_dia_util
-    , ROUND(AVG(CASE WHEN entregas.tp_dia = 'fim_de_semana' THEN entregas.qt_registros END), 1)
+    , ROUND(AVG(CASE WHEN entregas.tipo_dia = 'fim_de_semana' THEN entregas.qt_registros END), 1)
       AS vl_media_fim_de_semana
     , ROUND(
       100 * MIN(
