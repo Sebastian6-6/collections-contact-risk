@@ -164,3 +164,73 @@ def test_leitor_novo_se_registra_pelo_nome(monkeypatch):
 def test_formato_desconhecido_diz_quais_existem():
     with pytest.raises(ErroDeIngestao, match="csv"):
         obter_leitor("formato_inexistente")
+
+
+# =============================================================================
+# CSV sem cabeçalho (arquivos da Receita): colunas, encoding e separador da configuração
+# =============================================================================
+
+
+def _sem_cabecalho(tmp_path, conteudo: bytes, colunas):
+    arquivo = tmp_path / "dados.csv"
+    arquivo.write_bytes(conteudo)
+    return ler_csv(arquivo, encoding="latin-1", separador=";", colunas=colunas)
+
+
+def test_csv_sem_cabecalho_usa_as_colunas_da_configuracao_desde_a_primeira_linha(tmp_path):
+    conteudo = '"01";"ÁGUA"\n"02";""\n'.encode("latin-1")
+
+    leitura = _sem_cabecalho(tmp_path, conteudo, ["codigo", "descricao"])
+
+    assert leitura.colunas == ["codigo", "descricao"]
+    assert leitura.cabecalho is None
+    assert [(x.numero, x.campos, x.motivo_ilegivel) for x in leitura.linhas] == [
+        (1, {"codigo": "01", "descricao": "ÁGUA"}, None),
+        (2, {"codigo": "02", "descricao": ""}, None),
+    ]
+    assert [x.texto for x in leitura.linhas] == ['"01";"ÁGUA"', '"02";""']
+
+
+def test_csv_sem_cabecalho_respeita_quebra_de_linha_dentro_de_campo_entre_aspas(tmp_path):
+    conteudo = b'"1";"RUA A\nCASA 2";"SP"\n"2";"RUA B";"RJ"\n'
+
+    leitura = _sem_cabecalho(tmp_path, conteudo, ["id", "rua", "uf"])
+
+    assert [x.numero for x in leitura.linhas] == [1, 3]
+    assert leitura.linhas[0].campos["rua"] == "RUA A\nCASA 2"
+    assert leitura.linhas[0].texto == '"1";"RUA A\nCASA 2";"SP"'
+
+
+def test_csv_sem_cabecalho_linha_com_campos_a_mais_ou_a_menos_e_ilegivel(tmp_path):
+    leitura = _sem_cabecalho(tmp_path, b'"1";"a"\n"2"\n"3";"c";"d"\n', ["id", "nome"])
+
+    assert [x.motivo_ilegivel for x in leitura.linhas] == [
+        None,
+        "1 campos, o cabeçalho tem 2",
+        "3 campos, o cabeçalho tem 2",
+    ]
+    assert [x.texto for x in leitura.linhas[1:]] == ['"2"', '"3";"c";"d"']
+
+
+def test_csv_sem_cabecalho_vazio_devolve_as_colunas_e_nenhuma_linha(tmp_path):
+    leitura = _sem_cabecalho(tmp_path, b"", ["id", "nome"])
+
+    assert leitura.colunas == ["id", "nome"]
+    assert leitura.linhas == []
+
+
+def test_csv_sem_cabecalho_byte_fora_do_encoding_continua_interrompendo(tmp_path):
+    arquivo = tmp_path / "dados.csv"
+    arquivo.write_bytes(b'"1";"Jos\xe9"\n')
+
+    with pytest.raises(ErroDeIngestao, match=r"dados\.csv.*linha 1"):
+        ler_csv(arquivo, encoding="utf-8", separador=";", colunas=["id", "nome"])
+
+
+@pytest.mark.parametrize(
+    ("colunas", "trecho"),
+    [([], "ao menos uma coluna"), (["id", "id"], "duplicadas"), (["id", ""], "sem nome")],
+)
+def test_csv_sem_cabecalho_recusa_colunas_invalidas(tmp_path, colunas, trecho):
+    with pytest.raises(ErroDeIngestao, match=trecho):
+        _sem_cabecalho(tmp_path, b'"1"\n', colunas)

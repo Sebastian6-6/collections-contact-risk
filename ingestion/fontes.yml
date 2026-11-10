@@ -10,6 +10,7 @@
 #              (nome ou glob, sem descer em subpastas). Todos vão para a mesma tabela, e um
 #              arquivo que case com duas entradas é erro, para nunca ser carregado duas vezes.
 #   encoding, separador   opcionais (padrão: utf-8 e vírgula)
+#   colunas    opcional; nomes das colunas de um CSV sem cabeçalho, na ordem do arquivo
 
 # Cada provedor é uma fonte: a carga histórica até 31/08/2026 e as entregas diárias de
 # setembro/2026 (com reenvios e dias sem arquivo) formam uma tabela só (p. 1 do enunciado).
@@ -51,3 +52,33 @@ cobranca:
     arquivos:
       - caminho: contact_data
         padrao: contatos_realizados.csv
+
+# Receita Federal: dados abertos do CNPJ. O bloco _baixar não é uma entidade: diz como trazer
+# os arquivos de fora, e só roda quando chamado (python -m ingestion.main --baixar receita,
+# depois de rodar a pipeline, porque as raízes de CNPJ saem da silver). Ele baixa os zips do
+# mês fixado para o cache (fora do git) e grava em destino o extrato versionado das empresas
+# recebidas, com o ORIGEM.md. A pipeline e o CI leem só essa pasta, sem rede. Para outro mês,
+# troque mes e destino e baixe de novo.
+#   destino              pasta versionada do extrato (a partir da raiz do repositório)
+#   url_webdav, token    WebDAV público do compartilhamento oficial; o token é o usuário
+#   completas            tabelas de domínio, gravadas inteiras
+#   filtradas            tabelas gravadas só com as raízes de CNPJ recebidas
+#   raizes_de            colunas da silver com o CNPJ completo (14 caracteres)
+#   trabalhadores        processos para ler os zips em paralelo (padrão: 1)
+receita:
+  _baixar:
+    origem: receita
+    destino: dados_externos/receita/2026-10
+    parametros:
+      mes: "2026-10"
+      url_compartilhamento: https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9
+      url_webdav: https://arquivos.receitafederal.gov.br/public.php/webdav
+      token: YggdBLfdninEJX9
+      cache: .cache/receita
+      trabalhadores: 4
+      completas: [cnaes, motivos, municipios, naturezas, paises, qualificacoes]
+      filtradas: [empresas, estabelecimentos, simples, socios]
+      raizes_de:
+        - {tabela: silver_alfa.devedores, coluna: cnpj_empregador}
+        - {tabela: silver_beta.devedores, coluna: vinculo_empresa_cnpj}
+        - {tabela: silver_gama.devedores, coluna: cnpj_empregador_raw}

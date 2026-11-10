@@ -5,6 +5,10 @@ repositório e devolve os arquivos a ler. Para uma origem nova (uma API, um buck
 função aqui com `@conector("nome")` e use `origem: nome` na configuração; o `main` não muda.
 Uma API grava a resposta como arquivo numa pasta versionada antes de ser lida, e a partir daí
 vale o mesmo leitor e a mesma rastreabilidade.
+
+Quem faz essa gravação é o baixador (`@baixador("nome")`), que roda só quando chamado
+(`python -m ingestion.main --baixar <fonte>`), nunca na pipeline: a pipeline e o CI leem a
+pasta versionada com o conector `pasta`, sem rede.
 """
 
 from collections.abc import Callable
@@ -12,6 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ingestion import ErroDeIngestao
+from ingestion.receita import ler_parametros, montar_extrato, raizes_dos_cnpjs
+from ingestion.webdav import ClienteWebDav
 
 # =============================================================================
 # Tipos e registro
@@ -68,4 +74,72 @@ def listar_pasta(local: Local, raiz: Path) -> list[Path]:
     return sorted(
         (arquivo for arquivo in pasta.glob(local.padrao) if arquivo.is_file()),
         key=lambda arquivo: arquivo.as_posix(),
+    )
+
+
+# =============================================================================
+# Baixadores: gravam numa pasta versionada o que vem de fora
+# =============================================================================
+
+
+@dataclass(frozen=True)
+class Baixa:
+    """O bloco `_baixar` de uma fonte: o baixador, a pasta de destino e os parâmetros dele."""
+
+    fonte: str
+    origem: str
+    destino: str
+    parametros: dict
+
+
+type Baixador = Callable[[Baixa, Path, Path], list[Path]]
+
+BAIXADORES: dict[str, Baixador] = {}
+
+
+def baixador(nome: str) -> Callable[[Baixador], Baixador]:
+    """Registra a função como baixador da origem `nome`, o `origem` do bloco `_baixar`.
+
+    A função recebe a `Baixa`, a raiz do repositório e o banco da pipeline (de onde sai, por
+    exemplo, a lista do que baixar) e devolve os arquivos gravados.
+    """
+
+    def registrar(funcao: Baixador) -> Baixador:
+        BAIXADORES[nome] = funcao
+        return funcao
+
+    return registrar
+
+
+def obter_baixador(nome: str) -> Baixador:
+    """Devolve o baixador registrado ou diz quais origens existem."""
+    if nome not in BAIXADORES:
+        existentes = ", ".join(sorted(BAIXADORES))
+        raise ErroDeIngestao(f"origem '{nome}' sem baixador registrado; disponíveis: {existentes}")
+    return BAIXADORES[nome]
+
+
+def _dentro_da_raiz(raiz: Path, relativo: str) -> Path:
+    caminho = (raiz / relativo).resolve()
+    if not caminho.is_relative_to(raiz.resolve()):
+        raise ErroDeIngestao(f"'{relativo}' está fora da raiz do repositório")
+    return caminho
+
+
+@baixador("receita")
+def baixar_receita(baixa: Baixa, raiz: Path, banco: Path) -> list[Path]:
+    """Baixa os dados abertos do CNPJ da Receita e grava o extrato das empresas recebidas.
+
+    As raízes de CNPJ vêm das colunas `raizes_de` do banco da pipeline, que precisa ter rodado.
+    O acesso é o WebDAV público do compartilhamento oficial (token como usuário).
+    """
+    parametros = ler_parametros(baixa.parametros)
+    raizes = raizes_dos_cnpjs(banco, parametros.raizes_de)
+    cliente = ClienteWebDav(parametros.url_webdav, parametros.token)
+    return montar_extrato(
+        cliente,
+        parametros,
+        raizes,
+        _dentro_da_raiz(raiz, baixa.destino),
+        _dentro_da_raiz(raiz, parametros.cache),
     )

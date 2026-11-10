@@ -10,7 +10,7 @@ byte significava. Para registrar um formato novo, escreva a função aqui com
 
 import csv
 import re
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
@@ -41,7 +41,7 @@ class Leitura:
     linhas: list[LinhaLida]
 
 
-Leitor = Callable[[Path, str, str], Leitura]
+Leitor = Callable[..., Leitura]
 
 LEITORES: dict[str, Leitor] = {}
 
@@ -140,34 +140,46 @@ def _ler_registros_csv(texto: str, separador: str):
 
 
 @leitor("csv")
-def ler_csv(caminho: Path, encoding: str, separador: str) -> Leitura:
-    """Lê um CSV com o cabeçalho do próprio arquivo e todos os valores em texto.
+def ler_csv(
+    caminho: Path, encoding: str, separador: str, colunas: Sequence[str] | None = None
+) -> Leitura:
+    """Lê um CSV com todos os valores em texto; sem `colunas`, o cabeçalho é a 1ª linha.
 
-    A primeira linha é o cabeçalho; as demais viram `LinhaLida`. Linha com número de
-    campos diferente do cabeçalho, malformada ou em branco fica ilegível, com os campos
-    nulos e o texto original guardado.
+    Com `colunas` (arquivo sem cabeçalho, como os da Receita), os nomes vêm da configuração e
+    a 1ª linha já é um registro. Linha com número de campos diferente do das colunas,
+    malformada ou em branco fica ilegível, com os campos nulos e o texto original guardado.
     """
     registros = _ler_registros_csv(ler_texto(caminho, encoding), separador)
+    if colunas is not None:
+        nomes = list(colunas)
+        validar_colunas(caminho.name, nomes, "na configuração")
+        return Leitura(colunas=nomes, cabecalho=None, linhas=_classificar(registros, nomes))
     primeiro = next(registros, None)
     if primeiro is None:
         return Leitura(colunas=[], cabecalho=None, linhas=[])
-    _, cabecalho, colunas, erro = primeiro
-    if erro or not colunas:
+    _, cabecalho, nomes, erro = primeiro
+    if erro or not nomes:
         raise ErroDeIngestao(f"{caminho.name}: cabeçalho ilegível ({erro or 'em branco'})")
-    _validar_colunas(caminho, colunas)
-    linhas = [
+    validar_colunas(caminho.name, nomes, "no cabeçalho")
+    return Leitura(colunas=nomes, cabecalho=cabecalho, linhas=_classificar(registros, nomes))
+
+
+def validar_colunas(origem: str, colunas: Sequence[str], onde: str) -> None:
+    """Recusa lista de colunas vazia, com nome repetido ou sem nome; `origem` abre o erro."""
+    if not colunas:
+        raise ErroDeIngestao(f"{origem}: esperava ao menos uma coluna {onde}")
+    repetidas = sorted({coluna for coluna in colunas if colunas.count(coluna) > 1})
+    if repetidas:
+        raise ErroDeIngestao(f"{origem}: colunas duplicadas {onde}: {repetidas}")
+    if "" in colunas:
+        raise ErroDeIngestao(f"{origem}: coluna sem nome {onde}")
+
+
+def _classificar(registros, colunas: list[str]) -> list[LinhaLida]:
+    return [
         _classificar_linha_csv(inicio, original, campos, erro, colunas)
         for inicio, original, campos, erro in registros
     ]
-    return Leitura(colunas=colunas, cabecalho=cabecalho, linhas=linhas)
-
-
-def _validar_colunas(caminho: Path, colunas: list[str]) -> None:
-    repetidas = sorted({coluna for coluna in colunas if colunas.count(coluna) > 1})
-    if repetidas:
-        raise ErroDeIngestao(f"{caminho.name}: colunas duplicadas no cabeçalho: {repetidas}")
-    if "" in colunas:
-        raise ErroDeIngestao(f"{caminho.name}: coluna sem nome no cabeçalho")
 
 
 def _classificar_linha_csv(

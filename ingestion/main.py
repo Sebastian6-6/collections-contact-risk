@@ -3,6 +3,7 @@
 Uso, a partir da raiz do repositório:
     python -m ingestion.main                # todas as fontes
     python -m ingestion.main --fonte alfa   # só uma
+    python -m ingestion.main --baixar receita   # grava o extrato de uma fonte externa
 
 Cada entrada de `ingestion/fontes.yml` (fonte + entidade) vira uma tabela
 `bronze_<fonte>.<entidade>` com uma linha por linha recebida, e cada fonte ganha o registro
@@ -15,6 +16,7 @@ novo exige uma função em `leitores.py` e só uma origem nova exige uma em `con
 import argparse
 import codecs
 import hashlib
+import inspect
 import re
 import sys
 from collections.abc import Sequence
@@ -25,8 +27,8 @@ import duckdb
 import yaml
 
 from ingestion import ErroDeIngestao
-from ingestion.conectores import Conector, Local, obter_conector
-from ingestion.leitores import Leitura, obter_leitor
+from ingestion.conectores import Baixa, Conector, Local, obter_baixador, obter_conector
+from ingestion.leitores import Leitura, obter_leitor, validar_colunas
 
 # =============================================================================
 # Constantes
@@ -43,7 +45,9 @@ NOME_DO_REGISTRO = "arquivos"
 PADRAO_DE_NOME = re.compile(r"[a-z][a-z0-9_]*")
 
 CAMPOS_OBRIGATORIOS = ("origem", "formato", "arquivos")
-CAMPOS_OPCIONAIS = ("encoding", "separador")
+CAMPOS_OPCIONAIS = ("encoding", "separador", "colunas")
+CHAVE_DE_BAIXA = "_baixar"
+CAMPOS_DA_BAIXA = ("origem", "destino", "parametros")
 
 # Colunas que a ingestão acrescenta às do próprio arquivo; nenhuma delas interpreta o dado.
 COLUNAS_DE_RASTREABILIDADE = (
@@ -79,6 +83,7 @@ class Entidade:
     locais: tuple[Local, ...]
     encoding: str = ENCODING_PADRAO
     separador: str = SEPARADOR_PADRAO
+    colunas: tuple[str, ...] | None = None
 
     @property
     def rotulo(self) -> str:
@@ -110,21 +115,54 @@ class TabelaLida:
 # =============================================================================
 
 
-def carregar_entidades(caminho: Path) -> list[Entidade]:
-    """Lê o YAML e valida todas as entidades antes de qualquer leitura de dados."""
+def _ler_fontes(caminho: Path) -> dict:
     try:
         bruto = yaml.safe_load(caminho.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as erro:
         raise ErroDeIngestao(f"configuração ilegível ({caminho.name}): {erro}") from erro
     if not isinstance(bruto, dict) or not bruto:
         raise ErroDeIngestao(f"{caminho.name}: esperava um mapa de fontes")
-    entidades = []
     for fonte, tabelas in bruto.items():
         _validar_nome(fonte, "fonte")
         if not isinstance(tabelas, dict) or not tabelas:
             raise ErroDeIngestao(f"fonte '{fonte}': esperava um mapa de entidades")
-        entidades += [validar_entidade(fonte, nome, campos) for nome, campos in tabelas.items()]
-    return entidades
+    return bruto
+
+
+def carregar_entidades(caminho: Path) -> list[Entidade]:
+    """Lê o YAML e valida todas as entidades antes de qualquer leitura de dados.
+
+    O bloco `_baixar` de uma fonte não é entidade: descreve como trazer os arquivos de fora
+    e só é lido por `carregar_baixas`.
+    """
+    return [
+        validar_entidade(fonte, nome, campos)
+        for fonte, tabelas in _ler_fontes(caminho).items()
+        for nome, campos in tabelas.items()
+        if nome != CHAVE_DE_BAIXA
+    ]
+
+
+def carregar_baixas(caminho: Path) -> dict[str, Baixa]:
+    """Lê o bloco `_baixar` de cada fonte que o tem: origem, pasta de destino e parâmetros."""
+    baixas = {}
+    for fonte, tabelas in _ler_fontes(caminho).items():
+        if CHAVE_DE_BAIXA not in tabelas:
+            continue
+        campos = tabelas[CHAVE_DE_BAIXA]
+        rotulo = f"{fonte}.{CHAVE_DE_BAIXA}"
+        if not isinstance(campos, dict) or not {"origem", "destino"} <= set(campos) <= {
+            *CAMPOS_DA_BAIXA
+        }:
+            raise ErroDeIngestao(f"{rotulo}: esperava 'origem' e 'destino' (e 'parametros')")
+        obter_baixador(campos["origem"])
+        baixas[fonte] = Baixa(
+            fonte=fonte,
+            origem=campos["origem"],
+            destino=str(campos["destino"]),
+            parametros=campos.get("parametros", {}),
+        )
+    return baixas
 
 
 def _validar_nome(nome: object, tipo: str) -> None:
@@ -154,6 +192,7 @@ def validar_entidade(fonte: str, nome: str, campos: object) -> Entidade:
         locais=_validar_locais(rotulo, campos["arquivos"]),
         encoding=campos.get("encoding", ENCODING_PADRAO),
         separador=campos.get("separador", SEPARADOR_PADRAO),
+        colunas=_validar_colunas(rotulo, campos.get("colunas")),
     )
     _validar_leitura(entidade)
     return entidade
@@ -170,9 +209,25 @@ def _validar_locais(rotulo: str, brutos: object) -> tuple[Local, ...]:
     return tuple(locais)
 
 
+def _validar_colunas(rotulo: str, brutas: object) -> tuple[str, ...] | None:
+    """Confere a lista de colunas de um arquivo sem cabeçalho; `None` se não foi declarada."""
+    if brutas is None:
+        return None
+    if not isinstance(brutas, list):
+        raise ErroDeIngestao(f"{rotulo}: 'colunas' é uma lista de nomes")
+    if not all(isinstance(coluna, str) for coluna in brutas):
+        raise ErroDeIngestao(f"{rotulo}: cada nome de 'colunas' é um texto")
+    validar_colunas(rotulo, brutas, "em 'colunas'")
+    return tuple(brutas)
+
+
 def _validar_leitura(entidade: Entidade) -> None:
     obter_conector(entidade.origem)
-    obter_leitor(entidade.formato)
+    leitor = obter_leitor(entidade.formato)
+    if entidade.colunas and "colunas" not in inspect.signature(leitor).parameters:
+        raise ErroDeIngestao(
+            f"{entidade.rotulo}: o formato '{entidade.formato}' não aceita 'colunas'"
+        )
     try:
         codecs.lookup(entidade.encoding)
     except LookupError as erro:
@@ -277,7 +332,8 @@ def ler_entidade(entidade: Entidade, arquivos: Sequence[Path], raiz: Path) -> Ta
     lidos = []
     for arquivo in arquivos:
         conteudo = arquivo.read_bytes()
-        leitura = leitor(arquivo, entidade.encoding, entidade.separador)
+        opcoes = {"colunas": entidade.colunas} if entidade.colunas else {}
+        leitura = leitor(arquivo, entidade.encoding, entidade.separador, **opcoes)
         lidos.append(
             ArquivoLido(
                 caminho=caminho_relativo(arquivo, raiz),
@@ -423,14 +479,40 @@ def executar(entidades: Sequence[Entidade], raiz: Path, banco: Path) -> int:
     return codigo
 
 
+def baixar(opcoes: argparse.Namespace) -> int:
+    """Roda o baixador da fonte pedida e lista o que gravou; devolve 0 se deu certo."""
+    try:
+        baixas = carregar_baixas(opcoes.config)
+        if opcoes.baixar not in baixas:
+            existentes = ", ".join(sorted(baixas)) or "nenhuma"
+            raise ErroDeIngestao(
+                f"fonte '{opcoes.baixar}' sem bloco '{CHAVE_DE_BAIXA}' em "
+                f"{opcoes.config.name}; com bloco: {existentes}"
+            )
+        baixa = baixas[opcoes.baixar]
+        banco = opcoes.banco or caminho_do_banco(opcoes.raiz)
+        arquivos = obter_baixador(baixa.origem)(baixa, opcoes.raiz, banco)
+    except ErroDeIngestao as erro:
+        print(f"[ERRO] {erro}")
+        return 1
+    for arquivo in arquivos:
+        print(f"[OK] {caminho_relativo(arquivo, opcoes.raiz)}")
+    return 0
+
+
 def main(argumentos: Sequence[str] | None = None) -> int:
     """Ponto de entrada da linha de comando; devolve 0 se tudo entrou e 1 se algo falhou."""
     analisador = argparse.ArgumentParser(description="Grava os arquivos recebidos na bronze.")
     analisador.add_argument("--fonte", help="só esta fonte de ingestion/fontes.yml")
+    analisador.add_argument(
+        "--baixar", help="traz os arquivos de uma fonte externa (bloco _baixar) e não ingere"
+    )
     analisador.add_argument("--config", type=Path, default=CONFIGURACAO_PADRAO)
     analisador.add_argument("--raiz", type=Path, default=RAIZ_PADRAO)
     analisador.add_argument("--banco", type=Path, help="padrão: o caminho do profiles.yml")
     opcoes = analisador.parse_args(argumentos)
+    if opcoes.baixar:
+        return baixar(opcoes)
     try:
         entidades = carregar_entidades(opcoes.config)
         if opcoes.fonte:

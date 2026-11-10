@@ -424,3 +424,70 @@ def _tudo(projeto) -> dict[str, list[tuple]]:
         ]
         for t in tabelas
     }
+
+
+# =============================================================================
+# Arquivo sem cabeçalho: as colunas vêm da configuração
+# =============================================================================
+
+
+def _config_sem_cabecalho(projeto, colunas=("codigo", "descricao")):
+    projeto.configurar(
+        {
+            "fonte": {
+                "dominio": entidade(
+                    "csv", ("dados", "*.csv"), encoding="latin-1", separador=";",
+                    colunas=list(colunas),
+                )
+            }
+        }
+    )  # fmt: skip
+
+
+def test_colunas_da_configuracao_viram_as_colunas_da_bronze(projeto):
+    conteudo = '"01";"ÁGUA"\n"02";"LUZ"\n'.encode("latin-1")
+    projeto.escrever("dados/a.csv", conteudo)
+    _config_sem_cabecalho(projeto)
+
+    assert projeto.rodar() == 0
+
+    linhas = projeto.consultar("SELECT * FROM bronze_fonte.dominio ORDER BY _linha")
+    assert list(linhas[0]) == ["codigo", "descricao", *COLUNAS_DE_RASTREABILIDADE]
+    assert [(x["codigo"], x["descricao"], x["_linha"]) for x in linhas] == [
+        ("01", "ÁGUA", 1),
+        ("02", "LUZ", 2),
+    ]
+    registro = projeto.consultar("SELECT linhas, cabecalho FROM bronze_fonte.arquivos")
+    assert registro == [{"linhas": 2, "cabecalho": None}]
+
+
+def test_toda_linha_fisica_fica_coberta_no_arquivo_sem_cabecalho(projeto):
+    texto = '"1";"RUA A\nCASA 2"\n"2";"RUA B"\n"3"\n'
+    projeto.escrever("dados/a.csv", texto)
+    _config_sem_cabecalho(projeto, ("id", "rua"))
+
+    assert projeto.rodar() == 0
+
+    registros = projeto.consultar("SELECT _linha, _linha_original FROM bronze_fonte.dominio")
+    assert faltam_linhas(registros, None, texto) is None
+    assert projeto.consultar(
+        "SELECT _linha FROM bronze_fonte.dominio WHERE _motivo_ilegivel IS NOT NULL"
+    ) == [{"_linha": 4}]
+
+
+@pytest.mark.parametrize(
+    ("campos", "trecho"),
+    [
+        ({"colunas": []}, "colunas"),
+        ({"colunas": "codigo"}, "colunas"),
+        ({"colunas": ["a", "a"]}, "duplicadas"),
+        ({"colunas": ["a", 1]}, "texto"),
+        ({"formato": "jsonl", "colunas": ["a"]}, "não aceita 'colunas'"),
+    ],
+)
+def test_colunas_invalidas_dizem_o_problema_e_nao_carregam_nada(projeto, capsys, campos, trecho):
+    projeto.configurar({"fonte": {"dominio": {**entidade("csv", ("dados", "*")), **campos}}})
+
+    assert projeto.rodar() == 1
+    assert trecho in capsys.readouterr().out
+    assert not projeto.banco.exists()
