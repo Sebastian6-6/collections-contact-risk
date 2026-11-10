@@ -12,7 +12,7 @@ Take the project to a PRIVATE GitHub repository with CI green, ready for the own
 
 ## Plan
 <!-- "- [ ]" todo · "- [x]" done · "- [~]" dropped (add " — reason"). Done and dropped items move to HISTORY.md on save. -->
-- [ ] Decision round (one bulk round with the owner)
+- [x] Decision round answered 2026-11-10: block A approved in bulk; loop = balanced accuracy; AGENTS.md Stack text + reference copies approved; Receita download approved, UNFILTERED, through the ingestion component (decisions recorded in each topic + PROJECT.md). Open: feasibility of unfiltered Receita ingestion (size) -> asked the owner
 - [ ] Closed PLAN.md for enriquecimento-cnpj, monitoramento-e-analises, documentacao-e-entrega; step 4.7b in the gold plan
 - [ ] Execute: gold -> enriquecimento-cnpj -> monitoramento-e-analises -> documentacao-e-entrega
 - [ ] Pre-publication checklist (private folder outside the repo), private GitHub repo, push main + develop, first CI run green
@@ -21,14 +21,17 @@ Take the project to a PRIVATE GitHub repository with CI green, ready for the own
 ## Execution queue
 | Topic | Branch | Current step | Last commit | Next step |
 |---|---|---|---|---|
-| modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | 4.1 | f4bad48 (ff to develop) | 4.1 |
+| modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | 4.2 running | 5e6605f (4.1 docs) | 4.3 |
 | enriquecimento-cnpj | - | not planned | - | decision round |
 | monitoramento-e-analises | - | not planned | - | decision round |
 | documentacao-e-entrega | - | not planned | - | decision round |
 
 ## Where we stopped
 - 2026-11-10: session started; gold branch fast-forwarded from 2fb4b44 to develop f4bad48 (only memory commits in between); topics fechamento-do-projeto and enriquecimento-cnpj created.
-- Untracked and left out of commits on purpose: `.vscode/` (local editor settings) and `.context/raw/referencias/dlt/destination-tables.pdf` (origin unknown in this session; owner decides).
+- Untracked and left out of commits on purpose: `.vscode/` (local editor settings) and `.context/raw/referencias/dlt/destination-tables.pdf` (the private hook blocks .pdf; its converted copy is committed).
+- Memory commit da7b82a (gold memory + 2026-11-10 decision). 4.1 done 5e6605f; open item from 4.1: AGENTS.md Stack still mentions 'datasets do schema analises' (G1 replaced them) -> decision round.
+- 2026-11-10 usage limit hit: 4.2 agent and research agent stopped and were resumed with SendMessage; AGENTS.md Stack sentence replaced (uncommitted, commit after 4.2).
+- Owner now authorizes Claude to switch the repo to PUBLIC once every validation passes 100% (no leak, as designed).
 - Resume: read the queue above and the PLAN.md of the topic in execution.
 
 ## Pending

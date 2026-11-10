@@ -26,6 +26,7 @@ _Nothing yet._
 
 ## Decisions
 <!-- Local to this topic, append-only: "- YYYY-MM-DD decision". -->
+- 2026-11-10 Owner 2026-11-10 (closing round): Receita CNPJ open data is ingested UNFILTERED and reproducibly through the project's multi-source ingestion component (connector in ingestion/conectores.py + entry in ingestion/fontes.yml), as a source of its own with the same bronze/silver pattern: schemas bronze_receita/silver_receita, source column names and values kept; gold crosses those tables with dim_empregador. The multi-source ingestion component is a key differentiator and must be well documented. Download authorized.
 
 ## Documents in use
 <!-- "- doc-id (p.10-14): why it matters". Ids come from .context/index.md. -->
