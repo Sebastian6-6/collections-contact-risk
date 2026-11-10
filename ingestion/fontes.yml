@@ -79,9 +79,9 @@ receita:
       completas: [cnaes, motivos, municipios, naturezas, paises, qualificacoes]
       filtradas: [empresas, estabelecimentos, simples, socios]
       raizes_de:
-        - {tabela: silver_alfa.devedores, coluna: cnpj_empregador}
-        - {tabela: silver_beta.devedores, coluna: vinculo_empresa_cnpj}
-        - {tabela: silver_gama.devedores, coluna: cnpj_empregador_raw}
+        - {tabela: silver_alfa.devedores_historico, coluna: cnpj_empregador}
+        - {tabela: silver_beta.devedores_historico, coluna: vinculo_empresa_cnpj}
+        - {tabela: silver_gama.devedores_historico, coluna: cnpj_empregador_raw}
 
 # Cada tabela do extrato é uma entidade. Os arquivos não têm cabeçalho: os nomes das colunas
 # vêm do layout oficial (cnpj-metadados.pdf, 02/12/2021), na ordem do layout, em minúsculas,
