@@ -25,16 +25,16 @@ WITH tEmpregadores AS (
   SELECT
     tEmpregadores.sk_empregador
     , tEmpregadores.cnpj
-    , empresas.natureza_juridica AS cod_natureza_juridica
+    , empresas.natureza_juridica
     , naturezas.descricao AS desc_natureza_juridica
-    , empresas.porte_da_empresa AS cod_porte
-    , estabelecimentos.situacao_cadastral AS cod_situacao_cadastral
-    , estabelecimentos.motivo_situacao_cadastral AS cod_motivo_situacao_cadastral
+    , empresas.porte_da_empresa AS porte
+    , estabelecimentos.situacao_cadastral
+    , estabelecimentos.motivo_situacao_cadastral
     , motivos.descricao AS desc_motivo_situacao_cadastral
-    , estabelecimentos.cnae_fiscal_principal AS cod_cnae
+    , estabelecimentos.cnae_fiscal_principal AS cnae
     , cnaes.descricao AS desc_cnae
-    , estabelecimentos.uf AS sigla_uf
-    , estabelecimentos.municipio AS cod_municipio
+    , estabelecimentos.uf
+    , estabelecimentos.municipio
     , municipios.descricao AS desc_municipio
     , empresas.razao_social_nome_empresarial AS nome_razao_social
     , estabelecimentos.data_situacao_cadastral AS dt_situacao_cadastral
@@ -89,18 +89,18 @@ SELECT
   , cnpj
   , situacao_receita
 
-  , cod_natureza_juridica
+  , natureza_juridica
   , desc_natureza_juridica
-  , cod_porte
+  , porte
   , desc_porte
-  , cod_situacao_cadastral
+  , situacao_cadastral
   , desc_situacao_cadastral
-  , cod_motivo_situacao_cadastral
+  , motivo_situacao_cadastral
   , desc_motivo_situacao_cadastral
-  , cod_cnae
+  , cnae
   , desc_cnae
-  , sigla_uf
-  , cod_municipio
+  , uf
+  , municipio
   , desc_municipio
 
   , nome_razao_social

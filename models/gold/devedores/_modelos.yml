@@ -240,7 +240,7 @@ models:
           - accepted_values:
               arguments:
                 values: [encontrado, nao_encontrado]
-      - name: cod_natureza_juridica
+      - name: natureza_juridica
         description: "Código da natureza jurídica da empresa na Receita. `NULL` quando `nao_encontrado`."
         data_tests:
           - relationships:
@@ -249,7 +249,7 @@ models:
                 field: codigo
       - name: desc_natureza_juridica
         description: "Descrição da natureza jurídica, da tabela de domínio da Receita."
-      - name: cod_porte
+      - name: porte
         description: "Código do porte da empresa (`00` não informado, `01` micro empresa, `03` pequeno porte, `05` demais). `NULL` quando `nao_encontrado`."
         data_tests:
           - accepted_values:
@@ -257,7 +257,7 @@ models:
                 values: ['00', '01', '03', '05']
       - name: desc_porte
         description: "Descrição do porte, do layout oficial da Receita."
-      - name: cod_situacao_cadastral
+      - name: situacao_cadastral
         description: "Código da situação cadastral do estabelecimento (`01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada). `NULL` quando `nao_encontrado`."
         data_tests:
           - accepted_values:
@@ -265,7 +265,7 @@ models:
                 values: ['01', '02', '03', '04', '08']
       - name: desc_situacao_cadastral
         description: "Descrição da situação cadastral, do layout oficial da Receita."
-      - name: cod_motivo_situacao_cadastral
+      - name: motivo_situacao_cadastral
         description: "Código do motivo da situação cadastral (`00` sem motivo). `NULL` quando `nao_encontrado`."
         data_tests:
           - relationships:
@@ -274,7 +274,7 @@ models:
                 field: codigo
       - name: desc_motivo_situacao_cadastral
         description: "Descrição do motivo da situação cadastral, da tabela de domínio da Receita."
-      - name: cod_cnae
+      - name: cnae
         description: "CNAE fiscal principal do estabelecimento (7 dígitos). `NULL` quando `nao_encontrado`."
         data_tests:
           - relationships:
@@ -283,9 +283,9 @@ models:
                 field: codigo
       - name: desc_cnae
         description: "Descrição do CNAE principal, da tabela de domínio da Receita."
-      - name: sigla_uf
+      - name: uf
         description: "UF do estabelecimento. `NULL` quando `nao_encontrado`."
-      - name: cod_municipio
+      - name: municipio
         description: "Código do município na Receita (não é o código do IBGE). `NULL` quando `nao_encontrado`."
         data_tests:
           - relationships:
