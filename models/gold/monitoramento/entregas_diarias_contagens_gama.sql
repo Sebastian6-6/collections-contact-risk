@@ -1,4 +1,5 @@
 {#
   Contagens por arquivo do provedor gama (macro `contagens_da_entrega`). Grão: um arquivo.
+  Efêmero: etapa interna de `entregas_diarias_apuradas`.
 #}
-{{ contagens_da_entrega('gama', 'dt_ref') }}
+{{ contagens_da_entrega('gama', "bronze.dt_ref") }}

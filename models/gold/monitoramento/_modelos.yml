@@ -3,91 +3,33 @@ version: 2
 models:
   - name: entregas_diarias_contagens_alfa
     description: >
-      Contagens por arquivo do provedor alfa (macro `contagens_da_entrega`): linhas ilegíveis,
-      repetidas e atrasadas. Um arquivo por linha, a carga histórica incluída; só as entregas
-      diárias seguem para `entregas_diarias_apuradas`.
-    columns: &colunas_contagens
-      - name: provedor
-        description: "Provedor do arquivo."
-        data_tests:
-          - not_null
-      - name: arquivo
-        description: "Caminho relativo do arquivo (`bronze_<fonte>.arquivos.arquivo`). Chave."
-        data_tests:
-          - unique
-          - not_null
-      - name: qt_linhas_ilegiveis
-        description: "Linhas que o leitor não separou em colunas."
-        data_tests:
-          - not_null
-      - name: qt_registros_repetidos
-        description: >-
-          Linhas legíveis cujo texto idêntico já tinha chegado antes, em arquivo anterior (a carga
-          histórica conta) ou mais acima no mesmo arquivo.
-        data_tests:
-          - not_null
-      - name: qt_registros_atrasados
-        description: >-
-          Linhas legíveis atualizadas na fonte antes do dia da entrega. A data de atualização sem
-          valor não conta.
-        data_tests:
-          - not_null
+      Etapa efêmera (não vira tabela). Contagens por arquivo do provedor alfa (macro
+      `contagens_da_entrega`): linhas ilegíveis, repetidas e atrasadas. Um arquivo por linha, a
+      carga histórica incluída; só as entregas diárias seguem para `entregas_diarias_apuradas`.
+    config:
+      materialized: ephemeral
 
   - name: entregas_diarias_contagens_beta
-    description: "Contagens por arquivo do provedor beta (macro `contagens_da_entrega`), como no alfa."
-    columns: *colunas_contagens
+    description: >
+      Etapa efêmera (não vira tabela). Contagens por arquivo do provedor beta, como no alfa.
+    config:
+      materialized: ephemeral
 
   - name: entregas_diarias_contagens_gama
-    description: "Contagens por arquivo do provedor gama (macro `contagens_da_entrega`), como no alfa."
-    columns: *colunas_contagens
+    description: >
+      Etapa efêmera (não vira tabela). Contagens por arquivo do provedor gama, como no alfa.
+    config:
+      materialized: ephemeral
 
   - name: entregas_diarias_apuradas
     description: >
-      Uma entrega diária de um provedor (`provedor`, `dt_referencia`). Os arquivos do mesmo dia, o
-      original e o reenvio, somam numa linha; a carga histórica fica fora. Traz o que os arquivos
-      do dia receberam, sem comparar com outro dia: a comparação (dia faltante, média móvel,
-      cabeçalho) é de `ft_entrega_diaria`.
-    data_tests:
-      - combinacao_unica:
-          arguments:
-            colunas: [provedor, dt_referencia]
-    columns:
-      - name: provedor
-        description: "`alfa`, `beta` ou `gama`."
-        data_tests:
-          - not_null
-      - name: qt_arquivos
-        description: "Arquivos do dia. Mais de um é reenvio."
-        data_tests:
-          - not_null
-      - name: qt_registros
-        description: "Linhas recebidas no dia (`arquivos.linhas`), legíveis ou não."
-        data_tests:
-          - not_null
-      - name: qt_linhas_ilegiveis
-        description: "Linhas que o leitor não separou em colunas."
-        data_tests:
-          - not_null
-      - name: qt_registros_repetidos
-        description: "Linhas cujo texto idêntico já tinha chegado antes (ver `entregas_diarias_contagens_*`)."
-        data_tests:
-          - not_null
-      - name: qt_registros_atrasados
-        description: "Linhas atualizadas na fonte antes do dia da entrega."
-        data_tests:
-          - not_null
-      - name: dt_referencia
-        description: "Data da entrega, tirada do nome do arquivo."
-        data_tests:
-          - not_null
-      - name: desc_cabecalho
-        description: >-
-          Cabeçalhos distintos dos arquivos do dia, separados por ` | `. `NULL` no JSON Lines, que
-          não tem cabeçalho.
-      - name: desc_arquivos
-        description: "Arquivos do dia, separados por ` | `, em ordem de bytes."
-        data_tests:
-          - not_null
+      Etapa efêmera (não vira tabela) de `ft_entrega_diaria`. Uma entrega diária de um provedor
+      (`provedor`, `dt_referencia`): os arquivos do mesmo dia, o original e o reenvio, somam numa
+      linha, e a carga histórica fica fora. Traz o que os arquivos do dia receberam, sem comparar
+      com outro dia; a comparação (dia faltante, média móvel, cabeçalho) é da `ft_entrega_diaria`,
+      que testa a chave (`provedor`, `dt_referencia`).
+    config:
+      materialized: ephemeral
 
   - name: ft_entrega_diaria
     description: >

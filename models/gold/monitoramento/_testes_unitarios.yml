@@ -10,11 +10,25 @@ unit_tests:
     model: ft_entrega_diaria
     given:
       - input: ref('entregas_diarias_apuradas')
-        rows:
-          - {provedor: alfa, dt_referencia: 2026-09-01, desc_cabecalho: "cpf,nome"}
-          - {provedor: alfa, dt_referencia: 2026-09-02, desc_cabecalho: "cpf,nome"}
-          - {provedor: alfa, dt_referencia: 2026-09-05, desc_cabecalho: "documento,nome"}
-          - {provedor: gama, dt_referencia: 2026-09-03, desc_cabecalho: "documento,nome"}
+        format: sql
+        rows: |
+          SELECT
+            provedor
+            , dt_referencia
+            , CAST(1 AS BIGINT) AS qt_arquivos
+            , CAST(qt_registros AS BIGINT) AS qt_registros
+            , CAST(0 AS BIGINT) AS qt_registros_repetidos
+            , CAST(0 AS BIGINT) AS qt_registros_atrasados
+            , CAST(0 AS BIGINT) AS qt_linhas_ilegiveis
+            , desc_cabecalho
+            , 'arquivo' AS desc_arquivos
+          FROM (
+            VALUES
+            ('alfa', DATE '2026-09-01', 0, 'cpf,nome')
+            , ('alfa', DATE '2026-09-02', 0, 'cpf,nome')
+            , ('alfa', DATE '2026-09-05', 0, 'documento,nome')
+            , ('gama', DATE '2026-09-03', 0, 'documento,nome')
+          ) AS tLinhas (provedor, dt_referencia, qt_registros, desc_cabecalho)
     expect:
       rows:
         - {provedor: alfa, dt_referencia: 2026-09-01, qt_dias_desde_entrega_anterior: null, situacao_cabecalho: null}
@@ -32,18 +46,32 @@ unit_tests:
     model: ft_entrega_diaria
     given:
       - input: ref('entregas_diarias_apuradas')
-        rows:
-          - {provedor: alfa, dt_referencia: 2026-09-07, qt_registros: 100}
-          - {provedor: alfa, dt_referencia: 2026-09-08, qt_registros: 100}
-          - {provedor: alfa, dt_referencia: 2026-09-09, qt_registros: 100}
-          - {provedor: alfa, dt_referencia: 2026-09-10, qt_registros: 100}
-          - {provedor: alfa, dt_referencia: 2026-09-11, qt_registros: 100}
-          - {provedor: alfa, dt_referencia: 2026-09-12, qt_registros: 50}
-          - {provedor: alfa, dt_referencia: 2026-09-13, qt_registros: 150}
-          - {provedor: alfa, dt_referencia: 2026-09-14, qt_registros: 400}
-          - {provedor: alfa, dt_referencia: 2026-09-15, qt_registros: 20}
-          - {provedor: alfa, dt_referencia: 2026-09-16, qt_registros: 160}
-          - {provedor: gama, dt_referencia: 2026-09-14, qt_registros: 1000}
+        format: sql
+        rows: |
+          SELECT
+            provedor
+            , dt_referencia
+            , CAST(1 AS BIGINT) AS qt_arquivos
+            , CAST(qt_registros AS BIGINT) AS qt_registros
+            , CAST(0 AS BIGINT) AS qt_registros_repetidos
+            , CAST(0 AS BIGINT) AS qt_registros_atrasados
+            , CAST(0 AS BIGINT) AS qt_linhas_ilegiveis
+            , desc_cabecalho
+            , 'arquivo' AS desc_arquivos
+          FROM (
+            VALUES
+            ('alfa', DATE '2026-09-07', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-08', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-09', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-10', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-11', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-12', 50, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-13', 150, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-14', 400, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-15', 20, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-16', 160, CAST(NULL AS VARCHAR))
+            , ('gama', DATE '2026-09-14', 1000, CAST(NULL AS VARCHAR))
+          ) AS tLinhas (provedor, dt_referencia, qt_registros, desc_cabecalho)
     expect:
       rows:
         - {provedor: alfa, dt_referencia: 2026-09-07, tp_dia: util, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}

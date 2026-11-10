@@ -7,12 +7,15 @@
       A ordem é a data de entrega, o arquivo em ordem de bytes e a linha; `ROW_NUMBER()` maior que 1.
       As ilegíveis não numeram com as legíveis (`legivel` entra na partição);
     - `qt_registros_atrasados`: linhas legíveis atualizadas na fonte antes do dia da entrega. A data
-      de atualização de cada fonte tem nome próprio (`data_atualizacao`, `atualizado_em`, `dt_ref`),
-      por isso `coluna_atualizacao` é argumento; `NULL` na data não conta.
-  A silver `*_devedores_padronizados` é efêmera e as três têm o mesmo apelido de CTE no dbt, então
-  cada fonte tem o próprio modelo: duas delas num modelo só dão "Duplicate CTE name".
+      de atualização de cada fonte tem nome e lugar próprios (coluna `data_atualizacao`, chave JSON
+      `atualizado_em`, coluna `dt_ref`), por isso `expressao_atualizacao` é argumento: a expressão
+      sobre a bronze (alias `bronze`) que dá o texto da data, lida com `data_flexivel` como a
+      silver lê; `NULL` na data não conta.
+  Lê da bronze e não de `*_devedores_padronizados`: as três silvers efêmeras têm o mesmo apelido de
+  CTE no dbt, e duas delas na mesma consulta dão "Duplicate CTE name". Cada fonte tem o próprio
+  modelo efêmero para os apelidos serem distintos.
 #}
-{% macro contagens_da_entrega(fonte, coluna_atualizacao) -%}
+{% macro contagens_da_entrega(fonte, expressao_atualizacao) -%}
 WITH tRegistros AS (
   SELECT
     bronze._arquivo
@@ -20,11 +23,8 @@ WITH tRegistros AS (
     , bronze._linha_original
     , bronze._motivo_ilegivel IS NULL AS legivel
     , {{ data_de_entrega('bronze._arquivo', fonte) }} AS data_entrega
-    , CAST(padronizados.{{ coluna_atualizacao }} AS DATE) AS dt_atualizacao
+    , {{ data_flexivel(expressao_atualizacao) }} AS dt_atualizacao
   FROM {{ source('bronze_' ~ fonte, 'devedores') }} AS bronze
-  LEFT JOIN {{ ref('silver_' ~ fonte ~ '_devedores_padronizados') }} AS padronizados
-    ON bronze._arquivo = padronizados._arquivo
-      AND bronze._linha = padronizados._linha
 )
 
 , tNumeradas AS (
