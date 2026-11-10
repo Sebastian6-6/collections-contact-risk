@@ -1,8 +1,9 @@
 ---
 topic: documentacao-e-entrega
-status: active
+status: completed
 created: 2026-11-09
-updated: 2026-11-09 08:30
+updated: 2026-11-10 10:44
+completed: 2026-11-10
 scope:
   - README.md
   - AGENTS.md
