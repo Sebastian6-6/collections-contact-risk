@@ -1,8 +1,9 @@
 ---
 topic: modelo-gold-e-regua
-status: active
+status: completed
 created: 2026-11-09
-updated: 2026-11-10 04:42
+updated: 2026-11-10 09:33
+completed: 2026-11-10
 scope:
   - models/gold/
   - ingestion/cnpj/

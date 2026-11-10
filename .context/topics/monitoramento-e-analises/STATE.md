@@ -1,8 +1,9 @@
 ---
 topic: monitoramento-e-analises
-status: active
+status: completed
 created: 2026-11-09
-updated: 2026-11-10 04:42
+updated: 2026-11-10 10:20
+completed: 2026-11-10
 scope:
   - models/gold/
   - analyses/

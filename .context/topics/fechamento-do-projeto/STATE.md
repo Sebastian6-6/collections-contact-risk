@@ -21,9 +21,9 @@ Take the project to a PRIVATE GitHub repository with CI green, ready for the own
 ## Execution queue
 | Topic | Branch | Current step | Last commit | Next step |
 |---|---|---|---|---|
-| modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | 4.7b re-run on corrected baseline (opus) | b395514 (7 review fixes; BA 0.6871 / 0.7208; 31 tables identical) | verificador, then merge --no-ff |
-| enriquecimento-cnpj | feat/enriquecimento-cnpj (worktree ../collections-contact-risk-cnpj) | waiting gold merge | 7e68f10 (7.5 docs) | 7.4 (merge develop; renumber Receita section 9 -> 10 in decisoes-de-modelagem.md), 7.6 |
-| monitoramento-e-analises | feat/monitoramento-e-analises (worktree ../collections-contact-risk-monit, from gold branch) | waiting CNPJ merge | fa96d18 (8.2 docs) | 9.1 after CNPJ merge (merge develop first); review notes: alfa lacks 2025-09-01 warn test; missing day alerted only on next delivery (by design, no generated rows) |
+| modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | DONE, merged | 8eff0d2 (develop) | - |
+| enriquecimento-cnpj | merged | DONE | cd3f69c (develop) | - |
+| monitoramento-e-analises | feat/monitoramento-e-analises (worktree ../collections-contact-risk-monit) | 9.1-9.2 running (opus) | c9d215b (develop synced) | 9.3 review+verify, merge |
 | documentacao-e-entrega | docs/documentacao-e-entrega (worktree ../collections-contact-risk-docs) | 10.1 done | 232f351 (laws; 6.802 link only) | rest after 3 merges |
 
 ## Where we stopped
@@ -39,6 +39,7 @@ Take the project to a PRIVATE GitHub repository with CI green, ready for the own
 
 ## Decisions
 <!-- Local to this topic, append-only: "- YYYY-MM-DD decision". -->
+- 2026-11-10 2026-11-10 pre-publication checklist: one private-term pattern matches two lines of official Receita domain tables (naturezas.csv:8, qualificacoes.csv:42, public code names unrelated to the case origin). Judged a false positive under the owner's autonomy grant (least friction: domain tables stay complete, ORIGEM sha256 intact); exception logged in the private checklist log; owner to confirm in the final report. Also for the owner: the private hook did not see these CSVs at commit time, likely because .gitattributes marks them -text (binary diff).
 
 ## Documents in use
 <!-- "- doc-id (p.10-14): why it matters". Ids come from .context/index.md. -->
