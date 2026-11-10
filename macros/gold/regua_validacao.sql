@@ -9,7 +9,8 @@
   Tentativa sem par na régua de D (`nivel_risco` = `sem_par_no_corte`): o contato não tinha o par
   entregue até D, ou a tentativa não liga a nenhum par (`ligacao` = `sem_ligacao`). Ela fica na
   matriz com esse rótulo, em vez de ser descartada ou de receber um nível que a régua não deu;
-  nas métricas do loop ela não conta como pega nem como liberada.
+  nas métricas do loop (`regua_metricas`) ela fica fora dos totais e das frações e aparece à parte,
+  como contagem (`qt_sem_par_no_corte`).
 
   `data_corte`: 'AAAA-MM-DD'. Sem argumento vale a `var` `data_corte_validacao` (padrão
   2026-09-15), que o `scripts/medir_regua.py` troca para medir o segundo corte.

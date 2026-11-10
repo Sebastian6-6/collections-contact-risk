@@ -117,7 +117,7 @@ Cada passo roda com o agente indicado, que lê este plano, o AGENTS.md e o contr
 **Ponto de verificação de cada passo**, antes do commit: `dbt build --select` dos modelos alterados e dos que dependem deles e SQLFluff sem erro nos arquivos alterados. A verificação completa (execuções idênticas, lint, pytest, `verificador`, `revisor`) roda em bloco no passo 4.9 (decisão de 2026-11-10: verificação em blocos, "o mínimo que entrega o máximo"). Divergência só de contagem vai para o corpo do commit e não para a execução.
 
 **Condições de parada.** A execução para e chama o dono, sem contornar, quando:
-- uma contagem medida diverge mais de 10% da que está neste plano;
+- um número medido contradiz uma decisão aprovada (desde 2026-11-10, por decisão do dono na rodada de fechamento: divergência só de contagem, sem mudar decisão, vai para o corpo do commit e não para a execução);
 - for preciso mexer na silver ou nas macros de padronização;
 - um teste só passa mudando uma decisão da seção 2;
 - aparece uma coluna, um nome ou um valor categórico que não está na seção 3.

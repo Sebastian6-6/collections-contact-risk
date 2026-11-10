@@ -24,6 +24,13 @@ O README traz: visão geral, premissas, raciocínio das transformações, conclu
 ## 3. Sequência
 Branch `docs/documentacao-e-entrega` a partir da `develop`, depois dos outros três merges.
 
+### 10.0 Padronização da estrutura (pedido do dono, 2026-11-10)
+- **Quando:** depois dos três merges e antes do 10.2, num branch próprio `refactor/padroniza-estrutura` a partir da `develop`, para entrar de forma atômica.
+- **Quem:** `engenheiro-python` (Sonnet 5.5 · medium).
+- **Fazer:** nomes das pastas da raiz num só idioma, o inglês, que é o da maioria (por exemplo, `banco/` → `database/` e `dados_externos/` → `external_data/`); `contact_data/` fica, porque veio com o case. Atualizar todas as referências: código, `fontes.yml`, `profiles.yml`, CI, `.gitignore`, docs e AGENTS.md. Conferir a consistência do resto: pastas vazias, nomes duplicados e arquivos sem uso; juntar dois arquivos ou pastas que fazem a mesma coisa, quando isso não dificultar; dar nomes mais claros aos arquivos. O objetivo é facilitar a vida de quem abre o repositório para analisar o projeto. Menos é mais. Tudo dentro das convenções do case (AGENTS.md, 'Estrutura'): `ingestion/`, `models/bronze|silver|gold/` e `docs/` não mudam de nome nem de papel; as convenções do case prevalecem sobre qualquer renomeação.
+- **Prova:** `verificador` APROVADO.
+- **Commit:** `refactor: nomes de pasta num só padrão`, com o porquê.
+
 ### 10.1 Referências (pode correr antes, em paralelo, porque só toca em `.context/raw/referencias/`)
 - **Quem:** `general-purpose` (Haiku 5.5).
 - **Fazer:** D4.

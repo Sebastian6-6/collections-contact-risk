@@ -9,7 +9,9 @@
   quando algum provedor ainda mandou o par na última entrega dele, e `ausente` nos demais (ponto 7;
   uma versão atual da gama com a lista cortada também aparece como `ausente`). A rastreabilidade
   é da aparição mais recente do par. `sk_contato` é a posição do par em ordem de CPF, documento,
-  tipo e contato (G6). É efêmero: existe para `dim_contato` e para a ligação das tentativas.
+  tipo e contato (G6). `documento_sem_devedor` é o documento do par sem CPF (`NULL` nos demais) e,
+  com o contato, a chave dele. É efêmero: existe para `dim_contato` e para a ligação das
+  tentativas.
 #}
 {{ config(materialized='ephemeral') }}
 
@@ -173,6 +175,7 @@ SELECT
   ) AS sk_contato
   , sk_devedor
   , cpf
+  , documento_sem_devedor
   , tipo_contato
   , contato
   , tipo_conflito_cadastral

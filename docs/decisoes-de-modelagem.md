@@ -725,6 +725,8 @@ As taxas são descritivas, medidas nos arquivos brutos contra as tentativas de s
 
 **Validação sem vazamento.** Um corte único D = 2026-09-15: os sinais são calculados só com entregas e tentativas até D e avaliados nas tentativas depois de D (cerca de 7.280 antes e 7.770 depois; taxa de terceiro de 3,5%–3,7% antes e 3,8%–4,4% depois). Uma macro só, `regua_de_risco(data_corte)`: a `dim_contato` a chama sem corte (régua de operação), a análise a chama com D, e a régua validada é a mesma que opera. A validação não depende de colunas de data guardadas: a macro recalcula cada sinal só com os dados até o corte. As datas da `dim_contato` (`dt_situacao_compartilhamento`, `dt_alerta_historico`) são informativas, e os sinais do devedor não têm data própria. Conferi no dbt Core 1.12.6, num projeto descartável, que uma macro chamada dentro de `analyses/` compila com o argumento e roda com `dbt show`. As métricas de validação e a calibração são da etapa de análises. Evolução no README: avaliar cada tentativa com a régua de sete dias antes, no mesmo dia da semana, `regua_de_risco(data_da_tentativa - 7 dias)`.
 
+**Linha de base da validação.** Medida por `scripts/medir_regua.py`, com as tentativas sem par no corte fora das frações (uma contagem à parte, porque a régua não deu nível a elas). Em 15/09: acurácia balanceada 0,6871; 202 de 275 terceiros pegos; 675 de 774 confirmados liberados; 1.090 tentativas sem par. Em 22/09: acurácia balanceada 0,7208; 134 de 180 terceiros pegos; 389 de 438 confirmados liberados; 480 sem par. O loop de refinamento (passo 4.7b) partiu desses números.
+
 **Par ausente das entregas.** Calculado só na régua de operação (a última entrega do par é anterior à última entrega do provedor) e fora da validação em D, porque a silver guarda só a primeira e a última entrega de cada par. Evolução: uma tabela de presença por entrega na silver. Não verificado: se as entregas diárias são retratos completos ou atualizações parciais.
 
 ### 9.10 Horário de contato
@@ -737,7 +739,7 @@ O horário diz quando, e não com quem, e por isso nunca muda `nivel_risco`. A j
 | SARB 27/2023, art. 32 ("salvo legislação específica"; e-mail em qualquer dia e hora) | 7h às 21h | 9h às 16h | — |
 | **Janela adotada, todo canal exceto e-mail** | **8h às 20h** | **9h às 14h** | **proibido** |
 
-`situacao_horario` na `ft_tentativa_contato` (`permitido`, `fora_do_horario`, `domingo`, `feriado`, `nao_se_aplica` para e-mail); o resumo de conformidade fica em `analyses/`. Os feriados nacionais ficam numa `var` do dbt, citando a Lei 662/1949 com a redação da Lei 10.607/2002 (7 de setembro; 2026-09-07 é uma segunda-feira), e não numa tabela gerada.
+`situacao_horario` na `ft_tentativa_contato` (`permitido`, `fora_do_horario`, `domingo`, `feriado`, `nao_se_aplica` para e-mail); o resumo de conformidade fica em `analyses/`. Os feriados nacionais ficam numa `var` do dbt, citando a Lei 662/1949 com a redação da Lei 10.607/2002 (7 de setembro; 2026-09-07 é uma segunda-feira), a Lei 6.802/1980 (12 de outubro) e a Lei 14.759/2023 (20 de novembro), e não numa tabela gerada.
 
 Medido nas tentativas de setembro fora de e-mail (domingo, 07/09, dia útil fora de 8h–20h, sábado fora de 8h–14h):
 
@@ -749,7 +751,7 @@ Medido nas tentativas de setembro fora de e-mail (domingo, 07/09, dia útil fora
 
 A medição do sábado usou 8h–14h; a janela adotada começa às 9h, e a contagem final sai da execução.
 
-Fontes lidas em 2026-11-10: al.sp.gov.br (Lei 17.832/2023), o PDF do Normativo SARB 27/2023 em autorregulacaobancaria.com.br, o relatório de autorregulação de 2024 da Febraban e planalto.gov.br (Lei 662/1949). Não verificado (limites do README): se SMS e WhatsApp contam como "telefonemas", o alcance territorial da lei de SP, se a operação é signatária da autorregulação da Febraban, feriados estaduais e municipais e o texto consolidado do SARB depois da alteração (o relatório da Febraban fala em contato fora do horário só com agendamento ou consentimento e num art. 32-A que proíbe ligar por dívida vencida há mais de cinco anos).
+Fontes lidas em 2026-11-10: al.sp.gov.br (Lei 17.832/2023), o PDF do Normativo SARB 27/2023 em autorregulacaobancaria.com.br, o relatório de autorregulação de 2024 da Febraban e planalto.gov.br (Leis 662/1949, 6.802/1980 e 14.759/2023). Não verificado (limites do README): se SMS e WhatsApp contam como "telefonemas", o alcance territorial da lei de SP, se a operação é signatária da autorregulação da Febraban, feriados estaduais e municipais e o texto consolidado do SARB depois da alteração (o relatório da Febraban fala em contato fora do horário só com agendamento ou consentimento e num art. 32-A que proíbe ligar por dívida vencida há mais de cinco anos).
 
 ### 9.11 Rastreabilidade
 

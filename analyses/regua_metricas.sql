@@ -5,28 +5,42 @@
     - desfechos de risco: `terceiro`, `opt_out` e `falecido`; pego = par em `atencao` ou `bloqueado`;
     - `contato_confirmado` liberado = par em `liberado`; `sem_confirmacao` fica fora;
     - `acuracia_balanceada` = média da fração de riscos pegos e da fração de confirmados liberados;
-    - `sem_par_no_corte` não conta como pego nem como liberado.
+    - `sem_par_no_corte` (a régua não deu nível, porque o par não existia em D ou a tentativa não
+      liga a par) fica fora dos totais e das frações: a régua não pôde pegar nem liberar essas
+      tentativas. Aparece à parte, em `qt_sem_par_no_corte`, que conta todas as tentativas assim.
   Rodar com `dbt show --select regua_metricas`.
 #}
 WITH {{ regua_tentativas_avaliadas() }}
 
 , tTotais AS (
   SELECT
-    COUNT(CASE WHEN tipo_desfecho IN ('terceiro', 'opt_out', 'falecido') THEN 1 END) AS qt_risco
+    COUNT(
+      CASE
+        WHEN tipo_desfecho IN ('terceiro', 'opt_out', 'falecido')
+          AND nivel_risco <> 'sem_par_no_corte' THEN 1
+      END
+    ) AS qt_risco
     , COUNT(
       CASE
         WHEN tipo_desfecho IN ('terceiro', 'opt_out', 'falecido')
           AND nivel_risco IN ('atencao', 'bloqueado') THEN 1
       END
     ) AS qt_risco_pego
-    , COUNT(CASE WHEN tipo_desfecho = 'terceiro' THEN 1 END) AS qt_terceiro
+    , COUNT(
+      CASE WHEN tipo_desfecho = 'terceiro' AND nivel_risco <> 'sem_par_no_corte' THEN 1 END
+    ) AS qt_terceiro
     , COUNT(
       CASE WHEN tipo_desfecho = 'terceiro' AND nivel_risco IN ('atencao', 'bloqueado') THEN 1 END
     ) AS qt_terceiro_pego
-    , COUNT(CASE WHEN tipo_desfecho = 'contato_confirmado' THEN 1 END) AS qt_confirmado
+    , COUNT(
+      CASE
+        WHEN tipo_desfecho = 'contato_confirmado' AND nivel_risco <> 'sem_par_no_corte' THEN 1
+      END
+    ) AS qt_confirmado
     , COUNT(
       CASE WHEN tipo_desfecho = 'contato_confirmado' AND nivel_risco = 'liberado' THEN 1 END
     ) AS qt_confirmado_liberado
+    , COUNT(CASE WHEN nivel_risco = 'sem_par_no_corte' THEN 1 END) AS qt_sem_par_no_corte
   FROM tTentativasAvaliadas
 )
 
@@ -38,6 +52,7 @@ WITH {{ regua_tentativas_avaliadas() }}
     , qt_terceiro_pego
     , qt_confirmado
     , qt_confirmado_liberado
+    , qt_sem_par_no_corte
     , CAST(qt_risco_pego AS NUMERIC) / NULLIF(qt_risco, 0) AS fracao_risco_pego
     , CAST(qt_terceiro_pego AS NUMERIC) / NULLIF(qt_terceiro, 0) AS fracao_terceiro_pego
     , CAST(qt_confirmado_liberado AS NUMERIC) / NULLIF(qt_confirmado, 0)
@@ -53,6 +68,7 @@ SELECT
   , qt_terceiro_pego
   , qt_confirmado
   , qt_confirmado_liberado
+  , qt_sem_par_no_corte
   , ROUND(fracao_risco_pego, 4) AS fracao_risco_pego
   , ROUND(fracao_terceiro_pego, 4) AS fracao_terceiro_pego
   , ROUND(fracao_confirmado_liberado, 4) AS fracao_confirmado_liberado

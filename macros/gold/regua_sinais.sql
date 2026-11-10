@@ -4,11 +4,11 @@
   Lê `devedores_contatos_pares` (os pares e as entregas) e `cobranca_tentativas` (as tentativas
   ligadas ao par); nenhum dos dois traz horário de execução.
 
-  Sem corte (`none`) é a régua de operação. Com 'AAAA-MM-DD' é a validação (G4c): só contam os
-  pares cuja primeira entrega é até a data, a última entrega vale no máximo a data (a silver não
-  diz se o par saiu depois dela) e só contam as tentativas até a data. `situacao_entrega` só
-  existe na operação (ponto 7): com corte sai `NULL`, porque a silver guarda só a primeira e a
-  última entrega de cada par.
+  Sem corte (`none`) é a régua de operação. Com 'AAAA-MM-DD' é a validação (G4c): os pares e os
+  sinais do devedor e do par (`tipo_conflito_cadastral`, `situacao_documento`, `sk_devedor`,
+  `qt_provedores`) saem só das entregas até a data, pela macro `regua_pares_no_corte`, e só contam
+  as tentativas até a data. `situacao_entrega` só existe na operação (ponto 7): com corte sai
+  `NULL`, porque a silver guarda só a primeira e a última entrega de cada par.
 
   Sinais:
     - `situacao_compartilhamento`: `compartilhado` quando o contato tem mais de um CPF; `migrado`
@@ -27,7 +27,7 @@
 #}
 {% macro regua_sinais_do_par(data_corte=none) -%}
   {{ regua_valida_corte(data_corte) }}
-  {%- set corte = "CAST('" ~ data_corte ~ "' AS DATE)" -%}
+  {%- if data_corte is none %}
   tParesVisiveis AS (
     SELECT
       sk_contato
@@ -38,25 +38,18 @@
       , tipo_conflito_cadastral
       , situacao_documento
       , documento_original
-      {% if data_corte is none -%}
       , situacao_entrega
-      {%- else -%}
-      , CAST(NULL AS VARCHAR) AS situacao_entrega
-      {%- endif %}
       , qt_provedores
       , dt_primeira_entrega
-      {% if data_corte is none -%}
       , dt_ultima_entrega
-      {%- else -%}
-      , LEAST(dt_ultima_entrega, {{ corte }}) AS dt_ultima_entrega
-      {%- endif %}
       , _arquivo
       , _linha
       , _hash_arquivo
     FROM {{ ref('devedores_contatos_pares') }}
-    WHERE 1 = 1
-      {{ regua_filtro_corte('dt_primeira_entrega', data_corte) }}
   )
+  {%- else %}
+  {{ regua_pares_no_corte(data_corte) }}
+  {%- endif %}
 
   , tTentativasVisiveis AS (
     SELECT

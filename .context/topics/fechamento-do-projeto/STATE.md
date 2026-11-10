@@ -21,10 +21,10 @@ Take the project to a PRIVATE GitHub repository with CI green, ready for the own
 ## Execution queue
 | Topic | Branch | Current step | Last commit | Next step |
 |---|---|---|---|---|
-| modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | 4.7b loop running (opus) | 0ae1660 (4.7 baseline BA 0.5681 / 0.6178) | 4.9 block verification |
-| enriquecimento-cnpj | feat/enriquecimento-cnpj (worktree ../collections-contact-risk-cnpj) | 7.2-7.3 running (sonnet) | b0db40e (extract 7.5 MB, 10/13 roots found) | 7.4 after gold merge; 7.5 docs (AGENTS.md Fonte nova gains @baixador) |
-| monitoramento-e-analises | - | planned (PLAN.md) | - | 8.1 after gold merge |
-| documentacao-e-entrega | - | planned (PLAN.md) | - | 10.1 refs anytime; rest after the 3 merges |
+| modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | 4.7b re-run on corrected baseline (opus) | b395514 (7 review fixes; BA 0.6871 / 0.7208; 31 tables identical) | verificador, then merge --no-ff |
+| enriquecimento-cnpj | feat/enriquecimento-cnpj (worktree ../collections-contact-risk-cnpj) | waiting gold merge | 7e68f10 (7.5 docs) | 7.4 (merge develop; renumber Receita section 9 -> 10 in decisoes-de-modelagem.md), 7.6 |
+| monitoramento-e-analises | feat/monitoramento-e-analises (worktree ../collections-contact-risk-monit, from gold branch) | waiting CNPJ merge | fa96d18 (8.2 docs) | 9.1 after CNPJ merge (merge develop first); review notes: alfa lacks 2025-09-01 warn test; missing day alerted only on next delivery (by design, no generated rows) |
+| documentacao-e-entrega | docs/documentacao-e-entrega (worktree ../collections-contact-risk-docs) | 10.1 done | 232f351 (laws; 6.802 link only) | rest after 3 merges |
 
 ## Where we stopped
 - 2026-11-10: session started; gold branch fast-forwarded from 2fb4b44 to develop f4bad48 (only memory commits in between); topics fechamento-do-projeto and enriquecimento-cnpj created.

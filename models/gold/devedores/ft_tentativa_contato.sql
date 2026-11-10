@@ -42,11 +42,13 @@ WITH tClassificadas AS (
     , CASE
       WHEN canal = 'email' THEN 'nao_se_aplica'
       WHEN dia_da_semana = 7 THEN 'domingo'
-      WHEN dt_tentativa IN (
-          {%- for feriado in feriados %}
-            CAST('{{ feriado }}' AS DATE){{ ',' if not loop.last }}
-          {%- endfor %}
-        ) THEN 'feriado'
+      {%- if feriados | length > 0 %}
+        WHEN dt_tentativa IN (
+            {%- for feriado in feriados %}
+              CAST('{{ feriado }}' AS DATE){{ ',' if not loop.last }}
+            {%- endfor %}
+          ) THEN 'feriado'
+      {%- endif %}
       WHEN dia_da_semana BETWEEN 1 AND 5
         AND hr_tentativa >= TIME '08:00:00'
         AND hr_tentativa < TIME '20:00:00' THEN 'permitido'

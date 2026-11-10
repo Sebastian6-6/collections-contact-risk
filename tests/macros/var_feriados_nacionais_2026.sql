@@ -8,9 +8,9 @@ WITH tFeriados AS (
 )
 
 , tProblemas AS (
-  SELECT 'quantidade diferente de 7' AS problema
+  SELECT 'quantidade diferente de 9' AS problema
   FROM tFeriados
-  HAVING COUNT(*) <> 7
+  HAVING COUNT(*) <> 9
   UNION ALL
   SELECT 'data repetida'
   FROM tFeriados

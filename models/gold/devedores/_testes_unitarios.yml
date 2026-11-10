@@ -429,3 +429,70 @@ unit_tests:
         - {sk_devedor: 1, sk_contato: 1, contato_id: "t11", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "domingo", dt_tentativa: "2026-11-15", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 11, _hash_arquivo: "h"}
         - {sk_devedor: null, sk_contato: 2, contato_id: "t12", canal: "email", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "nao_se_aplica", dt_tentativa: "2026-09-07", hr_tentativa: "03:00:00", _arquivo: "arq", _linha: 12, _hash_arquivo: "h"}
         - {sk_devedor: null, sk_contato: null, contato_id: "t13", canal: "sms", resultado: "valor_novo", tipo_desfecho: null, situacao_horario: "permitido", dt_tentativa: "2026-09-09", hr_tentativa: "11:00:00", _arquivo: "arq", _linha: 13, _hash_arquivo: "h"}
+
+  - name: ft_tentativa_contato_marca_12_de_outubro_e_20_de_novembro_como_feriado
+    description: >
+      G7. A `var` de feriados traz o 12/10 (Lei 6.802/1980) e o 20/11 (Lei 14.759/2023): uma
+      ligação nesses dias, em horário comercial, sai como `feriado`; o dia seguinte ao 12/10 não.
+    model: ft_tentativa_contato
+    given:
+      - input: ref('cobranca_tentativas')
+        format: sql
+        rows: |
+          SELECT
+            CAST(sk_devedor AS INTEGER) AS sk_devedor
+            , CAST(sk_contato AS INTEGER) AS sk_contato
+            , CAST(contato_id AS VARCHAR) AS contato_id
+            , CAST(canal AS VARCHAR) AS canal
+            , CAST(resultado AS VARCHAR) AS resultado
+            , CAST(tipo_desfecho AS VARCHAR) AS tipo_desfecho
+            , CAST(data_hora AS TIMESTAMP) AS data_hora
+            , CAST(dt_tentativa AS DATE) AS dt_tentativa
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            (1, 1, 't1', 'ligacao', 'entregue', 'sem_confirmacao', '2026-10-12 10:00:00', DATE '2026-10-12', 'arq', 1, 'h')
+            , (1, 1, 't2', 'ligacao', 'entregue', 'sem_confirmacao', '2026-11-20 10:00:00', DATE '2026-11-20', 'arq', 2, 'h')
+            , (1, 1, 't3', 'ligacao', 'entregue', 'sem_confirmacao', '2026-10-13 10:00:00', DATE '2026-10-13', 'arq', 3, 'h')
+          ) AS tLinhas (sk_devedor, sk_contato, contato_id, canal, resultado, tipo_desfecho, data_hora, dt_tentativa, _arquivo, _linha, _hash_arquivo)
+    expect:
+      rows:
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t1", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "feriado", dt_tentativa: "2026-10-12", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 1, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t2", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "feriado", dt_tentativa: "2026-11-20", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 2, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t3", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-10-13", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 3, _hash_arquivo: "h"}
+
+  - name: ft_tentativa_contato_sem_feriados_na_var_nao_gera_o_ramo_de_feriado
+    description: >
+      G7. Com a lista de feriados vazia o SQL não monta `IN ()`: o 7/9 em horário comercial vira
+      `permitido`, e o domingo continua `domingo`.
+    model: ft_tentativa_contato
+    overrides:
+      vars:
+        feriados_nacionais_2026: []
+    given:
+      - input: ref('cobranca_tentativas')
+        format: sql
+        rows: |
+          SELECT
+            CAST(sk_devedor AS INTEGER) AS sk_devedor
+            , CAST(sk_contato AS INTEGER) AS sk_contato
+            , CAST(contato_id AS VARCHAR) AS contato_id
+            , CAST(canal AS VARCHAR) AS canal
+            , CAST(resultado AS VARCHAR) AS resultado
+            , CAST(tipo_desfecho AS VARCHAR) AS tipo_desfecho
+            , CAST(data_hora AS TIMESTAMP) AS data_hora
+            , CAST(dt_tentativa AS DATE) AS dt_tentativa
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            (1, 1, 't1', 'ligacao', 'entregue', 'sem_confirmacao', '2026-09-07 10:00:00', DATE '2026-09-07', 'arq', 1, 'h')
+            , (1, 1, 't2', 'ligacao', 'entregue', 'sem_confirmacao', '2026-09-06 10:00:00', DATE '2026-09-06', 'arq', 2, 'h')
+          ) AS tLinhas (sk_devedor, sk_contato, contato_id, canal, resultado, tipo_desfecho, data_hora, dt_tentativa, _arquivo, _linha, _hash_arquivo)
+    expect:
+      rows:
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t1", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-07", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 1, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t2", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "domingo", dt_tentativa: "2026-09-06", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 2, _hash_arquivo: "h"}

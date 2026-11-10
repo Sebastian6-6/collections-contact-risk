@@ -7,8 +7,9 @@
   `nome_chave` é o nome para comparar entre provedores (`nome_comparavel`). `nascimento_confiavel`
   separa a data que pode votar: a sentinela 1900-01-01 e a data posterior à entrega da própria
   linha (nasceu depois de ser entregue) não votam, mas continuam na coluna `dt_nascimento`, como
-  vieram. `hash_conteudo` é o da versão atual na silver (liga à histórica). É efêmero: existe para `devedores_documentos` (liga os documentos) e `dim_devedor`
-  (escolhe os atributos) partirem das mesmas linhas.
+  vieram. `hash_conteudo` é o da versão atual na silver (liga à histórica). É efêmero: existe
+  para `devedores_documentos` (liga os documentos) e `dim_devedor` (escolhe os atributos)
+  partirem das mesmas linhas.
 #}
 {{ config(materialized='ephemeral') }}
 
