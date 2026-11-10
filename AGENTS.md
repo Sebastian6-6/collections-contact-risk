@@ -82,7 +82,7 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `qualidade-python`) sã
 - **Fonte nova.** Cada provedor ou sistema que produz dados é uma fonte. Para acrescentar:
   1. Formato e origem já existem: uma entrada em `ingestion/fontes.yml`.
   2. Formato novo: uma função em `ingestion/leitores.py` com `@leitor("nome")`.
-  3. Origem nova (API, bucket): uma função em `ingestion/conectores.py` com `@conector("nome")`. Uma API grava a resposta como arquivo numa pasta versionada antes de ser lida; quem grava é uma função no mesmo arquivo com `@baixador("nome")`, declarada no bloco `_baixar` da fonte em `fontes.yml`, que só roda quando chamada (`python -m ingestion.main --baixar <fonte>`), nunca na pipeline.
+  3. Origem nova (API, bucket): uma função em `ingestion/conectores.py` com `@conector("nome")`. Uma API grava a resposta como arquivo numa pasta versionada antes de ser lida.
   4. Declarar a tabela em `models/bronze/<fonte>/_fontes.yml`. O `main.py` não muda.
 - Datas e horas que chegam sem fuso são tratadas como horário de Brasília; valores em epoch são convertidos para esse fuso (UTC−3, sem horário de verão desde o Decreto 9.772/2019).
 
