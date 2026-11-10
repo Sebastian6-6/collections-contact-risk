@@ -34,6 +34,15 @@ vars:
     - "2026-11-15"
     - "2026-12-25"
 
+  # Monitoramento diário das entregas (`ft_entrega_diaria`). A média móvel usa as entregas
+  # anteriores do mesmo provedor e tipo de dia; a janela, o limiar e a base mínima foram medidos
+  # sobre as entregas de setembro/2026 (a medição está no corpo do commit do monitoramento).
+  janela_media_movel: 5
+  limite_variacao_volume: 0.5
+  base_minima_media_movel: 3
+  # Parte das linhas de uma entrega (repetidas ou atrasadas) a partir da qual o alerta dispara.
+  limite_registros_anormais: 0.25
+
 clean-targets:
   - target
   - dbt_packages
