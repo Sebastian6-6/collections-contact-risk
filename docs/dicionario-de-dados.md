@@ -143,6 +143,206 @@ Uma linha por linha recebida dos arquivos do provedor gama. Colunas de dados em 
 | `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
 | `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
 
+### `bronze_receita.arquivos`
+
+Registro de cargas da fonte: uma linha por arquivo lido, com o que a ingestão viu nele. Serve para conferir que a tabela de dados tem todas as linhas do arquivo. Não guarda horário de execução, para que duas execuções idênticas deem tabelas idênticas.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `arquivo` | `VARCHAR` | Caminho relativo do arquivo, a partir da raiz do repositório. Chave do registro. |
+| `entidade` | `VARCHAR` | Nome da tabela de dados que recebeu as linhas do arquivo, na mesma fonte. |
+| `hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo. |
+| `bytes` | `BIGINT` | Tamanho do arquivo em bytes. |
+| `linhas` | `BIGINT` | Quantidade de linhas de dados lidas do arquivo, sem contar o cabeçalho. Um arquivo só com cabeçalho tem 0. A tabela de dados deve ter exatamente esta quantidade de linhas para o arquivo. |
+| `cabecalho` | `VARCHAR` | Cabeçalho do arquivo como veio (CSV). `NULL` para formatos sem cabeçalho, como o JSONL. |
+
+### `bronze_receita.cnaes`
+
+CNAEs (classificação nacional de atividades econômicas): código de 7 dígitos e descrição. Tabela de domínio inteira.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código do CNAE (7 dígitos). Layout: CÓDIGO. |
+| `descricao` | `VARCHAR` | Descrição do CNAE. Layout: DESCRIÇÃO. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.empresas`
+
+Uma linha por empresa recebida (layout EMPRESAS). Colunas de dados em texto, como vieram: nenhum código, data ou valor é interpretado na ingestão. O extrato só traz as empresas dos CNPJs dos empregadores recebidos.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj_basico` | `VARCHAR` | Base do CNPJ: os 8 primeiros caracteres, que identificam a empresa. Layout: CNPJ BÁSICO. |
+| `razao_social_nome_empresarial` | `VARCHAR` | Razão social (nome empresarial) da empresa. Layout: RAZÃO SOCIAL / NOME EMPRESARIAL. |
+| `natureza_juridica` | `VARCHAR` | Código da natureza jurídica; a descrição está em `naturezas`. Layout: NATUREZA JURÍDICA. |
+| `qualificacao_do_responsavel` | `VARCHAR` | Código da qualificação do responsável pela empresa; a descrição está em `qualificacoes`. Layout: QUALIFICAÇÃO DO RESPONSÁVEL. |
+| `capital_social_da_empresa` | `VARCHAR` | Capital social em reais, com vírgula decimal (`14202162483,70`). Layout: CAPITAL SOCIAL DA EMPRESA. |
+| `porte_da_empresa` | `VARCHAR` | Porte da empresa: `00` não informado, `01` micro empresa, `03` empresa de pequeno porte, `05` demais. Layout: PORTE DA EMPRESA. |
+| `ente_federativo_responsavel` | `VARCHAR` | Ente federativo responsável; preenchido só para natureza jurídica do grupo 1XXX. Layout: ENTE FEDERATIVO RESPONSÁVEL. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.estabelecimentos`
+
+Uma linha por estabelecimento (CNPJ completo = base + ordem + DV) das empresas do extrato (layout ESTABELECIMENTOS). Colunas de dados em texto, como vieram.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj_basico` | `VARCHAR` | Base do CNPJ (8 caracteres); liga o estabelecimento à empresa. Layout: CNPJ BÁSICO. |
+| `cnpj_ordem` | `VARCHAR` | Ordem do CNPJ (4 caracteres, `0001` na matriz em CNPJ numérico). No CNPJ alfanumérico pode ter letras. Layout: CNPJ ORDEM. |
+| `cnpj_dv` | `VARCHAR` | Dígitos verificadores do CNPJ (2 dígitos). Layout: CNPJ DV. |
+| `identificador_matriz_filial` | `VARCHAR` | `1` matriz, `2` filial. Layout: IDENTIFICADOR MATRIZ/FILIAL. |
+| `nome_fantasia` | `VARCHAR` | Nome fantasia do estabelecimento. Layout: NOME FANTASIA. |
+| `situacao_cadastral` | `VARCHAR` | Situação cadastral: `01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada (o layout escreve alguns códigos com 1 dígito; o arquivo traz 2). Layout: SITUAÇÃO CADASTRAL. |
+| `data_situacao_cadastral` | `VARCHAR` | Data da situação cadastral, `AAAAMMDD`. Layout: DATA SITUAÇÃO CADASTRAL. |
+| `motivo_situacao_cadastral` | `VARCHAR` | Código do motivo da situação cadastral; a descrição está em `motivos`. Layout: MOTIVO SITUAÇÃO CADASTRAL. |
+| `nome_da_cidade_no_exterior` | `VARCHAR` | Nome da cidade no exterior, para estabelecimento fora do país. Layout: NOME DA CIDADE NO EXTERIOR. |
+| `pais` | `VARCHAR` | Código do país; a descrição está em `paises`. Layout: PAIS. |
+| `data_de_inicio_atividade` | `VARCHAR` | Data de início da atividade, `AAAAMMDD`. Layout: DATA DE INÍCIO ATIVIDADE. |
+| `cnae_fiscal_principal` | `VARCHAR` | Código do CNAE fiscal principal (7 dígitos); a descrição está em `cnaes`. Layout: CNAE FISCAL PRINCIPAL. |
+| `cnae_fiscal_secundaria` | `VARCHAR` | CNAEs fiscais secundários, vários códigos separados por vírgula no mesmo campo. Layout: CNAE FISCAL SECUNDÁRIA. |
+| `tipo_de_logradouro` | `VARCHAR` | Tipo de logradouro (`RUA`, `AVENIDA`). Layout: TIPO DE LOGRADOURO. |
+| `logradouro` | `VARCHAR` | Logradouro. Layout: LOGRADOURO. |
+| `numero` | `VARCHAR` | Número do endereço. Layout: NÚMERO. |
+| `complemento` | `VARCHAR` | Complemento do endereço. Layout: COMPLEMENTO. |
+| `bairro` | `VARCHAR` | Bairro. Layout: BAIRRO. |
+| `cep` | `VARCHAR` | CEP. Layout: CEP. |
+| `uf` | `VARCHAR` | Sigla da UF. Layout: UF. |
+| `municipio` | `VARCHAR` | Código do município (padrão da Receita, não o do IBGE); a descrição está em `municipios`. Layout: MUNICÍPIO. |
+| `ddd_1` | `VARCHAR` | DDD do telefone 1. Layout: DDD 1. |
+| `telefone_1` | `VARCHAR` | Telefone 1. Layout: TELEFONE 1. |
+| `ddd_2` | `VARCHAR` | DDD do telefone 2. Layout: DDD 2. |
+| `telefone_2` | `VARCHAR` | Telefone 2. Layout: TELEFONE 2. |
+| `ddd_do_fax` | `VARCHAR` | DDD do fax. Layout: DDD DO FAX. |
+| `fax` | `VARCHAR` | Número do fax. Layout: FAX. |
+| `correio_eletronico` | `VARCHAR` | Correio eletrônico do estabelecimento; a Receita mascara os endereços que ocultou. Layout: CORREIO ELETRÔNICO. |
+| `situacao_especial` | `VARCHAR` | Situação especial. Layout: SITUAÇÃO ESPECIAL. |
+| `data_da_situacao_especial` | `VARCHAR` | Data da situação especial, `AAAAMMDD`. Layout: DATA DA SITUAÇÃO ESPECIAL. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.motivos`
+
+Motivos de situação cadastral. Tabela de domínio inteira; o layout de 2021 não a descreve, e o arquivo tem as mesmas duas colunas dos outros domínios.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código do motivo (2 dígitos). Layout: CÓDIGO. |
+| `descricao` | `VARCHAR` | Descrição do motivo. Layout: DESCRIÇÃO. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.municipios`
+
+Municípios, com o código da Receita (não é o do IBGE). Tabela de domínio inteira.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código do município na Receita. Layout: CÓDIGO. |
+| `descricao` | `VARCHAR` | Nome do município. Layout: DESCRIÇÃO. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.naturezas`
+
+Naturezas jurídicas. Tabela de domínio inteira.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código da natureza jurídica (4 dígitos). Layout: CÓDIGO. |
+| `descricao` | `VARCHAR` | Descrição da natureza jurídica. Layout: DESCRIÇÃO. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.paises`
+
+Países. Tabela de domínio inteira.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código do país. Layout: CÓDIGO. |
+| `descricao` | `VARCHAR` | Nome do país. Layout: DESCRIÇÃO. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.qualificacoes`
+
+Qualificações de sócios e responsáveis. Tabela de domínio inteira.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código da qualificação (2 dígitos). Layout: CÓDIGO. |
+| `descricao` | `VARCHAR` | Descrição da qualificação. Layout: DESCRIÇÃO. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.simples`
+
+Uma linha por empresa do extrato com dados do Simples Nacional e do MEI (layout DADOS DO SIMPLES). Colunas de dados em texto, como vieram; `00000000` é a data ausente da origem.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj_basico` | `VARCHAR` | Base do CNPJ (8 caracteres). Layout: CNPJ BÁSICO. |
+| `opcao_pelo_simples` | `VARCHAR` | Opção pelo Simples Nacional: `S` sim, `N` não, vazio outros. Layout: OPÇÃO PELO SIMPLES. |
+| `data_de_opcao_pelo_simples` | `VARCHAR` | Data de opção pelo Simples, `AAAAMMDD`; `00000000` quando não há. Layout: DATA DE OPÇÃO PELO SIMPLES. |
+| `data_de_exclusao_do_simples` | `VARCHAR` | Data de exclusão do Simples, `AAAAMMDD`; `00000000` quando não há. Layout: DATA DE EXCLUSÃO DO SIMPLES. |
+| `opcao_pelo_mei` | `VARCHAR` | Opção pelo MEI: `S` sim, `N` não, vazio outros. Layout: OPÇÃO PELO MEI. |
+| `data_de_opcao_pelo_mei` | `VARCHAR` | Data de opção pelo MEI, `AAAAMMDD`; `00000000` quando não há. Layout: DATA DE OPÇÃO PELO MEI. |
+| `data_de_exclusao_do_mei` | `VARCHAR` | Data de exclusão do MEI, `AAAAMMDD`; `00000000` quando não há. Layout: DATA DE EXCLUSÃO DO MEI. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
+### `bronze_receita.socios`
+
+Uma linha por sócio das empresas do extrato (layout SÓCIOS). Colunas de dados em texto, como vieram; o CPF já vem mascarado pela Receita.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj_basico` | `VARCHAR` | Base do CNPJ (8 caracteres) da empresa. Layout: CNPJ BÁSICO. |
+| `identificador_de_socio` | `VARCHAR` | Identificador do sócio: `1` pessoa jurídica, `2` pessoa física, `3` estrangeiro. Layout: IDENTIFICADOR DE SÓCIO. |
+| `nome_do_socio_no_caso_pf_ou_razao_social_no_caso_pj` | `VARCHAR` | Nome do sócio (pessoa física) ou razão social (pessoa jurídica). Layout: NOME DO SÓCIO (NO CASO PF) OU RAZÃO SOCIAL (NO CASO PJ). |
+| `cnpj_cpf_do_socio` | `VARCHAR` | CPF mascarado (`***240659**`) do sócio pessoa física ou CNPJ do sócio pessoa jurídica. Em 2026-10 o CNPJ vem com 8 dígitos (só a base), embora o layout de 2021 não diga isso. Layout: CNPJ/CPF DO SÓCIO. |
+| `qualificacao_do_socio` | `VARCHAR` | Código da qualificação do sócio; a descrição está em `qualificacoes`. Layout: QUALIFICAÇÃO DO SÓCIO. |
+| `data_de_entrada_sociedade` | `VARCHAR` | Data de entrada na sociedade, `AAAAMMDD`. Layout: DATA DE ENTRADA SOCIEDADE. |
+| `pais` | `VARCHAR` | Código do país do sócio estrangeiro. Layout: PAIS. |
+| `representante_legal` | `VARCHAR` | CPF mascarado do representante legal. Layout: REPRESENTANTE LEGAL. |
+| `nome_do_representante` | `VARCHAR` | Nome do representante legal. Layout: NOME DO REPRESENTANTE. |
+| `qualificacao_do_representante_legal` | `VARCHAR` | Código da qualificação do representante legal. Layout: QUALIFICAÇÃO DO REPRESENTANTE LEGAL. |
+| `faixa_etaria` | `VARCHAR` | Faixa etária do sócio: `1` 0 a 12 anos, `2` 13 a 20, `3` 21 a 30, `4` 31 a 40, `5` 41 a 50, `6` 51 a 60, `7` 61 a 70, `8` 71 a 80, `9` mais de 80, `0` não se aplica. Layout: FAIXA ETÁRIA. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+| `_linha_original` | `VARCHAR` | Texto da linha como foi recebida, sem nenhuma interpretação. Fica preenchido mesmo quando a linha é ilegível. |
+| `_motivo_ilegivel` | `VARCHAR` | `NULL` quando o leitor separou a linha em colunas. Quando não conseguiu (CSV malformado ou em branco), o motivo; nesse caso as colunas de dados ficam `NULL` e vale o texto em `_linha_original`. |
+
 ## Camada silver
 
 ### `silver_alfa.devedores`
@@ -506,6 +706,185 @@ Contatos de cada versão do gama, uma linha por (versão, tipo_contato, contato 
 | `_linha` | `BIGINT` | Da aparição mais recente da versão. Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
 | `_hash_arquivo` | `VARCHAR` | Da aparição mais recente da versão. SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
 
+### `silver_receita.cnaes`
+
+CNAEs (classificação nacional de atividades econômicas). Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código do CNAE (7 dígitos), como texto. Chave da tabela. |
+| `descricao` | `VARCHAR` | Descrição, sem espaços nas pontas. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.empresas`
+
+Empresas dos CNPJs de empregador recebidos, uma linha por `cnpj_basico`. Textos sem espaços nas pontas e vazio como `NULL`; o capital social vira número. Os códigos ficam como vieram, para ligar com os domínios (`naturezas`, `qualificacoes`). Fora ficam, e continuam na bronze, a linha ilegível e a sem `cnpj_basico` (aviso `receita_linhas_sem_chave`).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj_basico` | `VARCHAR` | Base do CNPJ (8 caracteres) que identifica a empresa. Chave da tabela. |
+| `razao_social_nome_empresarial` | `VARCHAR` | Razão social da empresa, sem espaços nas pontas. |
+| `natureza_juridica` | `VARCHAR` | Código da natureza jurídica; a descrição está em `silver_receita.naturezas`. |
+| `qualificacao_do_responsavel` | `VARCHAR` | Código da qualificação do responsável pela empresa; a descrição está em `silver_receita.qualificacoes`. |
+| `capital_social_da_empresa` | `DECIMAL(18,2)` | Capital social em reais, `NUMERIC(18, 2)`. `NULL` quando vazio ou fora do formato; `0.00` é o zero informado pela Receita. |
+| `porte_da_empresa` | `VARCHAR` | Porte: `00` não informado, `01` micro empresa, `03` empresa de pequeno porte, `05` demais. |
+| `ente_federativo_responsavel` | `VARCHAR` | Ente federativo responsável, só para natureza jurídica do grupo 1XXX. `NULL` nas demais. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.estabelecimentos`
+
+Estabelecimentos (matriz e filiais) das empresas do extrato, uma linha por CNPJ completo. Datas AAAAMMDD viram `DATE`; `00000000` vira `NULL`. A lista de CNAEs secundários está em `estabelecimentos_cnaes_secundarios`. Fora ficam, e continuam na bronze, a linha ilegível e a sem CNPJ (aviso `receita_linhas_sem_chave`).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj` | `VARCHAR` | CNPJ completo (14 caracteres: base, ordem e dígitos verificadores; no CNPJ alfanumérico a letra está na ordem). Chave da tabela. Os dígitos verificadores são conferidos pelo teste `receita_cnpj_com_digito_verificador_invalido`. |
+| `cnpj_basico` | `VARCHAR` | Base do CNPJ (8 caracteres); liga o estabelecimento à empresa. |
+| `cnpj_ordem` | `VARCHAR` | Ordem do CNPJ (4 caracteres). |
+| `cnpj_dv` | `VARCHAR` | Dígitos verificadores (2 dígitos). |
+| `identificador_matriz_filial` | `VARCHAR` | `1` matriz, `2` filial. |
+| `nome_fantasia` | `VARCHAR` | Nome fantasia, sem espaços nas pontas. |
+| `situacao_cadastral` | `VARCHAR` | Situação cadastral: `01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada. |
+| `data_situacao_cadastral` | `DATE` | Data da situação cadastral. `NULL` quando a origem manda `00000000`, vazio ou data inexistente. |
+| `motivo_situacao_cadastral` | `VARCHAR` | Código do motivo da situação cadastral; a descrição está em `silver_receita.motivos`. |
+| `nome_da_cidade_no_exterior` | `VARCHAR` | Nome da cidade no exterior, para estabelecimento fora do país. |
+| `pais` | `VARCHAR` | Código do país, preenchido só para estabelecimento no exterior; a descrição está em `silver_receita.paises`. Em 2026-10 um estabelecimento traz o código 367, que a tabela de países não tem (aviso, não erro: é inconsistência da origem). |
+| `data_de_inicio_atividade` | `DATE` | Data de início da atividade. |
+| `cnae_fiscal_principal` | `VARCHAR` | Código do CNAE fiscal principal (7 dígitos); a descrição está em `silver_receita.cnaes`. |
+| `tipo_de_logradouro` | `VARCHAR` | Tipo de logradouro. |
+| `logradouro` | `VARCHAR` | Logradouro. |
+| `numero` | `VARCHAR` | Número do endereço. |
+| `complemento` | `VARCHAR` | Complemento do endereço, sem espaços nas pontas. |
+| `bairro` | `VARCHAR` | Bairro. |
+| `cep` | `VARCHAR` | CEP, como veio (texto). |
+| `uf` | `VARCHAR` | Sigla da UF; `EX` para o exterior. |
+| `municipio` | `VARCHAR` | Código do município na Receita (não é o do IBGE); a descrição está em `silver_receita.municipios`. |
+| `ddd_1` | `VARCHAR` | DDD do telefone 1. |
+| `telefone_1` | `VARCHAR` | Telefone 1. |
+| `ddd_2` | `VARCHAR` | DDD do telefone 2. |
+| `telefone_2` | `VARCHAR` | Telefone 2. |
+| `ddd_do_fax` | `VARCHAR` | DDD do fax. |
+| `fax` | `VARCHAR` | Número do fax. |
+| `correio_eletronico` | `VARCHAR` | Correio eletrônico como veio; a Receita mascara os que ocultou (`********@*********.***.**`). |
+| `situacao_especial` | `VARCHAR` | Situação especial. |
+| `data_da_situacao_especial` | `DATE` | Data da situação especial. `NULL` quando vazia. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.estabelecimentos_cnaes_secundarios`
+
+CNAEs fiscais secundários de cada estabelecimento, uma linha por (`cnpj`, `cnae_fiscal_secundaria`), abertos do campo da origem que os guarda separados por vírgula. É o padrão de tabela ponte: o número de CNAEs não muda o esquema.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj` | `VARCHAR` | CNPJ do estabelecimento, como em `silver_receita.estabelecimentos`. |
+| `cnae_fiscal_secundaria` | `VARCHAR` | Código de um CNAE secundário do estabelecimento (um elemento do campo da origem). |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.motivos`
+
+Motivos de situação cadastral. Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código do motivo (2 dígitos), como texto. Chave da tabela. |
+| `descricao` | `VARCHAR` | Descrição, sem espaços nas pontas. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.municipios`
+
+Municípios, com o código da Receita (não é o do IBGE). Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código do município na Receita, como texto. Chave da tabela. |
+| `descricao` | `VARCHAR` | Descrição, sem espaços nas pontas. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.naturezas`
+
+Naturezas jurídicas. Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código da natureza jurídica (4 dígitos), como texto. Chave da tabela. |
+| `descricao` | `VARCHAR` | Descrição, sem espaços nas pontas. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.paises`
+
+Países. Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código do país, como texto. Chave da tabela. |
+| `descricao` | `VARCHAR` | Descrição, sem espaços nas pontas. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.qualificacoes`
+
+Qualificações de sócios e responsáveis. Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `codigo` | `VARCHAR` | Código da qualificação (2 dígitos), como texto. Chave da tabela. |
+| `descricao` | `VARCHAR` | Descrição, sem espaços nas pontas. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.simples`
+
+Opção pelo Simples Nacional e pelo MEI, uma linha por empresa (`cnpj_basico`). Datas AAAAMMDD viram `DATE`; `00000000` (sem data) vira `NULL`. Só há linha para a empresa que a Receita registra no Simples.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj_basico` | `VARCHAR` | Base do CNPJ (8 caracteres). Chave da tabela. |
+| `opcao_pelo_simples` | `VARCHAR` | `S` optante pelo Simples Nacional, `N` não; `NULL` quando vazio (outros). |
+| `data_de_opcao_pelo_simples` | `DATE` | Data de opção pelo Simples. `NULL` quando a origem manda `00000000`. |
+| `data_de_exclusao_do_simples` | `DATE` | Data de exclusão do Simples. `NULL` quando a origem manda `00000000`. |
+| `opcao_pelo_mei` | `VARCHAR` | `S` optante pelo MEI, `N` não; `NULL` quando vazio (outros). |
+| `data_de_opcao_pelo_mei` | `DATE` | Data de opção pelo MEI. `NULL` quando a origem manda `00000000`. |
+| `data_de_exclusao_do_mei` | `DATE` | Data de exclusão do MEI. `NULL` quando a origem manda `00000000`. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
+### `silver_receita.socios`
+
+Sócios das empresas do extrato. A origem não traz identificador do sócio e o CPF vem mascarado; a chave é a combinação de `cnpj_basico`, `identificador_de_socio`, nome, `cnpj_cpf_do_socio` e `data_de_entrada_sociedade`, com `NULL` valendo como valor.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `cnpj_basico` | `VARCHAR` | Base do CNPJ (8 caracteres) da empresa. |
+| `identificador_de_socio` | `VARCHAR` | `1` pessoa jurídica, `2` pessoa física, `3` estrangeiro. |
+| `nome_do_socio_no_caso_pf_ou_razao_social_no_caso_pj` | `VARCHAR` | Nome do sócio (pessoa física) ou razão social (pessoa jurídica). |
+| `cnpj_cpf_do_socio` | `VARCHAR` | CPF mascarado (`***240659**`) ou, para pessoa jurídica, a base do CNPJ (8 dígitos em 2026-10). |
+| `qualificacao_do_socio` | `VARCHAR` | Código da qualificação do sócio; a descrição está em `silver_receita.qualificacoes`. |
+| `data_de_entrada_sociedade` | `DATE` | Data de entrada na sociedade. `NULL` quando vazia. |
+| `pais` | `VARCHAR` | Código do país do sócio estrangeiro; a descrição está em `silver_receita.paises`. |
+| `representante_legal` | `VARCHAR` | CPF mascarado do representante legal. |
+| `nome_do_representante` | `VARCHAR` | Nome do representante legal. |
+| `qualificacao_do_representante_legal` | `VARCHAR` | Código da qualificação do representante legal. |
+| `faixa_etaria` | `VARCHAR` | Faixa etária do sócio: `1` até 12 anos, `2` 13 a 20, `3` 21 a 30, `4` 31 a 40, `5` 41 a 50, `6` 51 a 60, `7` 61 a 70, `8` 71 a 80, `9` mais de 80, `0` não se aplica. |
+| `_arquivo` | `VARCHAR` | Caminho relativo do arquivo de origem, a partir da raiz do repositório. É o mesmo texto que a coluna `arquivo` do registro `arquivos`. |
+| `_linha` | `BIGINT` | Número da linha física do arquivo onde o registro começa (a primeira linha do arquivo é a 1, inclusive o cabeçalho do CSV). Com `_arquivo`, identifica a linha recebida. |
+| `_hash_arquivo` | `VARCHAR` | SHA-256 do conteúdo do arquivo de origem. Dois arquivos com o mesmo nome e conteúdo diferente (um reenvio) têm hashes diferentes. |
+
 ## Camada gold
 
 ### `gold_devedores.dim_contato`
@@ -567,6 +946,25 @@ Um CNPJ recebido de empregador, de todas as versões das três fontes, como a si
 |---|---|---|
 | `sk_empregador` | `INTEGER` | Chave substituta: a posição do CNPJ em ordem crescente (G6). |
 | `cnpj` | `VARCHAR` | CNPJ de 14 caracteres como a silver o padronizou, inclusive o de dígito verificador inválido. Chave natural. |
+| `situacao_receita` | `VARCHAR` | `encontrado` quando a Receita tem o estabelecimento do CNPJ; `nao_encontrado` quando não tem (os atributos abaixo ficam `NULL`). |
+| `natureza_juridica` | `VARCHAR` | Código da natureza jurídica da empresa na Receita. `NULL` quando `nao_encontrado`. |
+| `desc_natureza_juridica` | `VARCHAR` | Descrição da natureza jurídica, da tabela de domínio da Receita. |
+| `porte` | `VARCHAR` | Código do porte da empresa (`00` não informado, `01` micro empresa, `03` pequeno porte, `05` demais). `NULL` quando `nao_encontrado`. |
+| `desc_porte` | `VARCHAR` | Descrição do porte, do layout oficial da Receita. |
+| `situacao_cadastral` | `VARCHAR` | Código da situação cadastral do estabelecimento (`01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada). `NULL` quando `nao_encontrado`. |
+| `desc_situacao_cadastral` | `VARCHAR` | Descrição da situação cadastral, do layout oficial da Receita. |
+| `motivo_situacao_cadastral` | `VARCHAR` | Código do motivo da situação cadastral (`00` sem motivo). `NULL` quando `nao_encontrado`. |
+| `desc_motivo_situacao_cadastral` | `VARCHAR` | Descrição do motivo da situação cadastral, da tabela de domínio da Receita. |
+| `cnae` | `VARCHAR` | CNAE fiscal principal do estabelecimento (7 dígitos). `NULL` quando `nao_encontrado`. |
+| `desc_cnae` | `VARCHAR` | Descrição do CNAE principal, da tabela de domínio da Receita. |
+| `uf` | `VARCHAR` | UF do estabelecimento. `NULL` quando `nao_encontrado`. |
+| `municipio` | `VARCHAR` | Código do município na Receita (não é o código do IBGE). `NULL` quando `nao_encontrado`. |
+| `desc_municipio` | `VARCHAR` | Nome do município, da tabela de domínio da Receita. |
+| `nome_razao_social` | `VARCHAR` | Razão social ou nome empresarial, como a Receita guarda. `NULL` quando `nao_encontrado`. |
+| `flag_optante_simples` | `BOOLEAN` | `TRUE` quando a empresa optou pelo Simples Nacional, `FALSE` quando não. `NULL` quando `nao_encontrado` e quando a Receita não tem registro do Simples da empresa. |
+| `flag_optante_mei` | `BOOLEAN` | `TRUE` quando a empresa optou pelo MEI, `FALSE` quando não. `NULL` quando `nao_encontrado` e quando a Receita não tem registro do Simples da empresa. |
+| `dt_situacao_cadastral` | `DATE` | Data da situação cadastral. `NULL` quando `nao_encontrado` ou quando a Receita manda `00000000`. |
+| `dt_inicio_atividade` | `DATE` | Data de início da atividade do estabelecimento. `NULL` quando `nao_encontrado`. |
 | `_arquivo` | `VARCHAR` | Arquivo da aparição mais recente do CNPJ nos provedores (não é o arquivo da Receita). |
 | `_linha` | `BIGINT` | Linha do arquivo da mesma aparição. |
 | `_hash_arquivo` | `VARCHAR` | Hash do arquivo da mesma aparição. |
@@ -634,3 +1032,25 @@ Um período contínuo do mesmo conteúdo de vínculo (CNPJ, cargo, renda e mês 
 | `_arquivo` | `VARCHAR` | Arquivo da última versão do período. |
 | `_linha` | `BIGINT` | Linha do arquivo da última versão do período. |
 | `_hash_arquivo` | `VARCHAR` | Hash do arquivo da última versão do período. |
+
+### `gold_monitoramento.ft_entrega_diaria`
+
+Monitoramento diário (D1 a D4): uma entrega diária de um provedor (`provedor`, `dt_referencia`) comparada com as anteriores. `qt_dias_desde_entrega_anterior` acha o dia sem entrega (a entrega n contra a n - 1, por `ROW_NUMBER()`); `qt_media_movel` é a média das entregas anteriores do mesmo provedor e tipo de dia (útil ou fim de semana), e `situacao_volume` diz se o volume do dia passou de `limite_variacao_volume` sobre ela. As demais colunas respondem uma pergunta cada: reenvio, cabeçalho, linhas repetidas, atrasadas e ilegíveis. As regras de alerta estão na macro `alertas_da_entrega`.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `provedor` | `VARCHAR` | `alfa`, `beta` ou `gama`. |
+| `tp_dia` | `VARCHAR` | `util` (segunda a sexta) ou `fim_de_semana` (sábado e domingo); feriado conta como o dia da semana. |
+| `qt_arquivos` | `BIGINT` | Arquivos do dia. Maior que 1 é reenvio. |
+| `qt_registros` | `HUGEINT` | Linhas recebidas no dia, legíveis ou não, somados todos os arquivos do dia. |
+| `qt_media_movel` | `DECIMAL(12,2)` | Média de `qt_registros` das até `janela_media_movel` entregas anteriores do mesmo provedor e tipo de dia. `NULL` na primeira entrega de cada tipo de dia. |
+| `qt_entregas_base` | `HUGEINT` | Quantas entregas entraram na média. `NULL` sem entrega anterior do tipo de dia. |
+| `tx_variacao_media` | `DECIMAL(8,4)` | `(qt_registros - qt_media_movel) / qt_media_movel`, em fração (1,03 é +103%). `NULL` com menos de `base_minima_media_movel` entregas na base. |
+| `qt_dias_desde_entrega_anterior` | `BIGINT` | Dias de calendário desde a entrega anterior do provedor. Maior que 1 é dia sem entrega. `NULL` na primeira. |
+| `qt_registros_repetidos` | `HUGEINT` | Linhas cujo texto idêntico já tinha chegado antes. |
+| `qt_registros_atrasados` | `HUGEINT` | Linhas atualizadas na fonte antes do dia da entrega. |
+| `qt_linhas_ilegiveis` | `HUGEINT` | Linhas que o leitor não separou em colunas. |
+| `situacao_volume` | `VARCHAR` | `normal`, `acima` ou `abaixo` da média móvel pelo limiar, ou `sem_base` quando há menos entregas na base que o mínimo. |
+| `situacao_cabecalho` | `VARCHAR` | `igual` ou `mudou` contra o cabeçalho da entrega anterior. `NULL` na primeira entrega e no JSON Lines, que não tem cabeçalho. |
+| `dt_referencia` | `DATE` | Data da entrega, tirada do nome do arquivo. |
+| `desc_arquivos` | `VARCHAR` | Arquivos do dia, separados por ` \| `. |
