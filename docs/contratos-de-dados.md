@@ -6,7 +6,7 @@ O que se espera de cada entrega dos provedores alfa, beta e gama e do histórico
 - quem garante: um teste do projeto que falha ou avisa, ou só o provedor, quando nenhum teste consegue verificar.
 
 - **Base:** o enunciado diz que "cada provedor fornece o que tem disponível" (p. 2) e que cada um entrega "no seu próprio formato" (p. 1). O contrato não exige um formato único: exige que cada provedor mantenha o seu e avise quando mudar.
-- **Números:** medidos em 2026-11-09 sobre a bronze da carga completa (92 arquivos), por consulta ao banco ou pelos commits do tópico. Os dados são sintéticos (p. 2), com um mês de entregas.
+- **Números:** medidos em 2026-11-09 sobre a bronze da carga completa (92 arquivos), por consulta ao banco ou pelos commits do tópico; os da seção 6, em 2026-11-10. Os dados são sintéticos (p. 2), com um mês de entregas.
 - **Legenda da coluna "Quem garante":** *erro* = o teste falha e a pipeline para; *aviso* = teste com severidade warn, que mostra a contagem e não para; *provedor* = nenhum teste verifica, e o item é obrigação do provedor.
 
 As decisões por trás das regras estão em [decisoes-de-modelagem.md](decisoes-de-modelagem.md).
@@ -20,11 +20,11 @@ As decisões por trás das regras estão em [decisoes-de-modelagem.md](decisoes-
 | Encoding | UTF-8 | erro: um byte fora do encoding interrompe a fonte com o arquivo e a linha (`test_byte_fora_do_encoding_interrompe_a_fonte_com_o_arquivo_e_a_linha` e os testes equivalentes do leitor de CSV e de JSONL). Medido: os 92 arquivos decodificam em UTF-8 estrito |
 | Caractere U+FFFD (substituição) | ausente: ele indica um texto que já foi corrompido antes da entrega | provedor. O U+FFFD é UTF-8 válido e passa pela ingestão sem erro; nenhum teste o procura. Medido em 2026-11-09: 0 ocorrências nos 92 arquivos e nas quatro tabelas da bronze. A observação do passo 4.5 de que nomes e cidades do beta traziam U+FFFD **não se reproduziu** |
 | Quebra de linha | LF ou CRLF (as entregas do alfa e da gama usam CRLF) | `test_csv_crlf_sai_do_texto_mas_nao_dos_campos_internos` |
-| CSV | separador vírgula, aspas duplas em campo com vírgula ou JSON, cabeçalho só na primeira linha | uma linha que não separa em colunas entra como ilegível, com o texto e o motivo (`test_csv_malformado_fica_com_o_texto_e_o_motivo`). O cabeçalho repetido no meio vira linha comum e sai da silver por falta de chave (aviso `gama_linhas_sem_chave`) |
+| CSV | separador vírgula, aspas duplas em campo com vírgula ou JSON, cabeçalho só na primeira linha | uma linha que não separa em colunas entra como ilegível, com o texto e o motivo (`test_csv_malformado_fica_com_o_texto_e_o_motivo`). O cabeçalho repetido no meio vira linha comum na bronze e não vira versão na silver (avisos `gama_linhas_sem_chave` e `cabecalho_repetido_fora_da_historica`) |
 | Colunas do CSV | as do contrato de cada fonte, sem acréscimo nem remoção sem aviso | erro: `colunas_declaradas` falha se a tabela da bronze ganhar ou perder uma coluna em relação a `models/bronze/<fonte>/_fontes.yml` |
 | Linhas por arquivo | toda linha física coberta | erro: `linhas_iguais_ao_registro` (linhas da tabela por arquivo = `arquivos.linhas`) e `combinacao_unica` em (`_arquivo`, `_linha`) |
 | Chave preenchida | documento (devedores) ou `contato_id` (cobrança) em toda linha | aviso: `<fonte>_linhas_sem_chave` conta as linhas que não viram devedor (ilegíveis, cabeçalho repetido e documento vazio ou zerado) |
-| Documento que identifica alguém | CPF ou RG real. Vazio ou só com zeros (`0`, `000.000.000-00`, `00000000000`) não identifica ninguém: vira `NULL`, a linha não é devedor e os contatos dela ficam em `devedores_contatos` com `documento` `NULL`. Medido: 124 linhas (alfa 37, beta 42, gama 45) | o provedor deve mandar o documento real ou deixá-lo vazio; erro: `documento_que_nao_identifica_ninguem` e `macro_cpf_normalizado`; os testes `*_linhas_representadas` conferem os contatos |
+| Documento que identifica alguém | CPF ou RG real. Vazio ou só com zeros (`0`, `000.000.000-00`, `00000000000`) não identifica ninguém: vira `NULL`, a linha não é devedor, entra em `devedores_historico` como versão com `documento` `NULL`, e os contatos e endereços dela ficam em `devedores_contatos` e `devedores_enderecos` com `documento` `NULL`. Medido: 124 linhas (alfa 37, beta 42, gama 45) | o provedor deve mandar o documento real ou deixá-lo vazio; erro: `documento_que_nao_identifica_ninguem` e `macro_cpf_normalizado`; os testes `*_linhas_representadas` conferem os contatos |
 | Fuso de datas e horas | sem fuso na origem = horário de Brasília (UTC−3, sem horário de verão desde o Decreto 9.772/2019); epoch convertido para esse fuso | regra do projeto (AGENTS.md); `macro_data_flexivel`. Nenhum provedor a confirmou: provedor |
 | Nomes de coluna | os da origem, sem renomear na silver; quando a silver une variantes de um campo, usa um dos nomes que a fonte usa | AGENTS.md; erro: `colunas_declaradas` na bronze |
 | Data de atualização | nunca posterior à data da entrega | provedor; medido só na gama (seção 4) |
@@ -62,7 +62,7 @@ Arquivos: `provedor_beta.jsonl` e 28 entregas diárias. Não há arquivos de 24 
 | Nome | `nome`, `nome_completo` ou `nome_devedor` | nome fixo adotado: `nome_completo` (os outros entram por `COALESCE`) | `silver_beta_padronizacao_das_variantes_de_json` |
 | Telefones | `contato.telefones[]` com texto ou `{ddd, numero, tipo, principal}` | as duas formas são aceitas; o objeto precisa de `ddd` e `numero` | `macro_telefone_de_elemento_json`; objeto sem DDD ou sem número vira `NULL` |
 | E-mails | `contato.emails[]` ou `email` | as duas formas | `silver_beta_padronizacao_das_variantes_de_json` |
-| Endereço | `enderecos[]` ou `endereco{}`, com `tipo`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `cep`, `atual`; CEP com hífen em 11.118 endereços e sem hífen em 8.749; número `S/N` em 1.933 | os campos separados, na ordem logradouro → número → complemento → bairro → cidade (obrigação do provedor, decisão do autor em 2026-11-09); CEP com ou sem hífen; `uf` de uma das 27 UFs | `silver_beta_devedores_enderecos_versao_atual`; a UF passa por `uf_normalizada` (todas já vinham no domínio; `accepted_values`). O conteúdo trocado entre bairro e cidade passa: provedor |
+| Endereço | `enderecos[]` ou `endereco{}`, com `tipo`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `cep`, `atual`; CEP com hífen em 11.118 endereços e sem hífen em 8.749; número `S/N` em 1.933 | os campos separados, na ordem logradouro → número → complemento → bairro → cidade (obrigação do provedor, decisão do autor em 2026-11-09); CEP com ou sem hífen; `uf` de uma das 27 UFs | `silver_beta_enderecos_abertos_da_linha` e `silver_beta_devedores_enderecos_pares_de_documento_e_endereco`; a UF passa por `uf_normalizada` (todas já vinham no domínio; `accepted_values`). O conteúdo trocado entre bairro e cidade passa: provedor |
 | Vínculo | `vinculo_empresa{cnpj, desde}`, com `cnpj` com e sem máscara (12 caracteres em 69 linhas, os demais com 14) e `desde` em `AAAA-MM` | nomes adotados, `<objeto>_<chave>`: `vinculo_empresa_cnpj` (regra do CNPJ da seção 2) e `vinculo_empresa_desde`, `DATE` no dia 01. O valor de `vinculo_empresa_desde` é o MÊS do vínculo: o dia 01 só existe porque o tipo `DATE` exige um dia | `macro_cnpj_normalizado`; `macro_mes_como_data`; aviso: `beta_vinculo_desde_fora_do_formato` (hoje 0) |
 | Renda | número em 11.320 linhas, texto `"R$ 9241,83"` em 3.262, nulo em 4.418 | número ou texto em reais; nulo = não informado | `macro_valor_monetario` |
 | Data de atualização | `atualizado_em` em ISO 8601 com fuso `-03:00` (16.216 linhas) ou epoch em milissegundos (2.784) | ISO 8601 com fuso. A silver mantém o nome `atualizado_em` | `macro_data_flexivel`. O epoch é convertido para o horário de Brasília (UTC−3; as 2.784 estão entre 09:00 e 23:59 UTC, nenhuma muda de dia), como manda o AGENTS.md |
@@ -79,7 +79,7 @@ Arquivos: `provedor_gama.csv` e 31 entregas diárias, entre elas `provedor_gama_
 | Cabeçalho | 1 cabeçalho repetido no meio do histórico | cabeçalho só na primeira linha | aviso: `gama_linhas_sem_chave` |
 | Linha cortada | 1 linha ilegível (o original de 15/09) | arquivo completo; um reenvio substitui o original com o sufixo `_reenvio` | a linha entra na bronze com o motivo e fica fora da silver (aviso `gama_linhas_sem_chave`) |
 | Documento | CPF com máscara; vazio em 45 linhas (nenhuma zerada) | 11 dígitos, com ou sem máscara; documento ausente vai vazio | `macro_cpf_normalizado`; as 45 linhas de documento vazio não viram devedor (aviso `gama_linhas_sem_chave`), e os contatos delas ficam em `devedores_contatos` com `documento` `NULL` (`gama_linhas_representadas`) |
-| Nome | em minúsculas em 1.544 linhas; com espaço sobrando em 1.363 | nome como no documento | provedor; a silver só apara as pontas |
+| Nome | em minúsculas em 1.544 linhas; com espaço sobrando em 1.363 | nome como no documento | provedor; a silver apara as pontas e passa o texto para maiúscula, sem tirar acentos ([decisoes-de-modelagem.md](decisoes-de-modelagem.md), seção 6.4) |
 | Datas | `data_nascimento` e `dt_ref` em `DD/MM/AAAA` (19.504 linhas; a outra é o cabeçalho repetido) | `DD/MM/AAAA`, sem fuso (vale como horário de Brasília) | `macro_data_flexivel` |
 | `dt_ref` | nunca posterior à data da entrega; nas diárias, 8.791 linhas com a data da entrega e 714 de 1 a 3 dias antes | data de atualização do registro, nunca posterior à entrega | provedor; medido no passo 4.6, sem teste permanente |
 | Contatos | lista JSON `[{tipo, valor}]`, com `tipo` em `celular`, `fixo` ou `email`; 21 linhas com documento têm a lista truncada | lista JSON completa | aviso: `gama_contatos_truncados`; teste unitário `silver_gama_contatos_tipos_e_aparicao_mais_recente` |
@@ -103,7 +103,63 @@ Arquivo único: `contact_data/contatos_realizados.csv`, com as tentativas de set
 | Resultado | 10 valores distintos | lista fechada, com aviso antes de um valor novo | provedor: não há `accepted_values` em `resultado` |
 | Provedor de origem | um ou mais de `alfa`, `beta`, `gama`, separados por `\|` | esse formato; a silver abre o texto na coluna `provedor_origem` da tabela ponte | erro: `accepted_values` em `provedor_origem` e `cobranca_contato_sem_provedor` |
 
-## 6. O que nenhum teste fiscaliza hoje
+## 6. O que a gold recebe da silver
+
+Este é o contrato de entrada da gold: o que cada `silver_<fonte>` entrega, com que grão e o que fica para a gold resolver. A base é a "base cadastral única" com identificação, endereço, contatos e vínculo (p. 1) e a "consistência no tratamento de deduplicações, conflitos cadastrais" (p. 3). A silver deduplica dentro de cada fonte; unir os provedores e resolver conflitos é da gold. O porquê de cada tabela está em [decisoes-de-modelagem.md](decisoes-de-modelagem.md), seções 5.5 e 6.
+
+### 6.1 Tabelas, grão e chave
+
+| Tabela | Grão (chave) | alfa | beta | gama |
+|---|---|---|---|---|
+| `devedores_historico` | uma linha por versão; `hash_conteudo` (`unique`, `not_null`) | 18.587 | 17.861 | 18.564 |
+| `devedores_historico_contatos` | `hash_conteudo`, `tipo_contato`, `contato` | — (`telefone` e `email` são colunas da histórica) | 43.277 | 45.311 |
+| `devedores_historico_enderecos` | `hash_conteudo`, `posicao` | — (endereço em colunas da histórica) | 18.657 | — (endereço em colunas da histórica) |
+| `devedores` | `documento` (beta: `documento_tipo`, `documento`); versão atual | 11.458 | 11.321 | 11.436 |
+| `devedores_contatos` | `documento` (beta: com `documento_tipo`), `tipo_contato`, `contato` | 22.978 (63 com documento `NULL`) | 28.701 (96) | 29.936 (100) |
+| `devedores_enderecos` | `documento` (beta: com `documento_tipo`), `hash_endereco` | 14.912 + 33 com documento `NULL` | 14.994 + 43 | 16.739 + 41 |
+
+As contagens de `devedores` e `devedores_contatos` são de 2026-11-09 e não mudaram quando as duas passaram a sair da histórica nem com o texto em maiúscula; as da histórica, das filhas e de `devedores_enderecos` são do commit cdbc2f9, com o texto em maiúscula.
+
+As filhas têm `relationships` para a histórica. Nas tabelas de pares, o `NULL` de `documento` é um valor da chave (`combinacao_unica`). Todas trazem `_arquivo`, `_linha` e `_hash_arquivo` da aparição mais recente. A histórica e as tabelas de pares trazem `data_primeira_entrega` e `data_ultima_entrega`; `devedores` traz `data_entrega`, a última entrega da versão atual.
+
+### 6.2 Colunas que importam para a gold, com os nomes da fonte
+
+A silver mantém os nomes da origem (AGENTS.md, "Camadas e nomes"); a gold renomeia para os prefixos do projeto.
+
+| Assunto | alfa | beta | gama |
+|---|---|---|---|
+| Documento | `documento` | `documento_tipo` (`CPF` ou `RG`) + `documento` | `documento` |
+| Nome e nascimento | `nome_completo`, `data_nascimento` | `nome_completo`, `data_nascimento` | `nome`, `data_nascimento` |
+| Vínculo | `cnpj_empregador`, `cargo`, `salario_informado` | `vinculo_empresa_cnpj`, `vinculo_empresa_desde` (o mês do vínculo, `DATE` no dia 01), `renda_mensal` | `cnpj_empregador_raw` (já padronizado para 14 caracteres, com o nome da origem); não manda cargo nem renda |
+| Data de atualização da fonte | `data_atualizacao` | `atualizado_em` | `dt_ref` |
+| Contatos | `telefone`, `email` na histórica; pares em `devedores_contatos` | filha com `tipo_contato`, `contato`, `tipo`, `principal`, `posicao` | filha com `tipo_contato`, `contato`, `tipo`, `posicao` |
+| Endereço | `endereco` (texto), `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `cep`, `uf` | filha com `tipo`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `cep`, `atual` | `endereco` (texto), `logradouro`, `numero`, `endereco_json_complemento`, `bairro`, `cidade`, `uf`, `cep` |
+| Outros | — | — | `atributos_extra_estado_civil`, `atributos_extra_qtd_dependentes`, `atributos_extra_score_externo`, `atributos_extra_escolaridade`, `atributos_extra_possui_imovel`, `atributos_extra_fonte_score` |
+
+Os tipos estão em [decisoes-de-modelagem.md](decisoes-de-modelagem.md), seção 5.10: CNPJ, CPF, CEP e telefone em texto, renda e salário em `NUMERIC(14, 2)` (vazio é `NULL`; o `0,00` recebido fica 0.00).
+
+### 6.3 Como ligar as tabelas
+
+- **Versão atual → histórica:** `devedores.hash_conteudo = devedores_historico.hash_conteudo` (teste `relationships`).
+- **Histórica → filhas:** por `hash_conteudo`.
+- **Todas as versões de um documento:** `devedores_historico` filtrada pelo documento (no beta, `documento_tipo` e `documento`). A `ft_vinculo_empresa` sai daqui: uma linha por versão.
+- **Pares → devedor:** `LEFT JOIN` de `devedores_contatos` ou `devedores_enderecos` com `devedores` pelo documento. Um par com documento `NULL` não encontra devedor e não deve ser descartado: é um contato ou endereço recebido sem dono identificável, um sinal para a régua.
+- **O mesmo endereço em documentos diferentes:** `hash_endereco` não leva o documento e é igual nas três fontes para as mesmas partes. Medido (commit cdbc2f9): 14.709 endereços distintos no alfa, 14.833 no beta e 16.639 na gama, menos que os pares, porque há endereços ligados a mais de um documento.
+- **`hash_conteudo` e `hash_endereco` valem só dentro deste banco DuckDB.** Não são portáveis para o PostgreSQL (não verificado; seção 8). A gold não deve guardá-los como identificador fora da pipeline.
+
+### 6.4 O que a gold precisa resolver
+
+| Item | O que a silver entrega | O que fica para a gold |
+|---|---|---|
+| Conflitos no topo | 211 documentos (alfa 55, beta 76, gama 80) em que duas versões diferentes têm as mesmas datas de atualização e de entrega e o mesmo arquivo. A `devedores` escolhe pela linha (`_linha DESC`), uma convenção arbitrária e determinística | escolher com regra própria qual conteúdo vale; as versões em conflito estão todas na histórica |
+| Data sentinela 2025-09-01 | fica como veio na data de atualização e na ordenação da versão atual (cerca de 370 registros por fonte, só nos históricos) | tratá-la; como ausente, ela mudaria a versão atual de 5 documentos no alfa, 2 no beta e 5 na gama |
+| Texto em maiúscula | nomes, cargo, partes e texto original do endereço em maiúscula, com acentos; valores de domínio da gama como vieram (aplicado nas três fontes no commit cdbc2f9) | comparar nomes entre provedores (a silver não remove acento nem compara nomes) |
+| Complemento do endereço | entra na identidade: o mesmo endereço com e sem complemento são dois pares (221 pares na gama) | decidir se são o mesmo endereço |
+| `0,00` no salário do alfa | fica 0.00 | decidir se é "sem renda" ou "não informado" |
+| Documento `NULL` | versões na histórica e pares com documento `NULL` | usar como sinal de risco, com `LEFT JOIN` |
+| Renda alterada | 1.982 documentos do alfa e 1.416 do beta com mais de uma renda nas versões | a `ft_vinculo_empresa` e a regra da versão de vínculo atual |
+
+## 7. O que nenhum teste fiscaliza hoje
 
 Itens que dependem só do provedor, reunidos para a revisão do tópico e para o monitoramento:
 1. Arquivo com nome fora do padrão (é ignorado) e arquivo que casa com o padrão sem uma data válida no nome (recebe a data da carga histórica).
@@ -116,7 +172,10 @@ Itens que dependem só do provedor, reunidos para a revisão do tópico e para o
 7. CEP com zero perdido (a silver corrige, mas não conta).
 8. Valor novo em `resultado` da cobrança.
 
-## 7. O que não foi verificado
+## 8. O que não foi verificado
+
+- O `hash_conteudo` e o `hash_endereco` não são portáveis entre DuckDB e PostgreSQL: o texto do `CAST` pode diferir entre os motores. Não há instância de PostgreSQL para testar.
+- A medição do desenho da gold contou 962 documentos do beta com mudança de renda nos arquivos brutos; pela regra da pipeline são 1.416 (seção 6.4). A diferença não foi investigada.
 
 - As versões PostgreSQL das macros com `adapter.dispatch` (`json_ou_nulo`, `json_texto`, `json_abrir_lista`, `data_iso_ou_nulo`, `timestamp_ou_nulo`) foram escritas a partir da documentação e nunca executadas. Os testes de macro citados aqui rodaram só no DuckDB, inclusive os das macros novas (`cnpj_normalizado`, `cnpj_valido`, `uf_normalizada`, `mes_como_data`).
 - Os significados de `0,00` no salário do alfa e das datas sentinela são suposições até o provedor confirmar. O horário de Brasília para datas e horas sem fuso é regra do projeto, e nenhum provedor a confirmou.

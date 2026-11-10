@@ -3,8 +3,8 @@
 Este documento registra como os dados recebidos chegam até a silver e por quê: as camadas, as fontes, a ingestão, a rastreabilidade e as regras da silver. A gold (base única, régua de risco) é de outro tópico e só aparece aqui quando uma decisão da silver existe para servir a ela.
 
 - **Base:** o enunciado (`.context/converted/case-tecnico-dados-cobranca.md`, citado pela página), as convenções do case no `AGENTS.md` e as fontes externas listadas na seção 4 e na seção 5.
-- **Números:** medidos em 2026-11-09 sobre a carga completa (92 arquivos, 73.050 linhas recebidas). Cada número vem do corpo de um commit do tópico ou de uma consulta indicada aqui. Os dados são sintéticos (p. 2) e cobrem um mês de entregas diárias; nenhum número daqui vale como estimativa para dados reais.
-- **O que não foi verificado** está reunido na seção 7.
+- **Números:** medidos em 2026-11-09 sobre a carga completa (92 arquivos, 73.050 linhas recebidas); os da histórica de versões (seção 6), em 2026-11-09 e 2026-11-10. Cada número vem do corpo de um commit do tópico ou de uma consulta indicada aqui. Os dados são sintéticos (p. 2) e cobrem um mês de entregas diárias; nenhum número daqui vale como estimativa para dados reais.
+- **O que não foi verificado** está reunido na seção 8.
 
 O que se espera de cada provedor (nomes de coluna, formatos, valores sentinela) fica em [contratos-de-dados.md](contratos-de-dados.md).
 
@@ -75,7 +75,13 @@ No CSV, as colunas são a união dos cabeçalhos de todos os arquivos da entidad
 
 Toda tabela da bronze tem `_arquivo` (caminho relativo ao repositório), `_linha` (onde o registro começa no arquivo), `_hash_arquivo` (sha256 do arquivo), `_linha_original` e `_motivo_ilegivel`. Cada fonte tem um registro de cargas em `bronze_<fonte>.arquivos`: arquivo, entidade, hash, bytes, linhas e cabeçalho.
 
-Toda tabela da silver carrega `_arquivo`, `_linha` e `_hash_arquivo`, e um teste exige as três em toda tabela da camada. A regra vem da seção "Stack" do AGENTS.md: a rastreabilidade de cada linha vem do arquivo, da linha e do hash de origem. Numa tabela em que cada linha vem de uma linha da bronze (`devedores`, `devedores_enderecos`, `contatos_realizados`), são as colunas dessa linha. Numa tabela que agrega várias aparições, são as da aparição mais recente: em `devedores_contatos`, a última linha da bronze em que o par (documento, tipo_contato, contato) apareceu. Em `contatos_realizados_provedores`, são as da linha do contato realizado que originou o par (contato, provedor_origem).
+Toda tabela da silver carrega `_arquivo`, `_linha` e `_hash_arquivo`, e um teste exige as três em toda tabela da camada. A regra vem da seção "Stack" do AGENTS.md: a rastreabilidade de cada linha vem do arquivo, da linha e do hash de origem. Numa tabela em que cada linha vem de uma linha da bronze (`contatos_realizados`), são as colunas dessa linha. Numa tabela que agrega várias aparições, são as da aparição mais recente:
+- em `devedores_historico`, a última linha da bronze em que a versão apareceu, escolhida pela mesma ordem da versão atual (seção 5.3);
+- em `devedores`, as da versão vencedora, que vêm da histórica;
+- nas filhas da histórica (`devedores_historico_contatos`, `devedores_historico_enderecos`), as da aparição mais recente da versão;
+- em `devedores_contatos` e `devedores_enderecos`, as da aparição mais recente do par (documento, contato) ou (documento, endereço): a da versão com a maior ordem que contém o par.
+
+Em `contatos_realizados_provedores`, são as da linha do contato realizado que originou o par (contato, provedor_origem).
 
 Essas colunas seguem o padrão dos carregadores consagrados. Para cada linha, guarda-se a origem, a posição e uma chave do conteúdo. Para cada carga, um registro referenciado pelas linhas.
 
@@ -112,17 +118,25 @@ A silver trabalha dentro de uma fonte só: tipos, limpeza, normalização, abert
 
 | Tabela | Grão (chave) | Linhas |
 |---|---|---|
+| `silver_alfa.devedores_historico` | hash_conteudo (uma linha por versão) | 18.587 |
 | `silver_alfa.devedores` | documento | 11.458 |
 | `silver_alfa.devedores_contatos` | documento, tipo_contato, contato | 22.978 (11.970 telefones, 11.008 e-mails; 63 com documento `NULL`) |
+| `silver_alfa.devedores_enderecos` | documento, hash_endereco | 14.945 (14.912 com documento, 33 com documento `NULL`) |
+| `silver_beta.devedores_historico` | hash_conteudo | 17.861 |
+| `silver_beta.devedores_historico_contatos` | hash_conteudo, tipo_contato, contato | 43.277 |
+| `silver_beta.devedores_historico_enderecos` | hash_conteudo, posicao | 18.657 |
 | `silver_beta.devedores` | documento_tipo, documento | 11.321 (11.279 CPF, 42 RG) |
 | `silver_beta.devedores_contatos` | documento_tipo, documento, tipo_contato, contato | 28.701 (17.246 telefones, 11.455 e-mails; 96 com documento `NULL`) |
-| `silver_beta.devedores_enderecos` | documento_tipo, documento, posicao | 11.849 |
+| `silver_beta.devedores_enderecos` | documento_tipo, documento, hash_endereco | 15.037 (14.994 com documento, 43 com documento `NULL`) |
+| `silver_gama.devedores_historico` | hash_conteudo | 18.564 |
+| `silver_gama.devedores_historico_contatos` | hash_conteudo, tipo_contato, contato | 45.311 |
 | `silver_gama.devedores` | documento | 11.436 |
 | `silver_gama.devedores_contatos` | documento, tipo_contato, contato | 29.936 (15.691 celulares, 2.466 fixos, 11.779 e-mails; 100 com documento `NULL`) |
+| `silver_gama.devedores_enderecos` | documento, hash_endereco | 16.780 (16.739 com documento, 41 com documento `NULL`) |
 | `silver_cobranca.contatos_realizados` | contato_id | 15.053 |
 | `silver_cobranca.contatos_realizados_provedores` | contato_id, provedor_origem | 24.774 |
 
-Toda tabela tem teste de chave primária (`unique` ou `combinacao_unica`) e um teste `*_linhas_representadas`, que falha se uma linha da bronze não estiver representada: o documento em `devedores` ou, na linha sem documento, os contatos dela em `devedores_contatos`. Contagens de 2026-11-09, depois da segunda revisão da silver; nas tabelas de contatos, o `NULL` de `documento` é um valor da chave (seção 5.8).
+Toda tabela tem teste de chave primária (`unique` ou `combinacao_unica`), e as filhas da histórica têm `relationships` para ela. Um teste `*_linhas_representadas` falha se uma linha da bronze não estiver representada: o documento em `devedores` ou, na linha sem documento, os contatos dela em `devedores_contatos`. As contagens de `devedores`, `devedores_contatos` e das tabelas da cobrança são de 2026-11-09, depois da segunda revisão da silver, e não mudaram quando essas tabelas passaram a sair da histórica (seção 6.6). As da histórica, das filhas e dos pares de endereço são de 2026-11-10 (os pares, no commit ca207e1, antes da maiúscula da seção 6.4). Nas tabelas de pares, o `NULL` de `documento` é um valor da chave (seção 5.8).
 
 ### 5.2 Padronizar antes de deduplicar
 
@@ -134,17 +148,22 @@ As regras de formato ficam em macros (`macros/padronizacao/`), cada uma com test
 
 ### 5.3 Deduplicação pela chave de cada tabela
 
-A deduplicação usa `ROW_NUMBER() OVER (PARTITION BY <chave> ORDER BY ... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`, como pede a convenção do case para funções de janela. Em `devedores`, vale a versão mais recente:
+A deduplicação usa `ROW_NUMBER() OVER (PARTITION BY <chave> ORDER BY ... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)`, como pede a convenção do case para funções de janela. Ela acontece em dois pontos:
+1. **Na histórica**, pela chave da versão (`PARTITION BY hash_conteudo`): as linhas com o mesmo conteúdo viram uma versão só, com a rastreabilidade da aparição mais recente. A primeira e a última entrega saem de um `GROUP BY` com `MIN` e `MAX`, porque a convenção do case só permite `ROW_NUMBER()` e `SUM()` em janela (seção 6).
+2. **Em `devedores`**, sobre as versões da histórica (`PARTITION BY documento`, no beta `documento_tipo, documento`): vale a versão mais recente.
+
+As duas usam a mesma ordem, escrita uma vez na macro `ordem_versao` (`macros/padronizacao/historico.sql`):
 
 ```
-ORDER BY <data de atualização> DESC NULLS LAST, data_entrega DESC NULLS LAST, _arquivo DESC, _linha DESC
+ORDER BY <data de atualização> DESC NULLS LAST, data_entrega DESC NULLS LAST, _arquivo COLLATE "C" DESC, _linha DESC
 ```
 
-A linha sem documento não entra em `devedores`: o filtro `documento IS NOT NULL` vem antes do `ROW_NUMBER`, para os `NULL` não formarem um grupo (seção 5.8).
+A linha sem documento não entra em `devedores`: o filtro `documento IS NOT NULL` vem antes do `ROW_NUMBER`, para os `NULL` não formarem um grupo (seção 5.8). Ela continua na histórica, com `documento` `NULL`.
 
 - A data de atualização é a informada pelo provedor, com o nome que a fonte usa: `data_atualizacao` no alfa, `atualizado_em` no beta e `dt_ref` na gama (seção 5.9).
 - `data_entrega` sai do nome do arquivo. O histórico não tem data no nome: só o arquivo configurado em `arquivo_historico` (nome exato) usa a variável `data_carga_historica: 2026-08-31`, a data em que o enunciado fixa a carga histórica (p. 1). Um arquivo diário sem data válida no nome fica com a data nula e o teste `entrega_diaria_sem_data_valida` reprova a pipeline.
-- `_arquivo` e depois `_linha` desempatam: o original e o reenvio da mesma data (gama, 15/09) trazem a mesma linha, e sem o arquivo o vencedor era arbitrário. O resultado é determinístico porque (documento, atualização, entrega, arquivo, linha) não tem empate.
+- Em `devedores`, a data de entrega de cada versão é a última em que ela apareceu (`data_ultima_entrega`), e o arquivo e a linha são os dessa aparição.
+- `_arquivo` e depois `_linha` desempatam: o original e o reenvio da mesma data (gama, 15/09) trazem a mesma linha, e sem o arquivo o vencedor era arbitrário. `COLLATE "C"` fixa a ordem do texto por bytes, igual no PostgreSQL e no DuckDB. O resultado é determinístico porque (documento, atualização, entrega, arquivo, linha) não tem empate. O `_linha DESC` final é uma convenção arbitrária, e a seção 6.5 mostra por quê.
 
 **Por que a data de atualização vem antes da data de entrega.** Ordenar pela entrega antes da atualização escolhe outro vencedor em 0 dos 11.458 documentos do alfa, 1 dos 11.321 do beta e 1 dos 11.436 da gama (consulta abaixo). O caso do beta é um reenvio atrasado: uma entrega trouxe um registro atualizado um dia antes do que já tinha vindo numa entrega anterior (commit ddc2107). Com a atualização primeiro, um reenvio velho não substitui a versão mais nova.
 
@@ -208,23 +227,34 @@ WHERE 1 = 1
   AND (a._arquivo <> b._arquivo OR a._linha <> b._linha)
 ```
 
-### 5.5 `devedores` e `devedores_contatos`, e por que não o histórico completo
+### 5.5 A histórica como base: `devedores`, `devedores_contatos` e `devedores_enderecos` saem dela
 
-Cada provedor gera duas tabelas de devedor:
-- `devedores`: a versão mais recente de cada documento;
-- `devedores_contatos`: uma linha por (documento, tipo_contato, contato normalizado) sobre **todas** as linhas da bronze, inclusive as de documento vazio ou zerado (com `documento` `NULL`, seção 5.8), com a primeira e a última data de entrega em que o par apareceu e os atributos do provedor (`tipo` do telefone, `principal`) da aparição mais recente.
+Por fonte, a base é `devedores_historico`: todas as versões de tudo o que foi recebido, inclusive as linhas sem documento (`documento` `NULL`). As listas viram tabelas filhas por versão. O alfa manda um telefone e um e-mail por linha, e eles ficam como colunas da histórica.
 
-O motivo é o risco do enunciado: "um número que mudou de dono ou um contato ligado a vários CPFs" (p. 1). A versão atual do devedor perde os contatos que saíram dela, e são justamente esses que mostram a troca de dono. Medido: 481 telefones do alfa e 922 telefones e 91 e-mails do beta só aparecem em versões anteriores à atual (commits 48507a8 e ddc2107). Na análise exploratória, telefones que passaram para outro CPF entre o histórico e as entregas tiveram 25,1% de contato errado em 1.014 tentativas ([perfil-das-fontes.md](perfil-das-fontes.md)).
+```
+<fonte>_devedores_padronizados (efêmero, uma linha por linha recebida)
+  └─ devedores_historico (uma linha por versão)
+       ├─ devedores_historico_contatos  (beta, gama: versão × contato)
+       ├─ devedores_historico_enderecos (beta: versão × posição na lista)
+       ├─ devedores           (versão atual de cada documento)
+       ├─ devedores_contatos  (documento × contato, todas as versões)
+       └─ devedores_enderecos (documento × endereço, todas as versões)
+```
 
-| Opção | Ganho | Custo |
+| Tabela | O que é | Por que existe |
 |---|---|---|
-| Versão atual + histórico da relação devedor–contato (adotada) | guarda exatamente o que a régua usa (quando cada contato apareceu e sumiu) | os outros atributos (nome, renda, endereço) ficam só na versão atual |
-| Histórico completo do registro (SCD tipo 2, como os snapshots do dbt) | toda mudança de qualquer atributo | nenhuma pergunta do enunciado precisa dele; o snapshot do dbt depende de estado persistido, e o banco é recriado a cada execução |
-| Só a versão atual | mais simples | perde os 481 + 922 telefones e 91 e-mails acima |
+| `devedores_historico` | uma linha por versão; chave `hash_conteudo` | a gold precisa de todas as versões (seção 6.1) |
+| `devedores_historico_contatos` | os contatos de cada versão (beta, gama) | as listas viram linhas na silver, e não JSON numa tabela que a gold lê |
+| `devedores_historico_enderecos` | os endereços de cada versão (beta), com `posicao` e o `atual` como veio | idem; o objeto `endereco` único vira a posição 1 |
+| `devedores` | a versão atual de cada documento (seção 5.3); `hash_conteudo` liga a versão atual à histórica | a gold e a régua leem o cadastro atual sem refazer o desempate |
+| `devedores_contatos` | uma linha por (documento, tipo_contato, contato), com a primeira e a última entrega e os atributos do provedor (`tipo`, `principal`) da aparição mais recente | o histórico da relação devedor–contato, que é o que a régua usa |
+| `devedores_enderecos` | uma linha por (documento, endereço padronizado), com a primeira e a última entrega; no beta, `tipo` e `atual` da aparição mais recente | a `dim_endereco` da gold (seção 6.4) |
 
-O desenho adotado é próximo do que o Data Vault chama de satélite de efetividade num link: o histórico da relação, e não do registro inteiro. As fontes são a documentação de snapshots do dbt (cópia em `.context/raw/referencias/dbt/snapshots.md`, Apache 2.0) e, como referência secundária, https://www.wikiwand.com/en/Data_vault_modeling.
+**Por que o histórico da relação devedor–contato.** O motivo é o risco do enunciado: "um número que mudou de dono ou um contato ligado a vários CPFs" (p. 1). A versão atual do devedor perde os contatos que saíram dela, e são justamente esses que mostram a troca de dono. Medido: 481 telefones do alfa e 922 telefones e 91 e-mails do beta só aparecem em versões anteriores à atual (commits 48507a8 e ddc2107). Na análise exploratória, telefones que passaram para outro CPF entre o histórico e as entregas tiveram 25,1% de contato errado em 1.014 tentativas ([perfil-das-fontes.md](perfil-das-fontes.md)). O desenho dos pares é próximo do que o Data Vault chama de satélite de efetividade num link: o histórico da relação (fontes: a documentação de snapshots do dbt, cópia em `.context/raw/referencias/dbt/snapshots.md`, Apache 2.0, e, como referência secundária, https://www.wikiwand.com/en/Data_vault_modeling).
 
-No beta, os endereços vêm em lista e vão para `devedores_enderecos`, com a lista da versão atual e o campo `atual` como veio. O objeto `endereco` único vira a posição 1.
+**Como os pares saem da histórica.** A primeira entrega de um par é a menor das primeiras entregas das versões que o contêm; a última, a maior das últimas. A rastreabilidade e os atributos do provedor são os da versão com a maior `ordem_versao` que contém o par, porque a data de entrega sozinha não identifica o arquivo. Um par com documento `NULL` é deduplicado só pelo contato (ou pelo endereço) entre as linhas sem documento e nunca se junta a um par de documento válido (seção 5.8).
+
+**Até 2026-11-09**, a silver guardava só a versão atual em `devedores`, a `devedores_contatos` lia as linhas padronizadas, e a `devedores_enderecos` do beta tinha a lista da versão atual. A seção 6 explica a mudança. Quando `devedores` e `devedores_contatos` passaram a sair da histórica, nenhuma das tabelas que já existiam mudou de conteúdo (seção 6.6). A `devedores_enderecos` do beta mudou de grão depois, de (documento, posição) para (documento, endereço), e ganhou as versões antigas (seção 6.4).
 
 ### 5.6 A ponte de provedores na cobrança
 
@@ -245,9 +275,11 @@ O endereço em texto é separado em logradouro, número, complemento, bairro e c
 
 Cobertura medida: 11.459 de 11.459 endereços do alfa e 100% das 6.918 linhas do layout `rua` e das 2.936 do layout `endereco` da gama (commits 48507a8 e d6bb9e4). Os 9.650 endereços da gama no layout estruturado e todos os do beta já vêm separados pelo provedor. O que o padrão não pega é a troca de campos com o mesmo formato (bairro no lugar da cidade). O autor decidiu em 2026-11-09 que o padrão estrito fica e que a ordem dos campos é obrigação do provedor no contrato ([contratos-de-dados.md](contratos-de-dados.md)): nenhum teste distingue dois textos livres.
 
+As partes separadas aqui são a identidade do endereço nos pares `devedores_enderecos`, e o texto livre do endereço vai para maiúscula (seção 6.4). Os testes de ida e volta (`alfa_endereco_ida_e_volta`, `gama_endereco_ida_e_volta`) continuam verdes com o texto em maiúscula: nenhuma expressão regular do endereço depende de maiúscula ou minúscula.
+
 ### 5.8 Linhas sem chave e documento que não identifica ninguém
 
-Uma linha sem chave (ilegível, cabeçalho repetido) não entra na silver e continua na bronze. Documento vazio ou só com zeros (`0`, `000.000.000-00`, `00000000000`) é ausência de chave: `documento` fica `NULL` antes de qualquer deduplicação, e a linha nunca vira devedor. O autor decidiu isso em 2026-11-09, a partir de "ausência é `NULL`, nunca zero" (AGENTS.md, convenções do case).
+Uma linha que não se lê (CSV ilegível, JSON truncado do beta) ou que repete o cabeçalho não entra na silver e continua na bronze. O cabeçalho repetido não é um registro e nunca vira versão; o teste de aviso `cabecalho_repetido_fora_da_historica` conta essas linhas (hoje 1, na gama). Documento vazio ou só com zeros (`0`, `000.000.000-00`, `00000000000`) é ausência de chave: `documento` fica `NULL` antes de qualquer deduplicação, e a linha nunca vira devedor. Ela entra na histórica como versão com `documento` `NULL`, para nenhuma informação recebida se perder. O autor decidiu isso em 2026-11-09 e 2026-11-10, a partir de "ausência é `NULL`, nunca zero" (AGENTS.md, convenções do case).
 
 | Opção | Ganho | Custo |
 |---|---|---|
@@ -260,7 +292,7 @@ O plano falava em 5 pessoas diferentes no CPF zerado do beta; medi 8 nomes disti
 **Como funciona.**
 - `cpf_normalizado` devolve `NULL` para documento vazio ou só com zeros, e o RG do beta passa pela macro `nulo_se_so_zeros`. No beta, `documento_tipo` também fica `NULL` quando não há documento. O mesmo vale para o `cpf_alvo` da cobrança (nenhuma linha cai nisso hoje; o teste `documento_que_nao_identifica_ninguem` confere todas as tabelas).
 - `devedores` filtra `documento IS NOT NULL` antes do `ROW_NUMBER`, para os `NULL` não formarem um grupo.
-- `devedores_contatos` recebe os contatos dessas linhas. O `GROUP BY` e o `ROW_NUMBER` agrupam `NULL` com `NULL`, então esses contatos são deduplicados só por (`tipo_contato`, `contato`) entre as linhas sem documento, com a primeira e a última entrega e a rastreabilidade da aparição mais recente. A junção que devolve essa rastreabilidade usa `IS NOT DISTINCT FROM`, e um par sem documento nunca se junta a um par de documento válido (teste unitário nas três fontes).
+- `devedores_contatos` (e `devedores_enderecos`) recebe os contatos (e os endereços) das versões dessas linhas. O `GROUP BY` e o `ROW_NUMBER` agrupam `NULL` com `NULL`, então esses contatos são deduplicados só por (`tipo_contato`, `contato`) entre as linhas sem documento, com a primeira e a última entrega e a rastreabilidade da aparição mais recente. A junção que devolve essa rastreabilidade usa `IS NOT DISTINCT FROM`, e um par sem documento nunca se junta a um par de documento válido (teste unitário nas três fontes).
 - A chave primária dessas tabelas usa `combinacao_unica`, que trata `NULL` como valor; o `unique` do dbt ignoraria o `NULL`. Um teste (`teste_combinacao_unica_trata_null_como_valor`) prova isso e falha se o teste genérico passar a ignorar `NULL`.
 
 **Medido (2026-11-09).** 124 linhas sem documento utilizável: alfa 37 (34 vazios e 3 zerados), beta 42 (33 vazios e 9 zerados) e gama 45 (vazios). Os devedores com documento zerado caíram de 1 para 0 no alfa e no beta. Os contatos dessas linhas ficaram em `devedores_contatos` com `documento` `NULL`: 259 pares (alfa 63, beta 96, gama 100). 81 tentativas da cobrança chegam a esses contatos pelo canal e pelo destino (o plano citava 79; não investiguei a diferença).
@@ -282,7 +314,7 @@ Decisão do autor (2026-11-09; AGENTS.md, "Camadas e nomes"): a bronze e a silve
 
 A primeira versão da silver tinha renomeado 6 colunas que não têm variante na fonte: `dt_ref` e `cnpj_empregador_raw` da gama, `atualizado_em` do beta, o `tipo` do telefone no beta e na gama (`tipo_telefone`) e o `provedor_origem` da ponte da cobrança (`provedor`). Todas voltaram ao nome da origem (commit 1ed6423). A coluna criada que diz se o contato é telefone ou e-mail passou a `tipo_contato` nas três tabelas `devedores_contatos`, porque o `tipo` é o campo do provedor.
 
-Colunas criadas, com nome próprio: `tipo_contato`, `contato` (o valor normalizado, que junta campos diferentes de telefone e e-mail), `data_entrega`, `data_primeira_entrega`, `data_ultima_entrega`, `posicao`, e as partes do endereço do alfa.
+Colunas criadas, com nome próprio: `tipo_contato`, `contato` (o valor normalizado, que junta campos diferentes de telefone e e-mail), `data_entrega`, `data_primeira_entrega`, `data_ultima_entrega`, `posicao`, `hash_conteudo` e `hash_endereco` (seção 6), e as partes do endereço do alfa.
 
 Campo de objeto JSON aninhado que vira coluna da tabela-mãe chama-se `<objeto>_<chave>`, com os dois nomes da fonte (decisão do autor, 2026-11-09; AGENTS.md, "Camadas e nomes"): no beta, `documento_tipo` (de `documento.tipo`), `vinculo_empresa_cnpj` e `vinculo_empresa_desde`; na gama, `atributos_extra_estado_civil`, `atributos_extra_qtd_dependentes`, `atributos_extra_score_externo`, `atributos_extra_escolaridade`, `atributos_extra_possui_imovel` e `atributos_extra_fonte_score`, e `endereco_json_complemento`, o único campo de `endereco_json` que passa como veio. O `documento` (une `cpf` e `documento.valor`) e as partes do endereço da gama (`logradouro`, `numero`, `bairro`, `cidade`, `uf`, `cep`, que unem layouts ou completam o valor) são criadas pela pipeline e mantêm o nome próprio. Elemento de lista aberta em tabela filha mantém as chaves da fonte (a tabela filha é o objeto): `tipo`, `logradouro` e demais em `devedores_enderecos`. O teste `colunas_declaradas` falha se uma tabela da bronze ganhar ou perder uma coluna em relação ao YAML.
 
@@ -300,7 +332,7 @@ O enunciado pede os tipos de cada coluna e o ganho de integridade (p. 2).
 | `principal`, `atual`, `possui_imovel` | `BOOLEAN` | vêm como booleano no JSON |
 | `vinculo_empresa_desde` do beta | `DATE`, no dia 01 | decisão do autor (2026-11-09): o valor é o MÊS do vínculo (a origem manda `AAAA-MM`); o dia 01 é só o jeito de guardar um mês em um `DATE`, e a descrição da coluna diz que ninguém deve lê-lo como "começou no dia 1". Formato fora de `AAAA-MM` vira `NULL`, e o aviso `beta_vinculo_desde_fora_do_formato` o conta (hoje 0) |
 
-Rastreabilidade: `_linha` é `BIGINT` e `_arquivo` e `_hash_arquivo` são texto.
+Rastreabilidade: `_linha` é `BIGINT` e `_arquivo` e `_hash_arquivo` são texto. `hash_conteudo` e `hash_endereco` são o texto hexadecimal que o `MD5` devolve.
 
 ### 5.11 Fuso horário: Brasília
 
@@ -308,7 +340,7 @@ Decisão do autor (2026-11-09; AGENTS.md, "Ingestão"): datas e horas que chegam
 
 ### 5.12 UF
 
-Todas as colunas de UF da silver (`silver_alfa.devedores`, `silver_beta.devedores_enderecos`, `silver_gama.devedores`) passam por `uf_normalizada`: `UPPER(TRIM(valor))`, e só vale se for uma das 27 UFs; vazio ou fora do domínio dá `NULL`. Medido na versão atual de cada devedor: no alfa, 343 UFs fora do padrão de maiúscula (`sp` 98 passou a `SP`, e o total de SP foi de 2.902 para 3.000) e 27 `XX` que viraram `NULL`; beta e gama já vinham no domínio. O `XX` é o preenchimento do provedor para UF desconhecida e está no contrato ([contratos-de-dados.md](contratos-de-dados.md)).
+Todas as colunas de UF da silver (`silver_alfa.devedores`, `silver_beta.devedores_enderecos`, `silver_gama.devedores`) passam por `uf_normalizada`: `UPPER(TRIM(valor))`, e só vale se for uma das 27 UFs; vazio ou fora do domínio dá `NULL`. Medido na versão atual de cada devedor: no alfa, 343 UFs fora do padrão de maiúscula (`sp` 98 passou a `SP`, e o total de SP foi de 2.902 para 3.000) e 27 `XX` que viraram `NULL`; beta e gama já vinham no domínio. O `XX` é o preenchimento do provedor para UF desconhecida e está no contrato ([contratos-de-dados.md](contratos-de-dados.md)). A mesma lógica de formato leva o texto livre para maiúscula (seção 6.4).
 
 ### 5.13 CNPJ do empregador
 
@@ -318,7 +350,113 @@ Medido sobre as linhas recebidas: 14 caracteres em 46.276 linhas, todas válidas
 
 Limitação da base: o que não encaixa em nenhuma regra (mais de 14 caracteres, ou menos de 14 sem regra que o complete) fica como veio. Hoje nenhum valor da silver cai aí (o único de 17 caracteres é o cabeçalho repetido, que não está em nenhuma tabela); o aviso `cnpj_do_empregador_fora_da_regra` o mostra se aparecer, e o teste `cnpj_do_empregador_com_digito_verificador_valido` reprova a pipeline se algum CNPJ de 14 caracteres tiver dígitos inválidos. Completar com zeros e calcular os dígitos recompõem o que a origem escreveu sem os zeros à esquerda ou sem os dígitos; nenhuma delas adivinha um empregador, mas a regra supõe que o provedor mandou a base certa. Custo: reler as três colunas de CNPJ da silver foi de 0,37 s para 0,65 s (mediana de 7 execuções).
 
-## 6. Escolhas de formato
+## 6. Mudança de rumo: histórico de versões (2026-11-10)
+
+Esta seção reabre três decisões da silver: as tabelas (S1), a versão atual como única versão do devedor (S3) e o histórico só da relação devedor–contato (S4). As demais regras das seções 4 e 5 continuam valendo.
+
+### 6.1 Motivo
+
+A gold aprovou duas tabelas que precisam de todas as versões de cada registro:
+- `ft_vinculo_empresa`: uma linha por versão de vínculo recebida (empregador, cargo, renda, início do vínculo);
+- `dim_endereco`: documento × endereço distinto, com a primeira e a última vez em que foi visto.
+
+A silver guardava só a versão mais recente de cada documento. O enunciado pede uma base que consolide "identificação, endereço, contatos e vínculo empregatício" e uma régua validada contra os "pontos cegos" da classificação (p. 1), e avalia a "consistência no tratamento de deduplicações, conflitos cadastrais" (p. 3). Uma renda ou um endereço que saiu da versão atual é exatamente o que a versão atual esconde.
+
+**Medido em 2026-11-09 e 2026-11-10** (banco gerado no commit `fded0da`, conexão só de leitura):
+
+| | alfa | beta | gama |
+|---|---|---|---|
+| Linhas legíveis / sem documento | 19.476 / 37 | 19.000 / 42 | 19.505 / 46 (1 é o cabeçalho repetido) |
+| Versões (campos, contatos e endereços padronizados) | 18.587 | 17.866 | 18.565 (18.564 sem o cabeçalho repetido) |
+| Versões que só diferem na data de atualização | 1.724 | 257 | 0 |
+| Documentos com mais de uma renda | 1.982 | 1.416 | — (a gama não manda renda) |
+| Conflitos no topo: mesmo documento, mesmas datas, conteúdos diferentes, decididos pela linha | 55 | 76 | 80 |
+
+### 6.2 Estrutura: as opções e por que M3
+
+| Opção | Como fica | A favor | Contra |
+|---|---|---|---|
+| C (a primeira aprovada) | histórica só com os campos simples, base da `devedores`; a `devedores_contatos` continua lendo as linhas | mexe pouco | a histórica não tem tudo o que foi recebido (as listas ficam fora); duas bases para a mesma fonte |
+| C com JSON | a histórica guarda as listas como vieram | mexe pouco | JSON numa tabela que a gold lê; comparar listas exige padronizá-las (o JSON bruto daria 4 versões falsas no beta); duas bases |
+| B relacional | histórica + filhas por versão; a `devedores` e a `devedores_contatos` saem dela | uma base e uma regra de versão; a histórica tem tudo, sem JSON | mais tabelas; a `devedores_contatos` muda de origem, e um teste tem de provar que ela fica igual |
+| M1 | só a histórica e as filhas; a gold calcula a versão atual e os pares | a silver não escolhe nada arbitrário; nenhuma tabela derivada para manter igual | a gold refaz o cálculo; saem tabelas já testadas; o contrato que a gold esperava muda |
+| M2 | M1 + a versão atual e os pares como views | a gold recebe pronto; nada guardado duas vezes | a silver continua decidindo o desempate arbitrário |
+| **M3 (adotada)** | B relacional, com a `devedores`, a `devedores_contatos` e a `devedores_enderecos` como tabelas | mantém o contrato que a gold esperava e as tabelas já testadas | redundância; a igualdade das derivadas com as tabelas anteriores foi provada uma vez, na refatoração (seção 6.6), e não por um teste permanente |
+
+A escolha foi do autor, em 2026-11-10. A estrutura de cada fonte está na seção 5.5. As listas viram filhas, e não JSON, porque a silver abre listas em linhas (AGENTS.md, "Camadas e nomes"), como já faz com o `alfa|beta|gama` da cobrança (seção 5.6). O desempate arbitrário que a M3 mantém na silver está declarado na seção 6.5.
+
+### 6.3 Duplicata real e chave da versão
+
+**Duplicata real** é o mesmo documento com todo o conteúdo padronizado igual, sem contar `_arquivo`, `_linha`, `_hash_arquivo` e `data_entrega`.
+- A data de atualização da fonte é conteúdo: 1.724 versões do alfa e 257 do beta só diferem por ela.
+- O conteúdo igual colapsa onde quer que apareça, e não só quando se repete em seguida. Os casos A → B → A medidos são conflitos no mesmo arquivo e na mesma data, ordenados pela linha, e não retornos no tempo.
+- `NULL` é igual a `NULL`.
+- A ordem dos elementos de uma lista não cria versão.
+
+**Chave: `hash_conteudo`.** É uma coluna criada: o `MD5` do conteúdo padronizado, com o documento e a assinatura de cada lista. Três macros em `macros/padronizacao/historico.sql` fazem a serialização num lugar só, igual nas três fontes:
+- `serializar_valor`: `NULL` vira `N`; um valor vira `V<tamanho>:<texto>`. O prefixo de tamanho torna a serialização injetiva: (`ab`, `c`) e (`a`, `bc`) dão textos diferentes, e `NULL` difere do texto vazio (`V0:`). O `CONCAT_WS` não serve porque pula o `NULL`.
+- `hash_conteudo`: o `MD5` das colunas serializadas, numa ordem fixa. A ordem das colunas faz parte do contrato.
+- `assinatura_lista`: `STRING_AGG` dos elementos serializados, ordenados pelo próprio texto em ordem de bytes (`COLLATE "C"`). Por isso a ordem em que a lista chegou não muda a assinatura. Sem o `ORDER BY`, as documentações do PostgreSQL e do DuckDB dizem que a ordem do `STRING_AGG` é indefinida, e o hash poderia mudar entre execuções.
+
+Os testes `macro_hash_conteudo` e `macro_assinatura_lista` provam que `NULL` difere de texto vazio e que a ordem da lista não muda o hash. Sem o prefixo de tamanho, os dois falham (verificado no passo das macros, commit 0732cea).
+
+| Opção de chave | A favor | Contra |
+|---|---|---|
+| **K1. `hash_conteudo` (adotada)** | nunca é `NULL`, nem com `documento` `NULL`, então o `unique` e o `not_null` do dbt bastam; a mesma versão tem a mesma chave em qualquer execução e com cargas novas; a deduplicação particiona por uma coluna, e não por cerca de 20 | a serialização tem de ser única e fixa (por isso a macro); a chave não é legível; não é portável entre motores (seção 8) |
+| K2. Rastreabilidade da aparição mais recente (`_arquivo`, `_linha`) | legível, única por construção | muda quando uma entrega nova repete a versão; a comparação de conteúdo continua precisando de todas as colunas e das listas |
+| K3. Documento + número da versão (`ROW_NUMBER()`) | "versão 3 do CPF X" | a numeração muda quando chega uma versão com data mais antiga; depende do desempate arbitrário; o documento `NULL` precisa de caso especial |
+
+**Colisão.** Com cerca de 18,6 mil versões por fonte, a chance de duas versões diferentes terem o mesmo `MD5` é da ordem de n²/2¹²⁹, cerca de 10⁻³¹. É uma estimativa de probabilidade, não uma medição. O `MD5` serve aqui só como impressão digital do conteúdo, sem adversário.
+
+**Filhas.** `devedores_historico_contatos` (beta e gama) tem chave (`hash_conteudo`, `tipo_contato`, `contato`); medi 0 contatos repetidos dentro de uma lista, e um teste guarda isso. `devedores_historico_enderecos` (beta) tem chave (`hash_conteudo`, `posicao`). As duas têm `relationships` para a histórica. A `posicao` é atributo, vindo da aparição mais recente. As 21 linhas da gama com a lista de contatos truncada viram versões sem contatos, porque é o que foi recebido.
+
+### 6.4 Endereços e texto em maiúscula
+
+**O mesmo endereço** é o mesmo conjunto de partes padronizadas: `logradouro`, `numero`, `complemento` (na gama, `endereco_json_complemento`), `bairro`, `cidade`, `uf` e `cep`.
+- As partes viram `hash_endereco` pela mesma macro `hash_conteudo`, **sem o documento**. Assim, a gold acha o mesmo endereço em documentos diferentes, e as mesmas partes dão o mesmo hash nas três fontes.
+- O texto original fica na histórica e, nos pares, o da aparição mais recente, mas não é comparado. Ele só entra no hash quando todas as partes são `NULL` (0 casos medidos). O beta não manda texto, e essa posição do hash fica `NULL` nele.
+- O complemento é comparado. Tratar como iguais o mesmo endereço com e sem complemento (221 pares na gama, entre layouts diferentes) é um julgamento, e fica para a gold.
+- Os pares de versões sem documento ficam, com `documento` `NULL`, deduplicados só pelo endereço (seção 5.8).
+- No beta, a posição na lista e o fato de o endereço vir numa lista ou num objeto só não entram na identidade. O `tipo` e o `atual` vêm da aparição mais recente do par, e o `atual` fica como veio (S7).
+
+**Texto livre em maiúscula.** Nomes, cargo, partes do endereço e texto original do endereço vão para maiúscula, como a UF (seção 5.12). É padronização de formato: a mesma rua escrita em minúscula numa entrega e em maiúscula em outra é o mesmo endereço. Os valores de domínio da gama (`atributos_extra_estado_civil`, `atributos_extra_escolaridade`) ficam como vieram. Os acentos não são removidos: a medição de antes da implementação não registrou efeito, e o `unaccent` não faz parte do núcleo do PostgreSQL (não verificado).
+
+| `devedores_enderecos` | alfa | beta | gama |
+|---|---|---|---|
+| Pares com documento, pelas partes (commit ca207e1) | 14.912 | 16.286 | 17.388 |
+| Pares com documento `NULL` (commit ca207e1) | 33 | 43 | 41 |
+| Endereços distintos (`hash_endereco`, commit ca207e1) | 14.709 | 16.175 | 17.320 |
+| Pares com documento em maiúscula, medido antes da implementação | 14.912 | 14.994 | 16.739 |
+| Pares com documento em maiúscula, na tabela (commit cdbc2f9) | 14.912 | 14.994 | 16.739 |
+| Endereços distintos em maiúscula, na tabela (commit cdbc2f9) | 14.709 | 14.833 | 16.639 |
+
+Há menos endereços distintos que pares: o mesmo endereço aparece ligado a mais de um documento, e é esse cruzamento que o `hash_endereco` sem o documento permite à gold. Os pares medidos antes da implementação são os com documento, e a tabela os reproduziu nas três fontes.
+
+Nas versões da histórica, a maiúscula tirou 5 do beta (17.866 → 17.861) e nenhuma do alfa nem da gama; as filhas do beta caíram para 43.277 contatos e 18.657 endereços. A medição de antes da implementação previa −1 na gama e 0 no beta porque comparava só os campos simples. A identidade da versão inclui as listas (seção 6.3), e a versão da gama que ficaria igual difere nos contatos. Conferido na tabela: 1 versão da gama e 58 do beta diferem de outra só nas listas. A causa exata das 5 versões a menos no beta não foi isolada.
+
+### 6.5 Desempate da versão atual: uma convenção arbitrária
+
+Em 211 documentos (alfa 55, beta 76, gama 80), duas versões diferentes têm o mesmo documento, as mesmas datas de atualização e de entrega e o mesmo arquivo. Só a linha decide. A ordem completa está na seção 5.3; o último critério é `_linha DESC`, "o último registro escrito vale".
+
+Essa regra é **arbitrária e determinística**. A posição da linha no arquivo não tem significado medido:
+- o documento vem em ordem crescente em cerca de 50 % dos pares de linhas vizinhas, o que é o esperado de uma ordem sem relação com o documento;
+- nos conflitos, o provedor reenvia depois tanto a linha de cima (alfa 6, beta 4, gama 4 vezes) quanto a de baixo (6, 5 e 7 vezes).
+
+As alternativas eram `_linha ASC` e o próprio hash, igualmente arbitrárias. O autor ficou com `_linha DESC`, a regra que já estava em uso. Ela garante a mesma escolha a cada execução (p. 2), mas não diz qual conteúdo é verdadeiro. Isso é conflito cadastral (p. 3), e a gold, que "resolve conflitos" (AGENTS.md, "Camadas e nomes"), resolve os 211 com regra própria.
+
+### 6.6 Prova da refatoração
+
+Quando a `devedores` e a `devedores_contatos` passaram a sair da histórica (commit 5ef15a2), as 17 tabelas que já existiam ficaram idênticas às da versão anterior, em valores e em tipos (`EXCEPT` nos dois sentidos, com o banco anterior aberto isolado e exportado para Parquet). A única diferença é a coluna nova `devedores.hash_conteudo`.
+
+| Tabela nova, no commit 5ef15a2 (antes da maiúscula) | alfa | beta | gama |
+|---|---|---|---|
+| `devedores_historico` | 18.587 | 17.866 | 18.564 |
+| `devedores_historico_contatos` | — (colunas da histórica) | 43.288 | 45.311 |
+| `devedores_historico_enderecos` | — (colunas da histórica) | 18.662 | — (colunas da histórica) |
+
+A gama mediu 18.565 versões antes da implementação; a diferença é o cabeçalho repetido, que ficou fora da histórica.
+
+## 7. Escolhas de formato
 
 **Confirmadas pelo autor em 2026-11-09** (e já aplicadas):
 - O documento "0" e o CPF zerado não são chave: viram `NULL` (seção 5.8).
@@ -330,13 +468,22 @@ Limitação da base: o que não encaixa em nenhuma regra (mais de 14 caracteres,
 - UF em maiúscula, com o que está fora das 27 UFs como `NULL` (seção 5.12).
 - `vinculo_empresa_desde` é `DATE` no dia 01, com a descrição de que o valor é um mês (seção 5.10).
 
+**Confirmadas pelo autor em 2026-11-10:**
+- Texto livre (nomes, cargo, partes e texto original do endereço) em maiúscula, sem remover acentos; valores de domínio da gama como vieram (seção 6.4).
+- O complemento entra na identidade do endereço (seção 6.4).
+- O desempate final da versão atual é `_linha DESC`, declarado como convenção arbitrária (seção 6.5).
+
 **Ainda a confirmar:**
 - CPF com mais de 11 dígitos não é cortado.
 - O telefone perde o `55` inicial só quando tem 12 ou 13 dígitos.
 - Valor com vírgula usa a vírgula como separador decimal; sem vírgula, o ponto.
 - O RG do beta fica com letras e dígitos, sem zeros repostos.
 
-## 7. O que não foi verificado
+## 8. O que não foi verificado
+
+- **O `hash_conteudo` e o `hash_endereco` não são portáveis entre motores.** O texto que o `CAST` gera (booleano, decimal, data) pode diferir entre DuckDB e PostgreSQL, e então o mesmo conteúdo daria outro hash. A deduplicação daria o mesmo resultado nos dois, porque compara o conteúdo do mesmo motor; a chave, não. Não há instância de PostgreSQL para testar. `MD5`, `STRING_AGG ... ORDER BY` e `COLLATE "C"` foram conferidos na documentação do PostgreSQL 18 e executados só no DuckDB.
+- **962 x 1.416 documentos do beta com renda alterada.** A medição do desenho da gold, sobre os arquivos brutos com salário numérico, contou 962 documentos do beta com mudança de renda (e 1.984 no alfa); pela regra da pipeline (renda padronizada, versões da histórica), são 1.416 no beta (e 1.982 no alfa). Não reproduzi o 962 nem investiguei a diferença.
+- **Acentos:** não conferi se o `unaccent` existe no PostgreSQL sem instalar uma extensão; os acentos ficam como vieram (seção 6.4).
 
 - **Versões PostgreSQL das macros.** As macros com `adapter.dispatch` têm uma versão DuckDB, executada e testada, e uma versão PostgreSQL escrita só a partir da documentação, nunca executada (não há instância PostgreSQL no projeto): `json_ou_nulo` (`IS JSON`, `CAST AS JSONB`), `data_iso_ou_nulo` e `timestamp_ou_nulo` (`pg_input_is_valid`, PostgreSQL 16 ou mais novo), `json_texto` e `json_abrir_lista` (`jsonb_array_elements ... WITH ORDINALITY`). `STRING_TO_ARRAY` com `UNNEST` existe nos dois motores, mas só rodou no DuckDB. As macros novas (`cnpj_*`, `uf_normalizada`, `mes_como_data`, `nulo_se_so_zeros`) usam só `ASCII`, `SUBSTRING`, `LPAD`, `UPPER`, `CASE`, o resto inteiro (`%`) e os operadores `~` e `!~`, que existem nos dois motores, mas também rodaram só no DuckDB. A junção `IS NOT DISTINCT FROM` do histórico de contatos não usa hash join no PostgreSQL.
 - **Testes genéricos fora do lint.** O SQLFluff com o templater do dbt não analisa os arquivos de `{% test %}` em `tests/generic/`. O uso de `graph.sources` nesses testes foi verificado só pela execução, não na documentação do dbt.
