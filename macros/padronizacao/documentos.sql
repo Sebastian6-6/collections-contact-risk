@@ -1,7 +1,8 @@
 {#
   Padronização de documento. Cada macro recebe uma expressão SQL (normalmente o nome de uma coluna
   de texto) e devolve uma expressão. Só ajustam o formato: nenhuma decide regra de negócio nem
-  filtra linha. Entrada vazia ou sem nenhum caractere útil devolve NULL (ausência é NULL).
+  filtra linha. Entrada vazia, sem nenhum caractere útil ou só com zeros devolve NULL: um documento
+  que não identifica ninguém é ausência de chave, não um valor (ausência é NULL, nunca zero).
   Só usam funções que existem com o mesmo comportamento no DuckDB e no PostgreSQL.
 #}
 
@@ -14,14 +15,25 @@
 {%- endmacro %}
 
 {#
+  NULL quando o texto só tem zeros ('0', '000', '00000000000'); senão o próprio texto. Documento
+  zerado é o preenchimento de quem não tem o dado: tratá-lo como valor juntaria pessoas
+  diferentes sob a mesma chave.
+#}
+{% macro nulo_se_so_zeros(expressao) -%}
+  CASE WHEN {{ expressao }} ~ '^0+$' THEN CAST(NULL AS VARCHAR) ELSE {{ expressao }} END
+{%- endmacro %}
+
+{#
   CPF só com dígitos, com os zeros à esquerda repostos até 11 posições (o alfa perde zeros:
-  '1006543201' -> '01006543201'). Mais de 11 dígitos ficam como estão, sem truncar, para o
-  teste de qualidade enxergar o valor. Não verifica o dígito verificador (ver `cpf_valido`) e
-  não distingue CPF de outro documento: um RG do beta não deve passar por aqui.
+  '1006543201' -> '01006543201'). Documento vazio ou só com zeros ('0', '000.000.000-00') dá NULL.
+  Mais de 11 dígitos ficam como estão, sem truncar, para o teste de qualidade enxergar o valor.
+  Não verifica o dígito verificador (ver `cpf_valido`) e não distingue CPF de outro documento: um
+  RG do beta não deve passar por aqui.
 #}
 {% macro cpf_normalizado(expressao) -%}
   {%- set digitos = somente_digitos(expressao) -%}
   CASE
+    WHEN {{ digitos }} ~ '^0+$' THEN CAST(NULL AS VARCHAR)
     WHEN LENGTH({{ digitos }}) <= 11 THEN LPAD({{ digitos }}, 11, '0')
     ELSE {{ digitos }}
   END

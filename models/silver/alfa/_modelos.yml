@@ -14,14 +14,18 @@ models:
     description: >
       Devedores do provedor alfa, uma linha por documento normalizado. Vale a versão mais recente
       do documento: maior data de atualização da fonte, depois maior data de entrega, depois maior
-      arquivo (nome) e maior linha. Linha sem documento (vazio ou sem dígitos) fica fora e continua na bronze. Nenhuma
+      arquivo (nome) e maior linha. Documento vazio, sem dígitos ou só com zeros (`0`,
+      `000.000.000-00`) não identifica ninguém: a linha não vira devedor (fica fora antes de
+      escolher a versão) e continua na bronze, e os contatos dela estão em `devedores_contatos`
+      com `documento` NULL. Nenhuma
       coluna recebe marcação interpretativa: datas sentinela (1900-01-01) e CPFs inválidos passam
       como vieram.
     columns:
       - name: documento
         description: >-
           Documento do devedor só com dígitos, com os zeros à esquerda repostos até 11 posições,
-          vindo de `cpf` ou de `documento` da bronze (o provedor renomeou a coluna). Chave da tabela.
+          vindo de `cpf` ou de `documento` da bronze (o provedor renomeou a coluna). Nunca é NULL
+          nem só zeros: documento vazio ou zerado não identifica ninguém. Chave da tabela.
         data_tests:
           - unique
           - not_null
@@ -92,9 +96,10 @@ models:
             colunas: [documento, tipo_contato, contato]
     columns:
       - name: documento
-        description: "Documento do devedor, como em `silver_alfa.devedores`."
-        data_tests:
-          - not_null
+        description: >-
+          Documento do devedor, como em `silver_alfa.devedores`. `NULL` nos contatos de linhas de
+          documento vazio ou zerado, que não são devedor: nesse caso o par (`tipo_contato`,
+          `contato`) é único entre as linhas sem documento.
       - name: tipo_contato
         description: "Tipo do contato, criado na silver: `telefone` ou `email`."
         data_tests:

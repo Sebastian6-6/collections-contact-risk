@@ -29,7 +29,10 @@ models:
       depois maior arquivo (nome) e maior linha. O CPF fica só com dígitos, com os zeros repostos até 11 posições. O RG
       (`documento.tipo` igual a RG) não vira CPF: fica só com letras e dígitos, sem zeros
       repostos, e a chave inclui o tipo, para um RG nunca se confundir com um CPF de mesmo número.
-      Linha sem documento ou com JSON inválido fica fora e continua na bronze (teste `warn`).
+      Documento vazio ou só com zeros (`0`, `000.000.000-00`) não identifica ninguém: a linha não
+      vira devedor (fica fora antes de escolher a versão) e continua na bronze, e os contatos
+      dela estão em `devedores_contatos` com `documento` NULL. Linha com JSON inválido também
+      fica fora e continua na bronze (teste `warn`).
       Nenhuma coluna recebe marcação interpretativa: a data 2025-09-01 e as rendas `0,00` passam
       como vieram. Os telefones, e-mails e endereços estão em `devedores_contatos` e
       `devedores_enderecos`.
@@ -111,13 +114,13 @@ models:
             colunas: [tipo_documento, documento, tipo_contato, contato]
     columns:
       - name: tipo_documento
-        description: "Tipo do documento, como em `silver_beta.devedores`."
-        data_tests:
-          - not_null
+        description: >-
+          Tipo do documento, como em `silver_beta.devedores`. `NULL` quando `documento` é `NULL`.
       - name: documento
-        description: "Documento do devedor, como em `silver_beta.devedores`."
-        data_tests:
-          - not_null
+        description: >-
+          Documento do devedor, como em `silver_beta.devedores`. `NULL` nos contatos de linhas de
+          documento vazio ou zerado, que não são devedor: nesse caso o par (`tipo_contato`,
+          `contato`) é único entre as linhas sem documento.
       - name: tipo_contato
         description: "Tipo do contato, criado na silver: `telefone` ou `email`."
         data_tests:

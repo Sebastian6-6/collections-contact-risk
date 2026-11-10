@@ -1,6 +1,7 @@
 {#
-  Toda linha da bronze do alfa com chave está representada na silver: o documento normalizado
-  existe em `devedores`, e cada contato preenchido tem o par em `devedores_contatos`. Cada linha
+  Toda linha da bronze do alfa está representada na silver: o documento normalizado existe em
+  `devedores`, e cada contato preenchido tem o par em `devedores_contatos`. A linha sem documento
+  (vazio ou só zeros) não é devedor, mas seus contatos têm o par com `documento` NULL. Cada linha
   devolvida é um documento ou um contato que a silver perdeu.
 #}
 {%- set documento_origem = "COALESCE(NULLIF(TRIM(cpf), ''), NULLIF(TRIM(documento), ''))" -%}
@@ -55,12 +56,11 @@ WITH tOrigem AS (
     , b.contato
   FROM tContatos AS b
   LEFT JOIN {{ ref('silver_alfa_devedores_contatos') }} AS s
-    ON b.documento = s.documento
+    ON b.documento IS NOT DISTINCT FROM s.documento
       AND b.tipo_contato = s.tipo_contato
       AND b.contato = s.contato
   WHERE 1 = 1
-    AND b.documento IS NOT NULL
-    AND s.documento IS NULL
+    AND s.contato IS NULL
 )
 
 SELECT

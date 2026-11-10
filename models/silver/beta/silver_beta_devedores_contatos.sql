@@ -2,7 +2,10 @@
   Grão: uma linha por (tipo de documento, documento, tipo_contato, contato normalizado), com a
   primeira e a última data de entrega em que o par apareceu. Considera todas as linhas da bronze com
   documento, não só a versão atual do devedor (S4): um número que saiu da versão mais recente
-  continua registrado. Só existe linha para contato que veio preenchido.
+  continua registrado. Só existe linha para contato que veio preenchido. A linha de documento
+  vazio ou só com zeros também entra, com `tipo_documento` e `documento` NULL: esses contatos são
+  deduplicados só por (`tipo_contato`, `contato`) entre as linhas sem documento e nunca se juntam
+  a um par de documento válido.
 
   Os contatos vêm de três lugares do JSON (S6): a lista de telefones (cada elemento é um texto
   ou um objeto {ddd, numero, tipo, principal}), a lista `emails` e o texto `email`. O `tipo` do
@@ -191,7 +194,7 @@ SELECT
   , r._hash_arquivo
 FROM tEntregas AS e
 INNER JOIN tMaisRecentes AS r
-  ON e.tipo_documento = r.tipo_documento
-    AND e.documento = r.documento
+  ON e.tipo_documento IS NOT DISTINCT FROM r.tipo_documento
+    AND e.documento IS NOT DISTINCT FROM r.documento
     AND e.tipo_contato = r.tipo_contato
     AND e.contato = r.contato

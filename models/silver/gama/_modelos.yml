@@ -15,7 +15,8 @@ models:
       Devedores do provedor gama, uma linha por documento normalizado. Vale a versão mais recente
       do documento: maior `dt_ref` (a data de atualização da fonte), depois maior data de entrega,
       depois maior arquivo (nome) e maior linha. Fora ficam, e continuam na bronze, a linha ilegível, o cabeçalho
-      repetido dentro do histórico e o documento vazio (S9). O endereço vem em três formatos
+      repetido dentro do histórico e o documento vazio ou só com zeros, que não identifica ninguém (S9);
+      os contatos das linhas de documento vazio estão em `devedores_contatos` com `documento` NULL. O endereço vem em três formatos
       (colunas separadas, `rua` e `endereco`) e sai nas mesmas colunas; nos dois formatos de texto
       as partes só são separadas quando o texto casa inteiro com o padrão estrito, e o texto
       original fica em `endereco` (S7). Os `atributos_extra` viram colunas (S8). Nenhuma coluna
@@ -116,9 +117,10 @@ models:
             colunas: [documento, tipo_contato, contato]
     columns:
       - name: documento
-        description: "Documento do devedor, como em `silver_gama.devedores`."
-        data_tests:
-          - not_null
+        description: >-
+          Documento do devedor, como em `silver_gama.devedores`. `NULL` nos contatos de linhas de
+          documento vazio ou zerado, que não são devedor: nesse caso o par (`tipo_contato`,
+          `contato`) é único entre as linhas sem documento.
       - name: tipo_contato
         description: "Tipo do contato, criado na silver: `telefone` (`celular` e `fixo` do provedor) ou `email`."
         data_tests:

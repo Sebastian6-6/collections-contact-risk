@@ -1,7 +1,8 @@
 {#
   Grão: uma linha por documento normalizado. Vale a versão mais recente: data de atualização da
   fonte (`dt_ref`), depois data de entrega, depois arquivo e linha (S3). A padronização acontece antes, em
-  `silver_gama_devedores_padronizados` (S2). Os contatos são uma lista: estão em
+  `silver_gama_devedores_padronizados` (S2). Linha sem documento (vazio ou só zeros)
+  não é devedor: sai antes do `ROW_NUMBER`, para os NULL não formarem um grupo. Os contatos são uma lista: estão em
   `devedores_contatos`.
 #}
 WITH tVersoes AS (
@@ -39,6 +40,8 @@ WITH tVersoes AS (
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS num_versao
   FROM {{ ref('silver_gama_devedores_padronizados') }}
+  WHERE 1 = 1
+    AND documento IS NOT NULL
 )
 
 SELECT

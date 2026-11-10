@@ -14,4 +14,5 @@ INNER JOIN {{ ref('silver_gama_devedores_padronizados') }} AS p
   ON b._arquivo = p._arquivo
     AND b._linha = p._linha
 WHERE 1 = 1
+  AND p.documento IS NOT NULL
   AND p.lista_contatos IS NULL

@@ -6,8 +6,8 @@ unit_tests:
       O documento perde a máscara e recupera o zero perdido; os atributos extras viram colunas
       (chave ausente ou vazia dá `NULL`, o 0 fica 0); o endereço dos três formatos sai nas mesmas
       colunas e, nos de texto, só é separado quando casa com o padrão estrito; a data de entrega
-      sai do nome do arquivo e, no histórico, da variável do projeto; linha ilegível, cabeçalho
-      repetido e documento vazio ficam fora.
+      sai do nome do arquivo e, no histórico, da variável do projeto. A linha sem documento tem
+      o teste `silver_gama_documento_vazio_ou_zerado_vira_nulo`.
     model: silver_gama_devedores_padronizados
     given:
       - input: source('bronze_gama', 'devedores')
@@ -16,8 +16,6 @@ unit_tests:
           - {documento: "1006543201", nome: "Bia", data_nascimento: "01/09/1978", cnpj_empregador_raw: "51.930.487/2001-50", dt_ref: "10/09/2026", contatos: '[]', endereco_json: '{"endereco": "TV. Santos Dumont, 744 - Centro", "cidade": "Santo Andre", "uf": "SP", "cep": 9289625}', atributos_extra: '{"escolaridade": "", "estado_civil": "casado"}', _arquivo: "contact_data/entregas_diarias/gama/provedor_gama_2026-09-11.csv", _linha: 7, _hash_arquivo: "h2", _motivo_ilegivel: null}
           - {documento: "22222222222", nome: "Caio", data_nascimento: "02/02/1990", cnpj_empregador_raw: "", dt_ref: "01/09/2025", contatos: '[]', endereco_json: '{"rua": "RUA ANA-MARIA, 10", "municipio": "Santos", "estado": "SP", "cep": "11015000"}', atributos_extra: '{}', _arquivo: "contact_data/provedor_gama.csv", _linha: 3, _hash_arquivo: "h1", _motivo_ilegivel: null}
           - {documento: "33333333333", nome: "Dora", data_nascimento: "03/03/1991", cnpj_empregador_raw: "", dt_ref: "01/01/2026", contatos: '[]', endereco_json: '{"logradouro": "RUA B", "numero": "5", "complemento": "AP 2", "bairro": "CENTRO", "cidade": "SANTOS", "uf": "SP", "cep": "11015000"}', atributos_extra: '{}', _arquivo: "contact_data/provedor_gama.csv", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: null}
-          - {documento: "documento", nome: "nome", data_nascimento: "data_nascimento", cnpj_empregador_raw: "cnpj_empregador_raw", dt_ref: "dt_ref", contatos: "contatos", endereco_json: "endereco_json", atributos_extra: "atributos_extra", _arquivo: "contact_data/provedor_gama.csv", _linha: 5, _hash_arquivo: "h1", _motivo_ilegivel: null}
-          - {documento: "", nome: "SEM CHAVE", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "01/01/2026", contatos: '[]', endereco_json: '{}', atributos_extra: '{}', _arquivo: "contact_data/provedor_gama.csv", _linha: 6, _hash_arquivo: "h1", _motivo_ilegivel: null}
           - {documento: "999", nome: "ILEGIVEL", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "", contatos: "", endereco_json: "", atributos_extra: "", _arquivo: "contact_data/provedor_gama.csv", _linha: 8, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
     expect:
       rows:
@@ -26,10 +24,30 @@ unit_tests:
         - {documento: "22222222222", nome: "Caio", cnpj_empregador_raw: null, estado_civil: null, qtd_dependentes: null, score_externo: null, escolaridade: null, possui_imovel: null, fonte_score: null, endereco: "RUA ANA-MARIA, 10", logradouro: null, numero: null, complemento: null, bairro: null, cidade: "Santos", uf: "SP", cep: "11015000", dt_ref: "2025-09-01", data_entrega: "2026-08-31", _linha: 3}
         - {documento: "33333333333", nome: "Dora", cnpj_empregador_raw: null, estado_civil: null, qtd_dependentes: null, score_externo: null, escolaridade: null, possui_imovel: null, fonte_score: null, endereco: null, logradouro: "RUA B", numero: "5", complemento: "AP 2", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11015000", dt_ref: "2026-01-01", data_entrega: "2026-08-31", _linha: 4}
 
+  - name: silver_gama_documento_vazio_ou_zerado_vira_nulo
+    description: >
+      Documento vazio, só com zeros ou o texto do cabeçalho repetido (sem dígitos) não identifica
+      ninguém: `documento` vira `NULL` e a linha continua na etapa padronizada, com os contatos
+      dela, para `devedores_contatos` guardá-los sem documento. A linha ilegível fica fora.
+    model: silver_gama_devedores_padronizados
+    given:
+      - input: source('bronze_gama', 'devedores')
+        rows:
+          - {documento: "documento", nome: "nome", data_nascimento: "data_nascimento", cnpj_empregador_raw: "cnpj_empregador_raw", dt_ref: "dt_ref", contatos: "contatos", endereco_json: "endereco_json", atributos_extra: "atributos_extra", _arquivo: "contact_data/provedor_gama.csv", _linha: 5, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {documento: "", nome: "SEM CHAVE", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "01/01/2026", contatos: '[]', endereco_json: '{}', atributos_extra: '{}', _arquivo: "contact_data/provedor_gama.csv", _linha: 6, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {documento: "000.000.000-00", nome: "ZERADO", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "01/01/2026", contatos: '[{"tipo": "email", "valor": "Z@X.COM"}]', endereco_json: '{}', atributos_extra: '{}', _arquivo: "contact_data/provedor_gama.csv", _linha: 9, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {documento: "999", nome: "ILEGIVEL", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "", contatos: "", endereco_json: "", atributos_extra: "", _arquivo: "contact_data/provedor_gama.csv", _linha: 8, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
+    expect:
+      rows:
+        - {documento: null, nome: "nome", _linha: 5}
+        - {documento: null, nome: "SEM CHAVE", _linha: 6}
+        - {documento: null, nome: "ZERADO", _linha: 9}
+
   - name: silver_gama_devedores_versao_mais_recente
     description: >
       Uma linha por documento. Vale a maior data de atualização (`dt_ref`); no empate, a maior
-      data de entrega; no empate dos dois, a maior linha.
+      data de entrega; no empate dos dois, a maior linha. Linha sem documento (NULL) não é devedor
+      e não forma grupo.
     model: silver_gama_devedores
     given:
       - input: ref('silver_gama_devedores_padronizados')
@@ -48,6 +66,10 @@ unit_tests:
           SELECT 'C', 'SEM DATA', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST(NULL AS DATE), CAST('2026-09-20' AS DATE), 'f4', 2, 'h'
           UNION ALL
           SELECT 'C', 'COM DATA', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-01-01' AS DATE), CAST('2026-08-31' AS DATE), 'f1', 3, 'h'
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), 'SEM DOCUMENTO 1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-09-20' AS DATE), CAST('2026-09-20' AS DATE), 'f5', 1, 'h'
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), 'SEM DOCUMENTO 2', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-09-21' AS DATE), CAST('2026-09-21' AS DATE), 'f5', 2, 'h'
     expect:
       rows:
         - {documento: "A", nome: "NOME 2", _linha: 1}
@@ -60,6 +82,9 @@ unit_tests:
       o par repetido soma as datas de entrega e fica com o tipo do telefone da aparição mais
       recente, e o par traz o arquivo, a linha e o hash dessa aparição (com a mesma data e a mesma
       linha, o arquivo de nome maior desempata); lista nula (JSON truncado), tipo desconhecido e valor vazio não geram linha.
+      Contato de linha sem documento (NULL) entra com `documento` NULL, deduplicado só por
+      (tipo_contato, contato) entre as linhas sem documento, e nunca se junta ao par de um
+      documento válido com o mesmo telefone.
     model: silver_gama_devedores_contatos
     given:
       - input: ref('silver_gama_devedores_padronizados')
@@ -74,8 +99,14 @@ unit_tests:
           SELECT 'D', CAST('[{"tipo": "email", "valor": "d@x.com"}]' AS JSON), CAST('2026-09-15' AS DATE), CAST('2026-09-15' AS DATE), 5, 'g3_original', 'h3'
           UNION ALL
           SELECT 'D', CAST('[{"tipo": "email", "valor": "d@x.com"}]' AS JSON), CAST('2026-09-15' AS DATE), CAST('2026-09-15' AS DATE), 5, 'g3_reenvio', 'h4'
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), CAST('[{"tipo": "celular", "valor": "(21) 94780-1773"}]' AS JSON), CAST('2026-09-01' AS DATE), CAST('2026-09-01' AS DATE), 2, 'g4', 'h5'
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), CAST('[{"tipo": "celular", "valor": "21947801773"}, {"tipo": "email", "valor": "Z@X.COM"}]' AS JSON), CAST('2026-09-12' AS DATE), CAST('2026-09-12' AS DATE), 6, 'g5', 'h6'
     expect:
       rows:
         - {documento: "A", tipo_contato: "telefone", contato: "21947801773", tipo: "fixo", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-11", _arquivo: "g2", _linha: 7, _hash_arquivo: "h2"}
         - {documento: "A", tipo_contato: "email", contato: "ana@x.com", tipo: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "g1", _linha: 3, _hash_arquivo: "h1"}
         - {documento: "D", tipo_contato: "email", contato: "d@x.com", tipo: null, data_primeira_entrega: "2026-09-15", data_ultima_entrega: "2026-09-15", _arquivo: "g3_reenvio", _linha: 5, _hash_arquivo: "h4"}
+        - {documento: null, tipo_contato: "telefone", contato: "21947801773", tipo: "celular", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "g5", _linha: 6, _hash_arquivo: "h6"}
+        - {documento: null, tipo_contato: "email", contato: "z@x.com", tipo: null, data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "g5", _linha: 6, _hash_arquivo: "h6"}

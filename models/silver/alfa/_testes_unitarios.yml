@@ -5,19 +5,37 @@ unit_tests:
     description: >
       O documento vem de `cpf` ou de `documento` e perde a máscara; o zero perdido é reposto;
       a data de entrega sai do nome do arquivo e, no histórico, da variável do projeto; o endereço
-      só é separado quando casa com o padrão estrito; linha sem documento ou ilegível fica fora.
+      só é separado quando casa com o padrão estrito; a linha ilegível fica fora.
     model: silver_alfa_devedores_padronizados
     given:
       - input: source('bronze_alfa', 'devedores')
         rows:
           - {cpf: "103.123.916-20", documento: null, nome_completo: " ANA ", email: " ANA@X.COM ", telefone: "+55 11 90040-5285", endereco: "RUA A, 10, APTO 3 - CENTRO - SANTOS", cep: "7359422", salario_informado: "R$ 1.400,00", data_atualizacao: "2026-07-20", _arquivo: "contact_data/provedor_alfa.csv", _linha: 2, _hash_arquivo: "h1", _motivo_ilegivel: null}
           - {cpf: null, documento: "1006543201", nome_completo: "BIA", email: "", telefone: "(21)960476196", endereco: "RUA ANA-MARIA, 10 - CENTRO - SANTOS", cep: "21897318", salario_informado: "0,00", data_atualizacao: "2026-09-02", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_2026-09-05.csv", _linha: 7, _hash_arquivo: "h2", _motivo_ilegivel: null}
-          - {cpf: "", documento: null, nome_completo: "SEM CHAVE", email: "", telefone: "11900000000", endereco: "RUA B, 1 - X - Y", cep: "11111111", salario_informado: "", data_atualizacao: "2026-09-02", _arquivo: "contact_data/provedor_alfa.csv", _linha: 3, _hash_arquivo: "h1", _motivo_ilegivel: null}
           - {cpf: "999", documento: null, nome_completo: "ILEGIVEL", email: "", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "", _arquivo: "contact_data/provedor_alfa.csv", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
     expect:
       rows:
         - {documento: "10312391620", nome_completo: "ANA", email: "ana@x.com", telefone: "11900405285", logradouro: "RUA A", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", endereco: "RUA A, 10, APTO 3 - CENTRO - SANTOS", cep: "07359422", salario_informado: 1400.00, data_atualizacao: "2026-07-20", data_entrega: "2026-08-31", _linha: 2}
         - {documento: "01006543201", nome_completo: "BIA", email: null, telefone: "21960476196", logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, endereco: "RUA ANA-MARIA, 10 - CENTRO - SANTOS", cep: "21897318", salario_informado: 0.00, data_atualizacao: "2026-09-02", data_entrega: "2026-09-05", _linha: 7}
+
+  - name: silver_alfa_documento_vazio_ou_zerado_vira_nulo
+    description: >
+      Documento vazio, `0` ou `000.000.000-00` não identifica ninguém: `documento` vira `NULL` e a
+      linha continua na etapa padronizada, com os contatos dela, para `devedores_contatos`
+      guardá-los sem documento. A linha ilegível fica fora.
+    model: silver_alfa_devedores_padronizados
+    given:
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {cpf: "", documento: null, nome_completo: "SEM CHAVE", email: "", telefone: "11900000000", endereco: "RUA B, 1 - X - Y", cep: "11111111", salario_informado: "", data_atualizacao: "2026-09-02", _arquivo: "contact_data/provedor_alfa.csv", _linha: 3, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "000.000.000-00", documento: null, nome_completo: "ZERADO", email: " ZERO@X.COM ", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "2026-09-02", _arquivo: "contact_data/provedor_alfa.csv", _linha: 5, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "0", documento: null, nome_completo: "ZERO SIMPLES", email: "", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "2026-09-02", _arquivo: "contact_data/provedor_alfa.csv", _linha: 6, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "999", documento: null, nome_completo: "ILEGIVEL", email: "", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "", _arquivo: "contact_data/provedor_alfa.csv", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
+    expect:
+      rows:
+        - {documento: null, nome_completo: "SEM CHAVE", telefone: "11900000000", email: null, _linha: 3}
+        - {documento: null, nome_completo: "ZERADO", telefone: null, email: "zero@x.com", _linha: 5}
+        - {documento: null, nome_completo: "ZERO SIMPLES", telefone: null, email: null, _linha: 6}
 
   - name: silver_alfa_data_entrega_so_historico_recebe_data_da_carga
     description: >
@@ -43,7 +61,7 @@ unit_tests:
   - name: silver_alfa_devedores_versao_mais_recente
     description: >
       Uma linha por documento. Vale a maior data de atualização; no empate, a maior data de entrega;
-      no empate dos dois, a maior linha.
+      no empate dos dois, a maior linha. Linha sem documento (NULL) não é devedor e não forma grupo.
     model: silver_alfa_devedores
     given:
       - input: ref('silver_alfa_devedores_padronizados')
@@ -58,6 +76,10 @@ unit_tests:
           SELECT 'B', 'EMPATE 1', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 4, 'h'
           UNION ALL
           SELECT 'B', 'EMPATE 2', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 8, 'h'
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), 'SEM DOCUMENTO 1', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-09-20' AS DATE), CAST('2026-09-20' AS DATE), 'f5', 1, 'h'
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), 'SEM DOCUMENTO 2', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-09-21' AS DATE), CAST('2026-09-21' AS DATE), 'f5', 2, 'h'
     expect:
       rows:
         - {documento: "A", nome_completo: "NOME 2", _linha: 1}
@@ -67,7 +89,9 @@ unit_tests:
     description: >
       O par (documento, tipo_contato, contato) repetido soma as datas de entrega (primeira e última) e traz
       o arquivo, a linha e o hash da aparição mais recente; um telefone que sumiu da versão atual
-      continua registrado, e contato vazio não gera linha.
+      continua registrado, e contato vazio não gera linha. Contato de linha sem documento (NULL)
+      entra com `documento` NULL, deduplicado só por (tipo_contato, contato) entre as linhas sem
+      documento, e nunca se junta ao par de um documento válido com o mesmo telefone.
     model: silver_alfa_devedores_contatos
     given:
       - input: ref('silver_alfa_devedores_padronizados')
@@ -78,7 +102,13 @@ unit_tests:
           SELECT 'A', '11900405285', CAST(NULL AS VARCHAR), CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 'a2', 9, 'h2'
           UNION ALL
           SELECT 'B', CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 'a2', 10, 'h2'
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), '11900405285', CAST(NULL AS VARCHAR), CAST('2026-09-01' AS DATE), CAST('2026-09-01' AS DATE), 'a3', 2, 'h3'
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), '11900405285', 'z@x.com', CAST('2026-09-12' AS DATE), CAST('2026-09-12' AS DATE), 'a4', 7, 'h4'
     expect:
       rows:
         - {documento: "A", tipo_contato: "telefone", contato: "11900405285", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
         - {documento: "A", tipo_contato: "email", contato: "ana@x.com", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "a1", _linha: 4, _hash_arquivo: "h1"}
+        - {documento: null, tipo_contato: "telefone", contato: "11900405285", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
+        - {documento: null, tipo_contato: "email", contato: "z@x.com", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}

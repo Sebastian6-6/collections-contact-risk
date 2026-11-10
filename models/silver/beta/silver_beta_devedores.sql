@@ -1,7 +1,9 @@
 {#
   Grão: uma linha por documento (tipo de documento + número normalizado). Vale a versão mais
   recente: data de atualização da fonte, depois data de entrega, depois arquivo e linha (S3). A
-  padronização acontece antes, em `silver_beta_devedores_padronizados` (S2). Telefones, e-mails
+  padronização acontece antes, em `silver_beta_devedores_padronizados` (S2). Linha sem documento
+  (vazio ou só zeros) não é devedor: sai antes do `ROW_NUMBER`, para os NULL não formarem um
+  grupo. Telefones, e-mails
   e endereços são listas: estão em `devedores_contatos` e `devedores_enderecos`.
 #}
 WITH tVersoes AS (
@@ -28,6 +30,8 @@ WITH tVersoes AS (
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS num_versao
   FROM {{ ref('silver_beta_devedores_padronizados') }}
+  WHERE 1 = 1
+    AND documento IS NOT NULL
 )
 
 SELECT

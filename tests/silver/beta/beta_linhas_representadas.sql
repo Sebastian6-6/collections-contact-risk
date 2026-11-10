@@ -1,6 +1,8 @@
 {#
-  Toda linha da bronze do beta com chave está representada na silver: o documento existe em
-  `devedores`, cada telefone e e-mail preenchido tem o par em `devedores_contatos` e a versão
+  Toda linha da bronze do beta com JSON válido está representada na silver: o documento existe
+  em `devedores`, cada telefone e e-mail preenchido tem o par em `devedores_contatos` (com
+  `tipo_documento` e `documento` NULL quando a linha não tem documento, vazio ou só zeros, e
+  então não é devedor) e a versão
   atual de cada devedor tem em `devedores_enderecos` tantos endereços quanto a lista dela traz.
   As listas são abertas de novo aqui, a partir da etapa padronizada, sem passar pelos modelos
   testados. Cada linha devolvida é um documento, um contato ou um grupo de endereços que a
@@ -64,6 +66,7 @@ WITH tTelefones AS (
     ON p.tipo_documento = d.tipo_documento
       AND p.documento = d.documento
   WHERE 1 = 1
+    AND p.documento IS NOT NULL
     AND d.documento IS NULL
 )
 
@@ -75,13 +78,13 @@ WITH tTelefones AS (
     , b.contato
   FROM tContatos AS b
   LEFT JOIN {{ ref('silver_beta_devedores_contatos') }} AS s
-    ON b.tipo_documento = s.tipo_documento
-      AND b.documento = s.documento
+    ON b.tipo_documento IS NOT DISTINCT FROM s.tipo_documento
+      AND b.documento IS NOT DISTINCT FROM s.documento
       AND b.tipo_contato = s.tipo_contato
       AND b.contato = s.contato
   WHERE 1 = 1
     AND b.contato IS NOT NULL
-    AND s.documento IS NULL
+    AND s.contato IS NULL
 )
 
 , tEnderecosDaVersaoAtual AS (

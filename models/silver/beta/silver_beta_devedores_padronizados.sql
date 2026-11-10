@@ -1,7 +1,9 @@
 {#
-  Etapa comum da silver do beta: toda linha da bronze com JSON válido e documento, já padronizada
-  e sem deduplicar. Grão: uma linha por linha recebida que tem JSON válido e documento
-  (`_arquivo`, `_linha`). É efêmera: não vira tabela. Existe para `devedores` (que fica com a
+  Etapa comum da silver do beta: toda linha da bronze com JSON válido, já padronizada e sem
+  deduplicar. Grão: uma linha por linha recebida com JSON válido (`_arquivo`, `_linha`).
+  Documento vazio ou só com zeros vira `documento` NULL (e `tipo_documento` também, já que não há
+  documento para tipar), e a linha continua aqui: `devedores` a deixa de fora (não há chave) e
+  `devedores_contatos` guarda os contatos dela sem documento. É efêmera: não vira tabela. Existe para `devedores` (que fica com a
   versão mais recente) e para `devedores_contatos` e `devedores_enderecos` (que abrem as listas)
   padronizarem do mesmo jeito, num lugar só.
 
@@ -16,6 +18,9 @@
   As listas de telefone, e-mail e endereço seguem como JSON: quem muda de grão as abre.
 #}
 {{ config(materialized='ephemeral') }}
+{%- set documento_alfanumerico -%}
+  NULLIF(REGEXP_REPLACE(UPPER(documento_origem), '[^0-9A-Z]', '', 'g'), '')
+{%- endset %}
 
 WITH tBase AS (
   SELECT
@@ -66,7 +71,7 @@ WITH tBase AS (
     tipo_documento
     , CASE
       WHEN tipo_documento = 'CPF' THEN {{ cpf_normalizado('documento_origem') }}
-      ELSE NULLIF(REGEXP_REPLACE(UPPER(documento_origem), '[^0-9A-Z]', '', 'g'), '')
+      ELSE {{ nulo_se_so_zeros(documento_alfanumerico) }}
     END AS documento
     , nome_completo
     , {{ data_flexivel('data_nascimento') }} AS data_nascimento
@@ -87,8 +92,7 @@ WITH tBase AS (
 )
 
 SELECT
-  tipo_documento
-  , documento
+  documento
   , nome_completo
   , data_nascimento
   , cnpj_empregador
@@ -104,7 +108,7 @@ SELECT
   , _arquivo
   , _linha
   , _hash_arquivo
+  , CASE WHEN documento IS NOT NULL THEN tipo_documento END AS tipo_documento
 FROM tPadronizada
 WHERE 1 = 1
-  AND tipo_documento IS NOT NULL
-  AND documento IS NOT NULL
+  AND (documento IS NULL OR tipo_documento IS NOT NULL)

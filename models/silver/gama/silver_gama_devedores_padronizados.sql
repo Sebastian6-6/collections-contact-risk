@@ -1,6 +1,8 @@
 {#
-  Etapa comum da silver do gama: toda linha da bronze lida e com documento, já padronizada e sem
-  deduplicar. Grão: uma linha por linha recebida que tem documento (`_arquivo`, `_linha`). É
+  Etapa comum da silver do gama: toda linha da bronze lida, já padronizada e sem deduplicar.
+  Grão: uma linha por linha recebida (`_arquivo`, `_linha`). Documento vazio ou só com zeros vira
+  `documento` NULL, e a linha continua aqui: `devedores` a deixa de fora (não há chave) e
+  `devedores_contatos` guarda os contatos dela sem documento. É
   efêmera: não vira tabela. Existe para `devedores` (que fica com a versão mais recente) e para
   `devedores_contatos` (que abre a lista de contatos de todas as versões) padronizarem do mesmo
   jeito, num lugar só.
@@ -74,8 +76,6 @@ WITH tBase AS (
     , _linha
     , _hash_arquivo
   FROM tBase
-  WHERE 1 = 1
-    AND documento IS NOT NULL
 )
 
 SELECT
