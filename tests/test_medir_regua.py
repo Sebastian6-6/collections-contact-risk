@@ -1,5 +1,6 @@
 """Medição da régua: leitura da linha de métricas, formatação e o laço dos cortes."""
 
+import subprocess
 from pathlib import Path
 
 import duckdb
@@ -78,3 +79,21 @@ def test_main_para_com_erro_quando_o_dbt_nao_compila(tmp_path, capsys):
 
     assert medir_regua.main(tmp_path, compilar, lambda banco, sql: METRICAS) == 1
     assert "[ERRO] falhou" in capsys.readouterr().out
+
+
+def test_compilar_le_a_saida_do_dbt_em_utf8_sem_quebrar_em_byte_solto(tmp_path, monkeypatch):
+    chamadas: dict = {}
+
+    def processo_falso(comando, **opcoes):
+        chamadas.update(opcoes)
+        compilado = tmp_path / "target" / "compiled" / medir_regua.PROJETO_DBT / "analyses"
+        compilado.mkdir(parents=True)
+        (compilado / f"{medir_regua.ANALISE}.sql").write_text("SELECT 1", encoding="utf-8")
+        return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(medir_regua.subprocess, "run", processo_falso)
+
+    assert medir_regua.compilar_metricas(tmp_path, "2026-09-15") == "SELECT 1"
+    assert chamadas["encoding"] == "utf-8"
+    assert chamadas["errors"] == "replace"
+    assert chamadas["env"]["PYTHONUTF8"] == "1"

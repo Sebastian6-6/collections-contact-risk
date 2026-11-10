@@ -13,6 +13,7 @@ Sai com código 1 se o dbt falhar ao compilar.
 """
 
 import json
+import os
 import subprocess
 import sys
 from collections.abc import Callable
@@ -38,7 +39,9 @@ def compilar_metricas(raiz: Path, data_corte: str) -> str:
     """Compila a análise das métricas para o corte e devolve o SQL, sem rodar nada no banco.
 
     O dbt roda em outro processo: no mesmo, a conexão dele ao DuckDB ficaria aberta e impediria a
-    leitura em modo só de leitura logo depois.
+    leitura em modo só de leitura logo depois. A saída dele é lida em UTF-8, com `PYTHONUTF8=1` no
+    processo filho, porque no Windows ele escreveria na página de código local e a leitura falharia
+    com `UnicodeDecodeError`; `errors="replace"` impede que um byte solto derrube a medição.
     """
     processo = subprocess.run(
         [
@@ -49,7 +52,8 @@ def compilar_metricas(raiz: Path, data_corte: str) -> str:
             "--profiles-dir", str(raiz),
             "--vars", json.dumps({"data_corte_validacao": data_corte}),
         ],
-        capture_output=True, text=True, encoding="utf-8", check=False,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
+        env={**os.environ, "PYTHONUTF8": "1"},
     )
     if processo.returncode != 0:
         saida = processo.stdout[-800:]
