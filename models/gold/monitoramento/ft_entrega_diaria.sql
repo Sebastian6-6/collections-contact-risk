@@ -63,6 +63,32 @@ WITH tNumeradas AS (
       AND atual.num_entrega = anterior.num_entrega + 1
 )
 
+, tComBase AS (
+  SELECT
+    provedor
+    , dt_referencia
+    , tp_dia
+    , qt_arquivos
+    , qt_registros
+    , qt_registros_repetidos
+    , qt_registros_atrasados
+    , qt_linhas_ilegiveis
+    , qt_dias_desde_entrega_anterior
+    , situacao_cabecalho
+    , desc_arquivos
+    , SUM(qt_registros) OVER (
+      PARTITION BY provedor, tp_dia
+      ORDER BY dt_referencia ASC
+      ROWS BETWEEN {{ janela }} PRECEDING AND 1 PRECEDING
+    ) AS qt_registros_base
+    , SUM(1) OVER (
+      PARTITION BY provedor, tp_dia
+      ORDER BY dt_referencia ASC
+      ROWS BETWEEN {{ janela }} PRECEDING AND 1 PRECEDING
+    ) AS qt_entregas_base
+  FROM tComAnterior
+)
+
 , tComMedia AS (
   SELECT
     provedor
@@ -76,21 +102,9 @@ WITH tNumeradas AS (
     , qt_dias_desde_entrega_anterior
     , situacao_cabecalho
     , desc_arquivos
-    , CAST(SUM(qt_registros) OVER (
-      PARTITION BY provedor, tp_dia
-      ORDER BY dt_referencia ASC
-      ROWS BETWEEN {{ janela }} PRECEDING AND 1 PRECEDING
-    ) AS NUMERIC) / SUM(1) OVER (
-      PARTITION BY provedor, tp_dia
-      ORDER BY dt_referencia ASC
-      ROWS BETWEEN {{ janela }} PRECEDING AND 1 PRECEDING
-    ) AS qt_media_movel
-    , SUM(1) OVER (
-      PARTITION BY provedor, tp_dia
-      ORDER BY dt_referencia ASC
-      ROWS BETWEEN {{ janela }} PRECEDING AND 1 PRECEDING
-    ) AS qt_entregas_base
-  FROM tComAnterior
+    , qt_entregas_base
+    , CAST(qt_registros_base AS NUMERIC) / qt_entregas_base AS qt_media_movel
+  FROM tComBase
 )
 
 , tComVariacao AS (
