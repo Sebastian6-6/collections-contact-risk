@@ -442,3 +442,86 @@ models:
         description: "Linha do arquivo da mesma aparição."
       - name: _hash_arquivo
         description: "Hash do arquivo da mesma aparição."
+
+  - name: ft_tentativa_contato
+    description: >
+      Uma tentativa de contato (`contato_id`), as mesmas linhas da Cobrança. Liga-se ao par
+      (CPF, contato) da `dim_contato`; sem o par, ao contato sem devedor de mesmo valor (e
+      `sk_devedor` NULL); sem nenhum dos dois, as chaves ficam NULL. `tipo_desfecho` é a classe do
+      resultado (G2b) e `situacao_horario` compara o horário com a janela única da G7.
+    columns:
+      - name: sk_devedor
+        description: "Devedor do par ligado. `NULL` quando a tentativa liga ao contato sem devedor ou a nenhum."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_devedor')
+                field: sk_devedor
+      - name: sk_contato
+        description: "Par ou contato sem devedor a que a tentativa se liga. `NULL` quando nenhum existe nas entregas."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_contato')
+                field: sk_contato
+      - name: contato_id
+        description: "Identificador da tentativa na Cobrança. Chave."
+        data_tests:
+          - unique
+          - not_null
+      - name: canal
+        description: "Canal da tentativa."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [sms, email, whatsapp, ligacao]
+      - name: resultado
+        description: "Resultado como a Cobrança o registrou. Um valor fora da lista reprova o teste."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - pagamento
+                  - promessa_pagamento
+                  - reclamacao
+                  - numero_errado
+                  - nao_conhece_devedor
+                  - opt_out
+                  - falecido
+                  - entregue
+                  - lido
+                  - sem_resposta
+      - name: tipo_desfecho
+        description: >-
+          Classe do resultado (G2b): `contato_confirmado`, `terceiro`, `opt_out`, `falecido` ou
+          `sem_confirmacao`.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [contato_confirmado, terceiro, opt_out, falecido, sem_confirmacao]
+      - name: situacao_horario
+        description: >-
+          Janela única da G7: `permitido` (segunda a sexta 8h-20h, sábado 9h-14h),
+          `fora_do_horario`, `domingo`, `feriado` (nacional) ou `nao_se_aplica` (e-mail).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [permitido, fora_do_horario, domingo, feriado, nao_se_aplica]
+      - name: dt_tentativa
+        description: "Data da tentativa, em horário de Brasília."
+        data_tests:
+          - not_null
+      - name: hr_tentativa
+        description: "Hora da tentativa, em horário de Brasília."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "Arquivo da Cobrança de onde veio a tentativa."
+      - name: _linha
+        description: "Linha do arquivo."
+      - name: _hash_arquivo
+        description: "Hash do arquivo."

@@ -374,3 +374,58 @@ unit_tests:
         - {sk_contato: 10, sk_devedor: 5, cpf: "c5", tipo_contato: "telefone", contato: "777", nivel_risco: "bloqueado", desc_motivo_risco: "terceiro: contato informou não ser o devedor", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nao_e_o_devedor", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 2, qt_tentativas_terceiro: 1, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: "2026-09-07", _arquivo: "f10", _linha: 10, _hash_arquivo: "h"}
         - {sk_contato: 11, sk_devedor: null, cpf: null, tipo_contato: "telefone", contato: "888", nivel_risco: "bloqueado", desc_motivo_risco: "contato sem devedor identificado", situacao_documento: "sem_documento", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 0, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: null, _arquivo: "f11", _linha: 11, _hash_arquivo: "h"}
         - {sk_contato: 12, sk_devedor: 5, cpf: "c5", tipo_contato: "telefone", contato: "999", nivel_risco: "atencao", desc_motivo_risco: "documento ligado por correção ou por RG", situacao_documento: "cpf_corrigido", documento_original: "12345678900", situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: null, _arquivo: "f12", _linha: 12, _hash_arquivo: "h"}
+
+  - name: ft_tentativa_contato_classifica_o_horario_pela_janela_unica
+    description: >
+      G7. Segunda a sexta vale das 8h às 20h e sábado das 9h às 14h, sem a hora final; domingo e
+      feriado nacional ficam de fora, e domingo vence feriado; o e-mail não tem janela
+      (`nao_se_aplica`). As chaves da ligação passam como vieram, inclusive `NULL`, e um resultado
+      novo deixa `tipo_desfecho` `NULL`.
+    model: ft_tentativa_contato
+    given:
+      - input: ref('cobranca_tentativas')
+        format: sql
+        rows: |
+          SELECT
+            CAST(sk_devedor AS INTEGER) AS sk_devedor
+            , CAST(sk_contato AS INTEGER) AS sk_contato
+            , CAST(contato_id AS VARCHAR) AS contato_id
+            , CAST(canal AS VARCHAR) AS canal
+            , CAST(resultado AS VARCHAR) AS resultado
+            , CAST(tipo_desfecho AS VARCHAR) AS tipo_desfecho
+            , CAST(data_hora AS TIMESTAMP) AS data_hora
+            , CAST(dt_tentativa AS DATE) AS dt_tentativa
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            (1, 1, 't1', 'whatsapp', 'entregue', 'sem_confirmacao', '2026-09-08 10:00:00', DATE '2026-09-08', 'arq', 1, 'h')
+            , (1, 1, 't2', 'sms', 'entregue', 'sem_confirmacao', '2026-09-08 07:59:59', DATE '2026-09-08', 'arq', 2, 'h')
+            , (1, 1, 't3', 'ligacao', 'entregue', 'sem_confirmacao', '2026-09-08 20:00:00', DATE '2026-09-08', 'arq', 3, 'h')
+            , (1, 1, 't4', 'whatsapp', 'entregue', 'sem_confirmacao', '2026-09-08 19:59:59', DATE '2026-09-08', 'arq', 4, 'h')
+            , (1, 1, 't5', 'sms', 'entregue', 'sem_confirmacao', '2026-09-05 09:00:00', DATE '2026-09-05', 'arq', 5, 'h')
+            , (1, 1, 't6', 'sms', 'entregue', 'sem_confirmacao', '2026-09-05 14:00:00', DATE '2026-09-05', 'arq', 6, 'h')
+            , (1, 1, 't7', 'sms', 'entregue', 'sem_confirmacao', '2026-09-05 08:59:59', DATE '2026-09-05', 'arq', 7, 'h')
+            , (1, 1, 't8', 'whatsapp', 'entregue', 'sem_confirmacao', '2026-09-06 10:00:00', DATE '2026-09-06', 'arq', 8, 'h')
+            , (1, 1, 't9', 'ligacao', 'entregue', 'sem_confirmacao', '2026-09-07 10:00:00', DATE '2026-09-07', 'arq', 9, 'h')
+            , (1, 1, 't10', 'email', 'entregue', 'sem_confirmacao', '2026-09-06 22:00:00', DATE '2026-09-06', 'arq', 10, 'h')
+            , (1, 1, 't11', 'sms', 'entregue', 'sem_confirmacao', '2026-11-15 10:00:00', DATE '2026-11-15', 'arq', 11, 'h')
+            , (NULL, 2, 't12', 'email', 'entregue', 'sem_confirmacao', '2026-09-07 03:00:00', DATE '2026-09-07', 'arq', 12, 'h')
+            , (NULL, NULL, 't13', 'sms', 'valor_novo', NULL, '2026-09-09 11:00:00', DATE '2026-09-09', 'arq', 13, 'h')
+          ) AS tLinhas (sk_devedor, sk_contato, contato_id, canal, resultado, tipo_desfecho, data_hora, dt_tentativa, _arquivo, _linha, _hash_arquivo)
+    expect:
+      rows:
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t1", canal: "whatsapp", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-08", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 1, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t2", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "fora_do_horario", dt_tentativa: "2026-09-08", hr_tentativa: "07:59:59", _arquivo: "arq", _linha: 2, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t3", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "fora_do_horario", dt_tentativa: "2026-09-08", hr_tentativa: "20:00:00", _arquivo: "arq", _linha: 3, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t4", canal: "whatsapp", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-08", hr_tentativa: "19:59:59", _arquivo: "arq", _linha: 4, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t5", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-05", hr_tentativa: "09:00:00", _arquivo: "arq", _linha: 5, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t6", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "fora_do_horario", dt_tentativa: "2026-09-05", hr_tentativa: "14:00:00", _arquivo: "arq", _linha: 6, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t7", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "fora_do_horario", dt_tentativa: "2026-09-05", hr_tentativa: "08:59:59", _arquivo: "arq", _linha: 7, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t8", canal: "whatsapp", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "domingo", dt_tentativa: "2026-09-06", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 8, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t9", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "feriado", dt_tentativa: "2026-09-07", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 9, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t10", canal: "email", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "nao_se_aplica", dt_tentativa: "2026-09-06", hr_tentativa: "22:00:00", _arquivo: "arq", _linha: 10, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t11", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "domingo", dt_tentativa: "2026-11-15", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 11, _hash_arquivo: "h"}
+        - {sk_devedor: null, sk_contato: 2, contato_id: "t12", canal: "email", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "nao_se_aplica", dt_tentativa: "2026-09-07", hr_tentativa: "03:00:00", _arquivo: "arq", _linha: 12, _hash_arquivo: "h"}
+        - {sk_devedor: null, sk_contato: null, contato_id: "t13", canal: "sms", resultado: "valor_novo", tipo_desfecho: null, situacao_horario: "permitido", dt_tentativa: "2026-09-09", hr_tentativa: "11:00:00", _arquivo: "arq", _linha: 13, _hash_arquivo: "h"}
