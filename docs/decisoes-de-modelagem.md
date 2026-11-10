@@ -1,12 +1,15 @@
 # Decisões de modelagem: ingestão, silver e gold
 
-Este documento registra como os dados recebidos chegam até a silver e por quê: as camadas, as fontes, a ingestão, a rastreabilidade e as regras da silver (seções 1 a 8). As decisões da gold (base única, régua de risco) estão na seção 9.
+Este documento registra como os dados recebidos chegam até a silver e por quê: as camadas, as fontes, a ingestão, a rastreabilidade e as regras da silver (seções 1 a 8). As decisões da gold (base única, régua de risco) estão na seção 9, e as da Receita Federal, na seção 10.
 
 - **Base:** o enunciado (`.context/converted/case-tecnico-dados-cobranca.md`, citado pela página), as convenções do case no `AGENTS.md` e as fontes externas listadas na seção 4 e na seção 5.
 - **Números:** medidos em 2026-11-09 sobre a carga completa (92 arquivos, 73.050 linhas recebidas); os da histórica de versões (seção 6), em 2026-11-09 e 2026-11-10. Cada número vem do corpo de um commit do tópico ou de uma consulta indicada aqui. Os dados são sintéticos (p. 2) e cobrem um mês de entregas diárias; nenhum número daqui vale como estimativa para dados reais.
-- **O que não foi verificado** está reunido na seção 8; o da Receita Federal, na seção 9.4.
+- **O que não foi verificado** está reunido na seção 8; o da gold, na seção 9.12; o da Receita Federal, na seção 10.4.
+- **Códigos:** G1 a G7 (com subitens por letra, como G2b) são as decisões da gold (seção 9); C1 a C6, as da Receita (seção 10.1); D1 a D5, citados no [dicionário](dicionario-de-dados.md), as do [monitoramento](monitoramento.md).
 
 O que se espera de cada provedor (nomes de coluna, formatos, valores sentinela) fica em [contratos-de-dados.md](contratos-de-dados.md).
+
+**Sumário:** [1. Camadas](#1-camadas) · [2. Fontes](#2-fontes-base-única-não-é-fonte-única) · [3. Ingestão](#3-ingestão) · [4. Rastreabilidade](#4-rastreabilidade) · [5. Silver](#5-silver) · [6. Histórico de versões](#6-mudança-de-rumo-histórico-de-versões-2026-11-10) · [7. Formato](#7-escolhas-de-formato) · [8. O que não foi verificado](#8-o-que-não-foi-verificado) · [9. Gold e régua de risco](#9-gold-base-única-e-régua-de-risco-decidida-antes-do-código) · [10. Receita Federal](#10-receita-federal-dados-abertos-do-cnpj)
 
 ## 1. Camadas
 
@@ -39,7 +42,7 @@ Cada provedor é uma fonte (`alfa`, `beta`, `gama`), com schemas `bronze_<fonte>
 O enunciado pede "uma base cadastral única e confiável" (p. 1) e descreve "três provedores diferentes, cada um no seu próprio formato" (p. 1). A base única é o resultado, e ela é construída na gold. Até a silver, cada provedor fica separado por dois motivos:
 
 1. **Cada formato tem problemas próprios.** O alfa renomeia uma coluna no meio do mês, o beta tem 12 combinações de chaves JSON e a gama tem três layouts de endereço ([perfil-das-fontes.md](perfil-das-fontes.md)). Padronizar cada um no seu modelo deixa cada regra perto do problema que ela resolve.
-2. **A procedência é um sinal de risco.** Na análise exploratória de 2026-11-08, um contato confirmado por 2 ou 3 provedores teve 1,1% de contato errado em 7.333 tentativas, contra 6,6% em 7.720 tentativas de contatos vistos por um só provedor ([perfil-das-fontes.md](perfil-das-fontes.md), "Sinais de risco de contato"). Fundir os provedores antes da gold apagaria esse sinal. O enunciado põe o risco de "contatar quem não deve" no centro do problema (p. 1).
+2. **A procedência é um sinal de risco.** Na análise exploratória de 2026-11-08, um contato confirmado por 2 ou 3 provedores teve 1,1% de contato errado em 7.333 tentativas, contra 6,6% em 7.720 tentativas de contatos vistos por um só provedor ([perfil-das-fontes.md](perfil-das-fontes.md#sinais-de-risco), "Sinais de risco"). Fundir os provedores antes da gold apagaria esse sinal. O enunciado põe o risco de "contatar quem não deve" no centro do problema (p. 1).
 
 A fonte externa citada para essa divisão é a arquitetura medalhão: a bronze é tipicamente só de acréscimo e guarda até os registros inválidos, a silver limpa, normaliza e deduplica, e os agregados de negócio ficam na gold (https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion). O guia de estrutura do dbt separa a etapa que só renomeia e converte tipos, sem junções (https://docs.getdbt.com/best-practices/how-we-structure/2-staging), da etapa que muda o grão e pede teste de chave primária no modelo que mudou de grão (https://docs.getdbt.com/best-practices/how-we-structure/3-intermediate). Como o enunciado nomeia só "bronze, staging/silver, marts/gold" (p. 3), a silver deste projeto faz as duas etapas, sempre dentro de uma fonte só.
 
@@ -526,7 +529,7 @@ Todas no schema `gold_devedores`. O schema da gold é o domínio de negócio, e 
 
 **Dimensão ou fato.** O teste usado foi: aconteceu num momento ou descreve alguém? O par devedor × contato descreve o devedor, por isso é dimensão; a tentativa aconteceu num momento, e é o único fato de evento. `dim_contato` → `dim_devedor` é um floco pequeno, aceito.
 
-**Endereço numa dimensão própria**, e não um endereço escolhido como atributo da `dim_devedor`: o beta manda 867 registros com dois endereços (um `atual`), e cerca de 2.030 dos 10.251 CPFs presentes em mais de um provedor têm CEPs diferentes entre eles (contagem aproximada, nos arquivos brutos). Escolher um endereço apagaria os outros.
+**Endereço numa dimensão própria**, e não um endereço escolhido como atributo da `dim_devedor`: o beta manda 867 registros com dois endereços (um `atual`), e cerca de 2.030 dos cerca de 10.250 CPFs presentes em mais de um provedor têm CEPs diferentes entre eles (contagem aproximada, nos arquivos brutos). Escolher um endereço apagaria os outros.
 
 **Contato sem documento (G2c′).** Os contatos das linhas sem documento utilizável (124 linhas recebidas, seção 5.8) entram na `dim_contato` com `sk_devedor` `NULL`, bloqueados. Assim a tentativa que chega a eles se liga a alguma coisa e não vira ponto cego (p. 1: "pontos cegos", "contato ligado a vários CPFs"). A consulta dos contatos de um devedor filtra `sk_devedor IS NOT NULL`.
 
@@ -564,7 +567,7 @@ Evolução para carga incremental em produção: uma tabela de chaves persistida
 
 Os três provedores falam dos mesmos devedores, e a cobrança é uma operação só. O `provedor_origem` de uma tentativa é a origem do contato discado, e não uma carteira separada.
 
-Base: "dados cadastrais dos devedores todos os dias, de três provedores diferentes", "base cadastral única" e "consolidar" (p. 1); "cada provedor fornece o que tem disponível" (p. 2). Nos dados, 10.250 dos 20.106 CPFs válidos aparecem em dois ou mais provedores; nesses, cerca de 97% dos nomes são compatíveis (730 das 998 divergências são abreviações); e o contato confirmado por dois ou mais provedores erra 1,1%, contra 4% a 9% no de um só.
+Base: "dados cadastrais dos devedores todos os dias, de três provedores diferentes", "base cadastral única" e "consolidar" (p. 1); "cada provedor fornece o que tem disponível" (p. 2). Nos dados, 10.247 dos 20.103 CPFs válidos aparecem em dois ou mais provedores (versão atual de cada provedor, como na `dim_devedor`); nesses, cerca de 97% dos nomes são compatíveis (730 das 998 divergências são abreviações); e o contato confirmado por dois ou mais provedores erra 1,1%, contra 4% a 9% no de um só.
 
 Nada é sobrescrito: a silver guarda cada provedor, e a `dim_contato`, a `dim_endereco` e a `ft_vinculo_empresa` guardam as linhas de cada provedor. Só o nome e o nascimento da `dim_devedor` guardam um valor escolhido. A premissa vai para o README.
 
