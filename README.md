@@ -104,7 +104,7 @@ Os números, as consultas e as margens estão em [docs/analises.md](docs/analise
 
 - **Dados sintéticos** (p. 2) e **um mês de histórico**: as taxas descrevem estes dados e não valem como estimativa para dados reais. A régua foi validada num corte (15/09) com um controle (22/09), e as hipóteses do loop foram formuladas olhando os dados depois do corte. A janela e o limite do alerta foram calibrados nos mesmos dados em que deram zero alarme falso.
 - **PostgreSQL nunca foi executado.** O SQL segue o subconjunto compatível, e as versões PostgreSQL das macros foram escritas pela documentação, sem uma instância para rodar; os hashes de conteúdo podem diferir entre os motores ([decisoes-de-modelagem.md](docs/decisoes-de-modelagem.md), seção 8).
-- **CI no GitHub:** rodou só localmente até aqui; o primeiro run é conferido no primeiro push.
+- **CI no GitHub:** o primeiro run no GitHub Actions, em 2026-11-10, passou em todas as etapas (pipeline do zero duas vezes com resultado idêntico, lint, pytest e parse do dbt). O CI não roda em PostgreSQL (ver acima).
 - **As 5 versões a menos do beta** quando o texto passou para maiúscula (17.866 para 17.861): causa não isolada (6.4).
 - **Horário:** não verifiquei se SMS e WhatsApp contam como "telefonemas" na lei de SP, o alcance territorial da lei (a ADI 2342591-64.2023 do TJSP derrubou só os art. 194 e 195), se a operação é signatária da autorregulação da Febraban, nem os feriados estaduais e municipais (9.10).
 - **A métrica não separa `atencao` de `bloqueado`:** os dois contam como risco pego, e mudar um sinal entre eles é decisão de política que o loop não julga.
