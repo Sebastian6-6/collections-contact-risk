@@ -8,7 +8,8 @@
   mesmo endereço em documentos diferentes). O beta não manda o endereço em texto; a oitava
   posição do hash (texto, usado nas outras fontes só quando todas as partes são NULL) fica NULL,
   para o mesmo endereço dar o mesmo hash nas três fontes. A posição na lista e o fato de o
-  endereço estar numa lista ou ser um objeto só não entram na identidade. A versão sem documento
+  endereço estar numa lista ou ser um objeto só não entram na identidade. Só existe linha para
+  endereço com alguma parte preenchida, como no alfa e no gama. A versão sem documento
   (vazio ou só zeros) também entra, com `documento_tipo` e `documento` NULL: esses endereços são
   deduplicados só por `hash_endereco` entre si e nunca se juntam a um par de documento válido.
 
@@ -48,6 +49,10 @@ WITH tAparicoes AS (
   FROM {{ ref('silver_beta_devedores_historico') }} AS h
   INNER JOIN {{ ref('silver_beta_devedores_historico_enderecos') }} AS e
     ON h.hash_conteudo = e.hash_conteudo
+  WHERE 1 = 1
+    AND COALESCE(
+      e.logradouro, e.numero, e.complemento, e.bairro, e.cidade, e.uf, e.cep
+    ) IS NOT NULL
 )
 
 , tComHash AS (

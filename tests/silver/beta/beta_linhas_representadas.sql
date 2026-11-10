@@ -5,8 +5,11 @@
   então não é devedor) e cada endereço de cada linha (partes padronizadas, na etapa
   `devedores_enderecos_padronizados`) tem o par com o documento em `devedores_enderecos`, mesmo
   quando o documento é NULL. As listas são abertas de novo aqui, a partir da etapa padronizada,
-  sem passar pelos modelos testados. Cada linha devolvida é um documento, um contato ou um
-  endereço que a silver perdeu.
+  sem passar pelos modelos testados. Toda linha legível tem em `devedores_historico` uma versão
+  com os mesmos campos simples, comparados com `IS NOT DISTINCT FROM`; as listas de contatos e de
+  endereços ficam de fora dessa conferência (as conferências acima as cobrem). Cada linha
+  devolvida é um documento, um contato, um endereço ou uma versão (`tipo_contato` = `versao`) que
+  a silver perdeu.
 #}
 WITH tTelefones AS (
   SELECT DISTINCT
@@ -111,6 +114,26 @@ WITH tTelefones AS (
     AND s.hash_endereco IS NULL
 )
 
+, tVersoesPerdidas AS (
+  SELECT DISTINCT
+    p.documento_tipo
+    , p.documento
+    , 'versao' AS tipo_contato
+    , CAST(NULL AS VARCHAR) AS contato
+  FROM {{ ref('silver_beta_devedores_padronizados') }} AS p
+  LEFT JOIN {{ ref('silver_beta_devedores_historico') }} AS h
+    ON p.documento_tipo IS NOT DISTINCT FROM h.documento_tipo
+      AND p.documento IS NOT DISTINCT FROM h.documento
+      AND p.nome_completo IS NOT DISTINCT FROM h.nome_completo
+      AND p.data_nascimento IS NOT DISTINCT FROM h.data_nascimento
+      AND p.vinculo_empresa_cnpj IS NOT DISTINCT FROM h.vinculo_empresa_cnpj
+      AND p.vinculo_empresa_desde IS NOT DISTINCT FROM h.vinculo_empresa_desde
+      AND p.renda_mensal IS NOT DISTINCT FROM h.renda_mensal
+      AND p.atualizado_em IS NOT DISTINCT FROM h.atualizado_em
+  WHERE 1 = 1
+    AND h.hash_conteudo IS NULL
+)
+
 SELECT
   documento_tipo
   , documento
@@ -135,3 +158,12 @@ SELECT
   , tipo_contato
   , contato
 FROM tEnderecosPerdidos
+
+UNION ALL
+
+SELECT
+  documento_tipo
+  , documento
+  , tipo_contato
+  , contato
+FROM tVersoesPerdidas
