@@ -27,11 +27,12 @@ Design the whole solution and organize the repository stage by stage, grounded i
   - Main README: author section with LinkedIn badge https://www.linkedin.com/in/pedro-piassi6/ (same style as the skill README); case origin described neutrally; 1st person singular or impersonal voice
 
 
-- [ ] Rewrite the master PLAN.md of this topic for the stage-by-stage flow (it still describes the unapproved 5-topic model)
+- [x] Master PLAN.md rewritten 2026-11-09 for the stage-by-stage flow (reviewed against the brief: added stage-8 day investigation, stage-6 segmentation and channel strategy, stage-9 predictive weight and adjustment proposals, stage-10 README items and GitHub publication, 8-12 h budget)
 - [ ] Get the owner's 3 decisions blocking the ingestion merge (sentinel rule, S6 renames, document "0") and the agent format choices; then merge feat/ingestao-e-padronizacao into develop
 
 ## Where we stopped
-- 2026-11-09 session (ingestion review): stages 4-5 redesigned with the owner, executed by agents and reviewed; branch feat/ingestao-e-padronizacao has 19 commits, verifier green except as reported; NOT merged (3 owner decisions pending in ingestao-e-padronizacao/STATE.md). Old branch kept as arquivo/ingestao-v1.
+- RESUME HERE: finish the ingestion topic first (steps in ingestao-e-padronizacao/STATE.md, 'RESUME HERE'); the master PLAN.md was rewritten and is current; then the stage 6 session continues.
+- 2026-11-09 session (ingestion review): stages 4-5 redesigned with the owner, executed by agents and reviewed; branch feat/ingestao-e-padronizacao has 19 commits, verifier green except as reported; NOT merged (3 owner decisions pending in ingestao-e-padronizacao/STATE.md). Old branch arquivo/ingestao-v1 deleted 2026-11-09 (owner OK).
 - Flow now: one session per design stage (0-10): decide one by one with verified sources, execute at the end, /c save, storytelling chapter, hand off. Old PLAN.md files of gold/monitoring/delivery and the master plan carry "Rascunho não aprovado / Superado" banners.
 - A parallel gold-design session (stage 6) was opened by the owner on 2026-11-09 with a prompt that limits it to its own topic memory; it found the silver lineage gap fixed in ad7c7cd.
 - Next: owner decides the ingestion pendings -> merge; continue the stage 6 session; rewrite the master plan.

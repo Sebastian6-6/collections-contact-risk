@@ -1,172 +1,69 @@
-# Plano mestre de execução
+# Plano mestre — uma sessão por etapa
 
-> **Superado — não seguir.** Este plano mestre organizava a execução em 5 tópicos e foi escrito sem aprovação. O fluxo vigente é uma sessão por etapa do desenho (0 a 10): decidir uma a uma, executar no fim da sessão, salvar e passar para a próxima. O plano mestre será reescrito numa sessão própria; até lá, valem o AGENTS.md e o `STATE.md` deste tópico.
+Substitui o plano de 5 tópicos, escrito sem aprovação em 2026-11-09. As regras do repositório estão no `AGENTS.md`; este plano não as repete.
 
+## 1. O fluxo
 
-Este arquivo amarra a execução do projeto. O desenho foi feito neste tópico (`arquitetura-solucao`); a construção acontece em cinco tópicos, cada um com o próprio `PLAN.md` detalhado. Aqui ficam o que vale para todos: a ordem, os agentes, como eles são orquestrados, a política de commits e a tabela que garante que nenhuma decisão do desenho se perdeu.
+Cada etapa do desenho tem uma sessão própria, sempre neste ciclo:
 
-As regras do repositório estão no `AGENTS.md`, que todo agente carrega automaticamente. Este plano não repete essas regras: aponta para elas.
+1. **Abrir:** `/c <tópico>`. Carrega a memória do tópico; o `AGENTS.md` entra sozinho.
+2. **Decidir:** uma decisão por vez com o autor, com as opções, os trade-offs, uma recomendação, a página do enunciado e as fontes conferidas. Nada é afirmado sem fonte ou medição; o que não foi verificado é dito.
+3. **Escrever o `PLAN.md` do tópico** só com as decisões aprovadas, e mostrar ao autor antes de salvar.
+4. **Executar no fim da sessão**, com os agentes (seção 3), passo a passo.
+5. **Revisar e verificar:** `revisor` e `verificador`; as correções viram commits próprios. Um resultado que contradiga uma decisão volta para o autor como pendência, nunca muda em silêncio.
+6. **Fechar:** `/c save`, o capítulo do storytelling (fora do repositório), o merge `--no-ff` na `develop` quando não houver pendência que mude código, e o prompt da próxima sessão.
 
-## 1. Ordem dos tópicos
+Uma sessão de desenho pode rodar em paralelo com uma de execução, desde que só edite a memória do próprio tópico e não faça commit (seção 4).
 
-| # | Tópico | Etapas do desenho | Entrega | Branch |
+## 2. As etapas
+
+| # | Etapa | O que o enunciado pede (página) | Tópico | Situação em 2026-11-09 |
 |---|---|---|---|---|
-| 1 | [`fundacao-do-repositorio`](../fundacao-do-repositorio/PLAN.md) | 3, CI, testes das skills | git, dependências, esqueleto dbt, ferramentas de qualidade, skills testadas, agentes, CI | `chore/fundacao-do-repositorio` |
-| 2 | [`ingestao-e-padronizacao`](../ingestao-e-padronizacao/PLAN.md) | 4 e 5 | ingestão por configuração com manifesto, bronze fiel à origem, silver por fonte | `feat/ingestao-e-padronizacao` |
-| 3 | [`modelo-gold-e-regua`](../modelo-gold-e-regua/PLAN.md) | 6 e 7 | star schema, cadastro único, régua de risco, lista de não-contatar, enriquecimento por CNPJ | `feat/modelo-gold-e-regua` |
-| 4 | [`monitoramento-e-analises`](../monitoramento-e-analises/PLAN.md) | 8 e 9 | monitoramento diário por média móvel, validação e calibração da régua, valor do CNPJ | `feat/monitoramento-e-analises` |
-| 5 | [`documentacao-e-entrega`](../documentacao-e-entrega/PLAN.md) | 10 | ERD, dicionário com tipos justificados, README, AGENTS.md final, publicação | `docs/documentacao-e-entrega` |
+| 0 | Regras, enunciado anonimizado, política de publicação | AGENTS.md atualizado (p. 1) | `arquitetura-solucao` | feita |
+| 1 | Perfil das fontes | base para "dados incompletos ou ruidosos" (p. 3) | `arquitetura-solucao` | feita (`docs/perfil-das-fontes.md`) |
+| 2 | Stack: DuckDB, dbt Core, Python | stack aberta, código reprodutível (p. 2) | `arquitetura-solucao` | feita |
+| 3 | Estrutura do repositório, CI, agentes | camadas claras (p. 3) | `fundacao-do-repositorio` | feita e integrada |
+| 4 | Ingestão até a bronze | carga histórica e diários de setembro (p. 1) | `ingestao-e-padronizacao` | feita; merge depende da 2ª rodada de correções |
+| 5 | Silver por fonte | deduplicação, conflitos, dados ruidosos (p. 3) | `ingestao-e-padronizacao` | feita junto com a 4 |
+| 6 | Gold e régua: base única (identificação, endereço, contatos, vínculo), régua por telefone e e-mail, salvaguardas e lista de não contatar, segmentação dos elegíveis e estratégia de canais e mensagens por nível | p. 1–2; integridade referencial e eficiência do modelo (p. 3); equilíbrio entre efetividade e proteção a terceiros/LGPD (p. 4) | `modelo-gold-e-regua` | sessão de desenho aberta |
+| 7 | Enriquecimento por CNPJ com dados abertos (dados.gov.br) e o valor que ele agrega à cobrança | p. 1–2 | `modelo-gold-e-regua` | a desenhar, sessão própria |
+| 8 | Qualidade da ingestão: investigar o dia com problema, estratégia de normalização e monitoramento diário (média móvel), sem complexidade desnecessária | p. 1–2; criatividade e pragmatismo (p. 4) | `monitoramento-e-analises` | a desenhar |
+| 9 | Avaliação da régua: acertos, erros e pontos cegos contra o histórico; acurácia, calibração, variáveis de maior peso preditivo, padrões de erro e propostas de ajuste | p. 1–2 | `monitoramento-e-analises` | a desenhar |
+| 10 | Entrega: README (visão geral, premissas, raciocínio, conclusões, limites, o que priorizaria), ERD acessível, tipos de cada coluna com o ganho de integridade ou eficiência, AGENTS.md final, repositório público no GitHub | p. 1–3 | `documentacao-e-entrega` | a desenhar |
+| — | Revisões finais: revisão a frio do repositório inteiro e checklist privado de publicação | "use apenas o que você consegue explicar" (p. 3) | `documentacao-e-entrega` | no fim |
 
-Cada tópico depende do anterior e roda sozinho, do primeiro passo ao merge. O tópico seguinte só começa depois do merge do anterior na `develop`.
+**Orçamento:** o enunciado espera de 8 a 12 horas (p. 3). Cada sessão corta o que não responde ao enunciado; o que ficar de fora vai para "o que eu priorizaria" no README.
 
-**Orçamento.** O enunciado espera de 8 a 12 horas de trabalho (p. 3). O caminho crítico é o que responde ao enunciado; três passos ficam fora dele e podem ser encurtados se o tempo apertar: a segunda rodada dos testes das skills (1.6), a avaliação de bibliotecas (2.7, já limitada a nome e telefone) e as regras de branch no GitHub (5.6).
-
-## 2. Pontos de pausa
-
-O dono do projeto aprova o pacote de planos uma vez, depois da revisão (seção 7). A execução só para em quatro situações:
-
-1. **Visualizador dos testes das skills** (tópico 1): o retorno dele orienta os ajustes nas skills.
-2. **Ações externas**: criar o repositório no GitHub, push, regras de branch. Nada sai da máquina sem confirmação.
-3. **Bloqueio**: um resultado que contradiz o enunciado, um teste que não fecha depois de duas tentativas de correção, ou uma decisão de negócio que os dados não sustentam.
-4. **Instalação na máquina**: o Python 3.14 e o `uv` não estão instalados. O passo 1.2 da fundação pede confirmação antes de instalar.
+Os `PLAN.md` atuais de gold, monitoramento e entrega são rascunhos não aprovados: servem só como lista de ideias para a sessão da etapa.
 
 ## 3. Agentes
 
-As definições ficam em `.claude/agents/`, versionadas: quem abre o repositório vê quais agentes existem, com que modelo e com que skills.
+Definições em `.claude/agents/`. Modelo e esforço padrão de cada um estão no próprio arquivo; o `PLAN.md` do tópico pode pedir esforço alto num passo.
 
-A escolha de modelo segue o guia oficial da Anthropic (platform.claude.com/docs/en/models/overview, consultado em 2026-11-09):
-- **Opus 5.5:** o ponto de partida para trabalho complexo; rende como o Fable 5.1 na maioria das tarefas, por menos.
-- **Sonnet 5.5:** a melhor combinação de velocidade e inteligência, bom para código de escopo claro.
-- **Haiku 5.5:** tarefas de alto volume e subagentes simples.
-
-O mesmo guia recomenda **ajustar o esforço antes de trocar de modelo**. O Fable 5.1 fica reservado para o caso de o Opus falhar numa tarefa mesmo com esforço alto, o que não é esperado num projeto deste tamanho.
-
-| Agente | Modelo · esforço padrão | Skills | Faz | Não faz |
-|---|---|---|---|---|
-| `engenheiro-python` | Sonnet 5.5 · medium | `qualidade-python`, `convencoes-codigo-pessoal` | ingestão, scripts, testes pytest, CI | modelos SQL |
-| `engenheiro-sql` | Sonnet 5.5 · medium; high na silver beta e no cadastro único | `qualidade-sql`, as 4 da dbt Labs | modelos, macros, testes e documentação YAML do dbt | decisões de negócio da régua |
-| `analista-dados` | Opus 5.5 · high | `qualidade-sql` | desenho da gold e da régua, análises, calibração, interpretação | código de produção extenso |
-| `revisor` | Opus 5.5 · medium; high na revisão final | `qualidade-sql`, `qualidade-python` | lê o diff do tópico contra o enunciado e o AGENTS.md e devolve achados | editar arquivos |
-| `verificador` | Haiku 5.5 · low | — | roda a pipeline do zero e todas as checagens e devolve um resumo curto | interpretar ou corrigir |
-
-## 4. Como os agentes são orquestrados
-
-O orquestrador é a sessão principal (Opus 5.5). Ele escreve o pedido de cada agente, confere o resultado, faz os merges, mantém os `STATE.md` e o documento de storytelling.
-
-- **Pedido autocontido e curto.** Cada pedido traz:
-  - o caminho relativo do `PLAN.md` do tópico e o número do passo;
-  - os critérios de pronto;
-  - as mensagens dos commits planejados;
-  - a lembrança das duas regras que mais pesam: o AGENTS.md vale acima de tudo, e nenhum caminho absoluto entra em arquivo nem em commit.
-
-  O pedido não cola contexto grande: o agente lê o que precisa.
-- **Relato curto.** O agente devolve no máximo 15 linhas: o que mudou, os comandos rodados e o resultado, os hashes dos commits e as pendências. Log longo fica com o `verificador`, que devolve só o essencial.
-- **Escrita em sequência, leitura em paralelo.** Dois agentes nunca escrevem ao mesmo tempo na mesma árvore. Assim não há worktrees nem merges extras, e o histórico fica limpo. Rodam em paralelo só as tarefas que não escrevem no repositório: testes das skills, revisões e pesquisas.
-- **Correção no mesmo agente.** Ajuste depois da revisão vai por `SendMessage` ao agente que fez o trabalho, que ainda tem o contexto. Abrir um agente novo custa a releitura de tudo.
-- **Plano B.** Se os agentes de `.claude/agents/` só forem reconhecidos depois de reiniciar a sessão, o orquestrador usa o tipo `general-purpose` com o mesmo modelo, o mesmo esforço e a instrução de carregar as mesmas skills.
-
-## 5. Commits, branches e caminhos
-
-As regras estão no `AGENTS.md`, nas seções "Commits e branches" e "Commits" do case. Na prática:
-
-```
-main ──●──●───────────────────────────────────────────────●  (merge final feito pelo dono)
-        \                                                 /
-develop  ●────●(1)────●(2)────●(3)────●(4)────●(5)───────●
-               \      /\      /
-                tópico  tópico ...   (cada tópico: branch próprio, merge --no-ff)
-```
-
-- `main` recebe só os três commits de ponto de partida e, no fim, a versão aprovada. O merge de `develop` para `main` é do dono do repositório.
-- Cada tópico tem um branch, e o merge na `develop` usa `--no-ff` com a mensagem `chore: integra <tópico> na develop`, com o nome do tópico literal (ex.: `chore: integra fundacao-do-repositorio na develop`). O histórico fica lido em capítulos.
-- **Correções da revisão.** O que o `revisor` apontar e for corrigido antes do merge entra como um commit próprio, também autorizado pelo plano: `fix:` quando corrige comportamento (com o ganho medido, se houver), `refactor:` quando só melhora o código e `docs:` quando é texto. A mensagem diz qual achado foi corrigido e por quê.
-- **AGENTS.md acompanha a execução.** Quando um passo cria uma regra nova (o schema `landing`, o `fontes.yml`, o schema `analises`, uma pasta nova), o mesmo commit atualiza o AGENTS.md, como pede o enunciado (p. 1). O passo 5.4 só consolida.
-- **Formato das mensagens** (pt-BR, claro, dizendo o porquê):
-
-  ```
-  <tipo>: <o que muda, em poucas palavras>
-
-  <por que a mudança existe, em 1 a 3 frases>
-  Ganho medido: <métrica> de <antes> para <depois> (<como foi medido>)
-  ```
-
-  A linha "Ganho medido" é obrigatória em `fix:` e `refactor:` que melhoram desempenho ou qualidade. Um número que não foi medido aparece como "Ganho estimado" e diz em que se baseia.
-- **Autor:** a identidade global de git da máquina. Sem linha de coautoria.
-- **Caminhos e termos privados.** Um hook de git privado, guardado fora do repositório e ligado só neste clone, roda em todo commit, de pessoa ou de agente. Ele bloqueia caminho absoluto da máquina, termos de uma lista privada e arquivos que não podem ser publicados (`.pdf`, `.pyc`, `.duckdb`, `.context/local/`).
-- **Volume:** cerca de 32 commits planejados, mais um merge por tópico e os `fix:`/`refactor:` que a medição justificar. Um commit por mudança lógica, como pede o case: nem um commit por arquivo, nem um commit por tópico.
-
-## 6. Documento de storytelling
-
-Um documento em pt-BR simples, na primeira pessoa, guardado **fora do repositório**. Ele resume o processo de construção para a apresentação do case. O esqueleto nasce na revisão (seção 7), e o orquestrador escreve o capítulo de cada tópico logo depois do merge, enquanto o contexto está fresco. Estrutura:
-
-1. **Resumo inicial**, respondendo ao que o enunciado pede:
-   - visão geral, premissas, raciocínio das transformações, conclusões e limites (p. 2);
-   - o que eu priorizaria com mais tempo e onde gastaria mais tempo;
-   - as respostas da parte "Análise de Dados" (p. 1 e 2);
-   - como a entrega atende aos cinco critérios de avaliação (p. 3 e 4).
-2. **Como trabalhei com IA:** a memória de contexto, as skills e seus testes, os agentes com modelo e esforço, e o custo.
-3. **Um capítulo por tópico:** o que foi feito, as decisões e os trade-offs, os ganhos medidos, os commits.
-4. **O que faltou e o que eu faria.**
-
-## 7. Revisão dos planos (último passo do desenho)
-
-1. **Tabela de rastreio completa** (seção 8): toda decisão tem destino.
-2. **Revisão a frio:** um `revisor` (Opus 5.5 · medium), sem o contexto da conversa, lê o enunciado, o AGENTS.md, este plano e os cinco `PLAN.md`. Ele procura:
-   - pedido do enunciado sem passo ou sem commit;
-   - nome pouco claro de tópico, passo, tabela ou coluna;
-   - desvio dos padrões do projeto (pt-BR, voz no singular ou impessoal, Conventional Commits, ganho medido);
-   - caminho absoluto.
-3. **Correções:** o orquestrador aplica o que a revisão apontou.
-4. **Aprovação única** do pacote, com as decisões abertas de cada tópico já com proposta.
-5. **Encerramento:** fechar no `STATE.md` as pendências já resolvidas (nomes da etapa 3, testes das skills) e rodar `ctx.py complete arquitetura-solucao`, com o resumo final.
-
-## 8. Rastreio das decisões do desenho
-
-| Decisão (STATE.md deste tópico) | Onde vale | Onde é executada |
+| Agente | Faz | Não faz |
 |---|---|---|
-| Hierarquia de regras, modo de trabalho, pesquisa antes de afirmar | AGENTS.md | todos |
-| Documentação de referência na versão atual | AGENTS.md | 1 (referências novas), 3 (layout do CNPJ) |
-| `requirements.in` + `requirements.txt` gerado com `uv pip compile --universal` | AGENTS.md | 1 · passo 1.3 |
-| DuckDB 2.0 embutido, banco recriado do zero; SQL no subconjunto PostgreSQL | AGENTS.md | 1 · passo 1.4; 2, 3, 4 |
-| dbt Core 1.12 + dbt-duckdb 1.11; manter portável para o v2 | AGENTS.md | 1 · passo 1.4 (`dbt parse --use-v2-parser` no CI) |
-| Python 3.14; ingestão em Python (stdlib + duckdb); um comando de entrada | AGENTS.md (Stack) | 1 · passos 1.2 e 1.4; 2 · passo 2.1 |
-| SQLFluff com dialeto postgres | skill qualidade-sql | 1 · passo 1.3 |
-| Sem horário de execução nas tabelas; rastreabilidade por arquivo e hash | AGENTS.md | 2 · passo 2.1; texto em 5 (README e decisões) |
-| Sem tabela de log de execução; Dagster só como extra | — | 5 · "o que eu faria" |
-| Um banco, um schema por camada (e por fonte) | AGENTS.md | 1 · passo 1.4 |
-| Sem painel nem gráficos; conclusões no README | — | 4 e 5 |
-| Nomes com um `_`, `dim_` e `ft_` na gold, arquivo com camada e fonte | AGENTS.md | 1 · passo 1.4; 2, 3 |
-| Silver só por fonte; união e conflitos na gold | AGENTS.md | 2 e 3 |
-| Python segue `convencoes-codigo-pessoal` | AGENTS.md | todos os passos Python |
-| CI no GitHub Actions; main + develop; PR de terceiros aprovado pelo dono | AGENTS.md | 1 · passo 1.7; 2 · passo 2.8; 5 · passo 5.6 |
-| Skills combinadas instaladas e testadas no começo do desenvolvimento | — | 1 · passos 1.5 e 1.6 |
-| Regra de entrada de bibliotecas (offline, determinística, muda decisão, ganho medido) | STATE deste tópico (só tratamento) | 2 · passo 2.7 |
-| Prefixos e ordem das colunas da gold; coluna de origem nas dimensões unidas | AGENTS.md | 3 |
-| Chave ausente fica `NULL`, sem linha "desconhecido" | AGENTS.md | 3; texto em `docs/decisoes-de-modelagem.md` |
-| Commits sem coautoria; nenhum caminho pessoal | AGENTS.md + hook privado | todos |
-| Perfil das fontes publicado em `docs/perfil-das-fontes.md` | — | 4 regenera os números com SQL; 5 revisa |
-| README com selo do LinkedIn, origem neutra, voz no singular | — | 5 · passo 5.3 |
-| Aviso de caminho longo no Windows ao instalar o dbt | — | 1 · passo 1.2; README em 5 |
-| Plano B: DuckDB 1.5 LTS se o dbt-duckdb quebrar no 2.0 | STATE deste tópico | 1 · riscos do passo 1.3 |
-| Coorte de ~370 linhas por fonte com data padrão 2025-09-01 | — | 2 · D5 (data sentinela); 4 · passo 4.2 |
-| Beta de 29/09 repete 353 linhas do dia 28 sem `_reenvio` no nome | — | 2 · D6 (hash por registro); 4 · passo 4.1 |
+| `engenheiro-python` | ingestão, scripts, testes pytest, CI | modelos SQL |
+| `engenheiro-sql` | modelos, macros, testes e YAML do dbt | decisões de negócio |
+| `analista-dados` | análises, medições, documentação das decisões | código de produção extenso |
+| `revisor` | lê o diff contra o enunciado, o AGENTS.md e o plano | editar |
+| `verificador` | roda tudo do zero e devolve aprovado/reprovado | interpretar ou corrigir |
 
-| Pendência aberta no desenho | Tópico que decide |
-|---|---|
-| Regras de horário de contato (lei de SP e autorregulação dos bancos): confirmar os textos originais | 3 · passo 3.1 |
-| Onde bibliotecas Python rodariam (UDF, modelo Python, etapa antes da silver ou nada) | 2 · passo 2.7 |
-| Star schema: fatos, dimensões, sem dimensão de calendário gerada | 3 · passo 3.1 |
-| Regra de janela: média móvel com `SUM/SUM(1)`, detecção de buracos sem `LAG` | 4 · passo 4.1 |
-| Nomes da etapa 3 (schemas por camada e fonte, macros, `ft_devedor_contato`) | já no AGENTS.md; fecha na aprovação única; 1 · passo 1.4 |
-| Gold híbrida: estrela + datasets de análise como views (schema `analises`) | 3 · passos 3.1 e 3.5 |
-| Script de perfil: consultar a própria silver | 4 · passo 4.5 |
+## 4. Regras de orquestração (aprendidas na etapa 4)
 
-## 9. Como retomar numa sessão nova
+- **Pedido autocontido:** caminho do `PLAN.md` e o passo, critérios de pronto, a mensagem do commit e as regras que mais pesam. Relato de no máximo 15 linhas.
+- **Escrita em sequência, leitura em paralelo:** dois agentes nunca escrevem na mesma árvore ao mesmo tempo. Quem lê o banco enquanto outro o recria trabalha numa cópia.
+- **`git add` só por caminho explícito**, nunca `-A`, `.` ou `.context/` dentro de um passo: outra sessão pode estar editando a memória.
+- **Nada sem fonte ou medição.** Número do desenho é refeito na execução; quando não se reproduz, a correção é registrada e o número antigo deixa de ser citado. O console do Windows exibe acentos errado: conclusões sobre caracteres vêm de bytes.
+- **Escolha que o plano não fixava** vira pendência para o autor confirmar; não vira regra.
+- **Commits:** os planejados no `PLAN.md` e as correções da revisão. Mensagem como se fosse do autor, sem "o dono", sem Co-Authored-By; `fix:`/`refactor:` com o ganho medido. O hook privado bloqueia caminho pessoal, termos privados e arquivos não publicáveis (como `.pdf`).
+- **Limite de uso:** um agente interrompido é retomado pelo `SendMessage`, nunca recriado, depois de conferir o que ficou pela metade.
 
-Cada tópico de execução roda numa sessão própria; a memória do projeto torna a troca sem perda.
+## 5. Pontos de pausa
 
-1. **Abrir:** `/c <tópico>`. Carrega o `STATE.md` do tópico e o `PROJECT.md`; o AGENTS.md entra sozinho.
-2. **Ler sob demanda:** o `PLAN.md` do tópico e, deste plano mestre, as seções 2 (pausas), 3 (agentes), 4 (orquestração) e 5 (commits).
-3. **Não reabrir o que já foi decidido:** o que está no AGENTS.md, nas "Decisions" do `STATE.md` ou na tabela de decisões do `PLAN.md` vale como está. Decisões de desenho são fechadas no `arquitetura-solucao`, com o dono, uma a uma, antes de o tópico rodar; a sessão de execução só executa. Um resultado da execução que contradiga uma decisão volta como pendência para o `arquitetura-solucao`.
-4. **Contexto enxuto:** leituras grandes e logs longos ficam com os agentes (o `verificador` resume as checagens); na sessão principal entram só os relatos curtos.
-5. **Fechar:** `/c save`, o capítulo do tópico no documento de storytelling (fora do repositório) e um "onde parei" preciso no `STATE.md`.
+A execução para e pergunta ao autor quando: um resultado contradiz uma decisão; uma correção exige decidir regra de negócio; uma ação sai da máquina (GitHub, push); ou um teste não fecha depois de duas tentativas.
+
+## 6. Pendências que atravessam etapas
+
+- Regras de horário de contato: confirmar os textos originais da Lei SP 17.832/2023 e da SARB 27/2023 (etapa 6).
+- Versões PostgreSQL das macros com `adapter.dispatch`: escritas só pela documentação; testar se houver uma instância (etapa 10 registra como limite).
+- CI no GitHub Actions: rodar na primeira publicação (etapa 10).

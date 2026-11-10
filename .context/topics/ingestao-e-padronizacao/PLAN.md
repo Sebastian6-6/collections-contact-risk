@@ -48,6 +48,17 @@ Base no enunciado:
 | S9 | Linha sem chave (ilegível, cabeçalho repetido, documento vazio) não entra na silver e continua na bronze. Um teste com `severity: warn` mostra quantas ficaram de fora, por fonte. |
 | S10 | O que se espera de cada provedor fica em `docs/contratos-de-dados.md`: nomes de coluna, formatos de data, layout do endereço e valores sentinela. Os testes fiscalizam o que dá para verificar; o resto é obrigação do provedor no contrato. |
 
+### Ajustes da execução e das duas revisões (2026-11-09) — valem sobre S1–S10
+| # | Ajuste | O que muda para quem consome a silver (gold) |
+|---|---|---|
+| R1 | Toda tabela da silver traz `_arquivo`, `_linha` e `_hash_arquivo`; nas que agregam várias aparições (`devedores_contatos`), os da aparição mais recente. | rastreabilidade em qualquer junção |
+| R2 | Sem renomes na bronze e na silver (regra no AGENTS.md): voltam `dt_ref` (gama), `cnpj_empregador_raw` (gama) e `atualizado_em` (beta); o `tipo` do telefone mantém o nome da fonte, a coluna criada que diz telefone/e-mail chama-se `tipo_contato` (nas 3 tabelas de contatos) e a ponte da cobrança usa `provedor_origem` (commit 1ed6423). Campo de objeto JSON aninhado vira `<objeto>_<chave>`: `vinculo_empresa_cnpj`, `vinculo_empresa_desde`, `documento_tipo` (beta), `atributos_extra_<chave>` e `endereco_json_complemento` (gama); chaves de listas abertas em tabela filha mantêm o nome; colunas que unem formatos (gama `logradouro`, `numero`, `bairro`, `cidade`, `uf`, `cep`) têm nome próprio (commit fded0da). Variantes de um campo usam um dos nomes da fonte (alfa `documento`, beta `nome_completo`). | a gold mapeia os nomes da fonte para os prefixos; conferir os nomes finais nos YAML de `models/silver/` |
+| R3 | Documento vazio ou zerado (`0`, `000.000.000-00`, `00000000000`) não é chave: a linha não vira devedor, mas os contatos dela entram em `devedores_contatos` com `documento` NULL (deduplicados por tipo e contato). Medido: 124 linhas; 79 tentativas de setembro vão para esses contatos. Substitui o "documento vazio fica fora" da S9. | `devedores_contatos` tem linhas com `documento` NULL: a junção com `devedores` é LEFT JOIN, e esses contatos servem de sinal de risco |
+| R4 | Data sentinela 2025-09-01 fica como veio também na ordenação (decidido); muda o vencedor em 5/2/5 devedores se fosse tratada como ausente. | a gold trata a sentinela |
+| R5 | Datas e horas sem fuso são horário de Brasília; epoch convertido para UTC−3 (regra no AGENTS.md). | — |
+| R6 | UF em maiúscula; valor fora das 27 UFs (`XX`) vira NULL. CNPJ do empregador completado pela regra oficial (zeros à esquerda ou dígitos verificadores calculados); o que não encaixar fica como veio, documentado. `vinculo_desde` vira DATE com dia 01 (a descrição diz que é o mês do vínculo). | CNPJ de 14 caracteres pronto para cruzar com os dados da Receita (etapa 7) |
+| R7 | A deduplicação de `devedores` desempata por `_arquivo` antes de `_linha`; arquivo diário sem data válida no nome reprova a pipeline. | — |
+
 ## 3. Reaproveitado do componente anterior (branch arquivado `arquivo/ingestao-v1`)
 - O leitor de CSV que guarda o texto original e a linha malformada com o motivo (modo estrito, registro em várias linhas físicas).
 - O registro de leitores e conectores por nome (`@leitor`, `@conector`) e a configuração em YAML.
