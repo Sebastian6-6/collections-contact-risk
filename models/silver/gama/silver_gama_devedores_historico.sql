@@ -12,7 +12,6 @@
   `data_ultima_entrega` cobrem todas as aparições da versão; `_arquivo`, `_linha` e
   `_hash_arquivo` são da aparição mais recente (R1), escolhida por `ordem_versao`.
 #}
-{{ config(materialized='table') }}
 {%- set colunas_do_conteudo = [
   'documento', 'nome', 'data_nascimento', 'cnpj_empregador_raw', 'atributos_extra_estado_civil'
   , 'atributos_extra_qtd_dependentes', 'atributos_extra_score_externo'

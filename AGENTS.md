@@ -53,6 +53,7 @@ Regras que valem só para uma etapa ou um tópico de trabalho não entram aqui: 
 
 - Motor: DuckDB, embutido; o banco é recriado do zero a cada execução da pipeline.
 - Transformações em dbt Core, com o adaptador dbt-duckdb.
+- **Materialização:** bronze, silver e gold são tabelas. A bronze é gravada pela ingestão; a silver e a gold são `table` no `dbt_project.yml`. Base: o guia do dbt "How we structure our dbt projects" (parte Marts) diz que "storage is cheap and compute is expensive". O mesmo guia recomenda view na staging, para não ocupar espaço e ler sempre o dado mais novo. Aqui, porém, o banco é recriado a cada execução, então a tabela nunca fica desatualizada, e a silver é lida pela gold e por centenas de testes. Os modelos efêmeros (`*_padronizados`) continuam efêmeros: são etapas internas no grão da linha recebida, sem a deduplicação que define uma tabela da silver. Os datasets do schema `analises` ficam fora desta regra. Medições em `docs/decisoes-de-modelagem.md`.
 - O SQL dos modelos fica no subconjunto compatível com PostgreSQL, como pede a convenção do case. As diferenças entre DuckDB e PostgreSQL a evitar estão em `.context/converted/referencias-duckdb-postgresql-compatibility-2-0.md`.
 - As versões exatas ficam só no `requirements.txt`.
 - Todo código Python e SQL segue as convenções de `.claude/skills/convencoes-codigo-pessoal/SKILL.md`, com as adaptações da seção "Estilo do código".

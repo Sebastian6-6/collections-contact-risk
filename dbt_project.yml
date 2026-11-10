@@ -26,11 +26,11 @@ clean-targets:
 
 models:
   collections_contact_risk:
-    # Bronze e silver são views: não duplicam dados e o banco é recriado a cada execução.
-    bronze:
-      +materialized: view
+    # As três camadas são tabelas (AGENTS.md, Stack). A bronze é gravada como tabela pela ingestão
+    # e `models/bronze/` só declara as fontes, por isso não aparece aqui. Os modelos efêmeros
+    # (`*_padronizados`) continuam efêmeros: são etapas internas no grão da linha recebida, não
+    # tabelas da camada, e cada um declara isso no próprio arquivo.
     silver:
-      +materialized: view
-    # A gold é o que se consulta, então vira tabela física.
+      +materialized: table
     gold:
       +materialized: table

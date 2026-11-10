@@ -5,7 +5,6 @@
   `hash_conteudo`). Só existe linha para contato que veio preenchido. O `tipo` do telefone e o
   `principal` são do provedor e ficam `NULL` quando o elemento não os traz.
 #}
-{{ config(materialized='table') }}
 
 SELECT
   h.hash_conteudo

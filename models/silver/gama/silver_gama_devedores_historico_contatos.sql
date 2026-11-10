@@ -6,7 +6,6 @@
   provedor; o `email` não tem `tipo`. A versão de linha com a lista truncada (JSON inválido) não
   tem contato legível e fica sem linhas aqui.
 #}
-{{ config(materialized='table') }}
 
 SELECT
   h.hash_conteudo

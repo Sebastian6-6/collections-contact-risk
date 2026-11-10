@@ -4,7 +4,6 @@
   beta manda o endereço como lista ou como um objeto só; o objeto vira a posição 1. O `atual`
   fica como veio (S7): nenhuma regra escolhe o endereço vigente aqui.
 #}
-{{ config(materialized='table') }}
 
 SELECT
   h.hash_conteudo

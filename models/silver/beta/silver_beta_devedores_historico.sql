@@ -14,7 +14,6 @@
   aparições da versão; `_arquivo`, `_linha` e `_hash_arquivo` são da aparição mais recente (R1),
   escolhida por `ordem_versao`.
 #}
-{{ config(materialized='table') }}
 {%- set colunas_do_conteudo = [
   'documento_tipo', 'documento', 'nome_completo', 'data_nascimento', 'vinculo_empresa_cnpj'
   , 'vinculo_empresa_desde', 'renda_mensal', 'atualizado_em', 'assinatura_contatos'

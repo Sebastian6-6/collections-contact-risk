@@ -22,7 +22,15 @@ O banco tem três camadas: bronze, silver e gold. Não há pasta de pouso entre 
 
 **Por que a ingestão grava a bronze.** A convenção do case diz que `ingestion/` faz a "leitura dos arquivos dos provedores, sem transformação" e que as transformações ficam em SQL em `models/` (AGENTS.md, convenções do case). Gravar o texto recebido numa tabela é leitura sem transformação. Já interpretar o JSON, converter tipos e deduplicar é transformação e fica na silver. Por isso `models/bronze/` não tem SQL: as tabelas são declaradas como fontes do dbt, com descrição e testes de integridade.
 
-**Materialização.** Bronze e silver são views, e a gold vira tabela física (`dbt_project.yml`). A view não duplica dados, e o banco é refeito a cada execução.
+**Materialização.** As três camadas são tabelas (AGENTS.md, Stack). A bronze é gravada como tabela pela ingestão; a silver e a gold são `table` no `dbt_project.yml`. A base é o guia oficial do dbt, "How we structure our dbt projects", que na parte Marts diz que "storage is cheap and compute is expensive" (conferido na fonte em 2026-11-10). O mesmo guia recomenda view na staging, camada que corresponde à silver, por dois motivos: não ocupar espaço com modelos que ninguém consulta e ler sempre o dado mais novo. Nenhum dos dois vale aqui. O banco é recriado a cada execução, então a tabela nunca fica desatualizada. E a silver é consultada pela gold, pela régua e pelos 274 testes do dbt, que numa view refariam a leitura de JSON, as expressões regulares e a deduplicação a cada leitura.
+
+| Medido em 2026-11-10 (mediana de 3 execuções) | Silver como view | Silver como tabela | Efêmeros também como tabela |
+|---|---|---|---|
+| Pipeline completa | 17,1 s | 15,4 s | 15,7 s |
+| Leitura completa das relações da silver | 0,343 s | 0,007 s | 0,010 s |
+| Tamanho do banco | — | 39,9 MB | 49,6 MB |
+
+Os modelos efêmeros (`*_padronizados`) continuam efêmeros. Eles são etapas internas no grão da linha recebida, sem a deduplicação que define uma tabela da silver; como tabela, ficariam ao lado das tabelas da camada e poderiam ser consumidos pela gold como se fossem contrato. Também não trariam ganho: a pipeline ficou em 15,7 s contra 15,4 s, dentro do ruído das execuções (14,8 a 15,9 s), e o banco cresceria 24 %. Os datasets do schema `analises` ficam fora desta regra; o tópico que os criar decide a materialização.
 
 ## 2. Fontes: base única não é fonte única
 
