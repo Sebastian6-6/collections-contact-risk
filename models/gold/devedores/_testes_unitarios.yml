@@ -1,0 +1,130 @@
+version: 2
+
+unit_tests:
+  - name: devedores_documentos_liga_cpf_com_um_digito_errado_e_rg_por_nome_e_nascimento
+    description: >
+      G3a'. CPF inválido a um dígito de um único CPF válido com mesmo nome e nascimento se liga a
+      ele; a dois dígitos não se liga; com duas correspondências não se liga (empate nunca se resolve);
+      com nascimento não confiável não se liga. RG com mesmo nome e nascimento de um único CPF
+      válido se liga; RG sem correspondência não é devedor (`cpf` NULL). O CPF válido que chega por dois
+      provedores é um documento só.
+    model: devedores_documentos
+    given:
+      - input: ref('devedores_registros')
+        format: sql
+        rows: |
+          SELECT
+            CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(nome_chave AS VARCHAR) AS nome_chave
+            , CAST(dt_nascimento AS DATE) AS dt_nascimento
+            , CAST(nascimento_confiavel AS BOOLEAN) AS nascimento_confiavel
+          FROM (
+            VALUES
+            ('CPF', '52998224725', 'ANA SOUZA', DATE '1990-01-01', TRUE)
+            , ('CPF', '52998224725', 'ANA SOUZA', DATE '1990-01-01', TRUE)
+            , ('CPF', '52998224726', 'ANA SOUZA', DATE '1990-01-01', TRUE)
+            , ('CPF', '52998224736', 'ANA SOUZA', DATE '1990-01-01', TRUE)
+            , ('CPF', '11144477735', 'MARIA LIMA', DATE '1980-05-05', TRUE)
+            , ('CPF', '12345678909', 'MARIA LIMA', DATE '1980-05-05', TRUE)
+            , ('CPF', '11144477736', 'MARIA LIMA', DATE '1980-05-05', TRUE)
+            , ('CPF', '39053344705', 'JOSE DA CONCEICAO', DATE '1975-03-03', TRUE)
+            , ('CPF', '39053344706', 'JOSE DA CONCEICAO', DATE '1900-01-01', FALSE)
+            , ('RG', '123456789', 'JOSE DA CONCEICAO', DATE '1975-03-03', TRUE)
+            , ('RG', '987654321', 'NINGUEM', DATE '2000-01-01', TRUE)
+          ) AS tLinhas (documento_tipo, documento, nome_chave, dt_nascimento, nascimento_confiavel)
+    expect:
+      rows:
+        - {documento_tipo: CPF, documento: "52998224725", cpf: "52998224725", situacao_documento: cpf_valido}
+        - {documento_tipo: CPF, documento: "52998224726", cpf: "52998224725", situacao_documento: cpf_corrigido}
+        - {documento_tipo: CPF, documento: "52998224736", cpf: "52998224736", situacao_documento: cpf_invalido}
+        - {documento_tipo: CPF, documento: "11144477735", cpf: "11144477735", situacao_documento: cpf_valido}
+        - {documento_tipo: CPF, documento: "12345678909", cpf: "12345678909", situacao_documento: cpf_valido}
+        - {documento_tipo: CPF, documento: "11144477736", cpf: "11144477736", situacao_documento: cpf_invalido}
+        - {documento_tipo: CPF, documento: "39053344705", cpf: "39053344705", situacao_documento: cpf_valido}
+        - {documento_tipo: CPF, documento: "39053344706", cpf: "39053344706", situacao_documento: cpf_invalido}
+        - {documento_tipo: RG, documento: "123456789", cpf: "39053344705", situacao_documento: rg_por_nome_nascimento}
+        - {documento_tipo: RG, documento: "987654321", cpf: null, situacao_documento: sem_documento}
+
+  - name: dim_devedor_escolhe_nome_nascimento_perfil_e_marca_conflitos
+    description: >
+      G3b, G3c e ponto 4. Um voto por provedor. Nome abreviado ("ANA C. SOUZA") vota na forma por
+      extenso e não é conflito; a grafia acentuada vence a sem acento; primeiro nome diferente é
+      conflito de identidade e, no empate, vale o nome mais recente. Nascimento: a sentinela não
+      vota, a maioria vence e o empate dá NULL. O perfil sai só da gama. Um documento com versões empatadas no topo
+      da histórica (`devedores_conflitos_versao`) marca `versao` (e, com o conflito de
+      identidade, `identidade_e_versao`). O RG ligado conta em `qt_documentos_vinculados` e o
+      provedor dele conta em `qt_provedores`.
+    model: dim_devedor
+    given:
+      - input: ref('devedores_registros')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(nome_devedor AS VARCHAR) AS nome_devedor
+            , CAST(nome_chave AS VARCHAR) AS nome_chave
+            , CAST(dt_nascimento AS DATE) AS dt_nascimento
+            , CAST(nascimento_confiavel AS BOOLEAN) AS nascimento_confiavel
+            , CAST(dt_atualizacao AS DATE) AS dt_atualizacao
+            , CAST(dt_entrega AS DATE) AS dt_entrega
+            , CAST(estado_civil AS VARCHAR) AS estado_civil
+            , CAST(escolaridade AS VARCHAR) AS escolaridade
+            , CAST(fonte_score AS VARCHAR) AS fonte_score
+            , CAST(qt_dependentes AS INTEGER) AS qt_dependentes
+            , CAST(score_externo AS INTEGER) AS score_externo
+            , CAST(flag_possui_imovel AS BOOLEAN) AS flag_possui_imovel
+          FROM (
+            VALUES
+            ('alfa', 'CPF', '52998224725', 'ANA C. SOUZA', 'ANA C. SOUZA', DATE '1990-01-01', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('gama', 'CPF', '52998224725', 'ANA CRISTINA SOUZA', 'ANA CRISTINA SOUZA', DATE '1990-01-01', TRUE, DATE '2026-07-01', DATE '2026-08-31', 'CASADO', 'SUPERIOR', 'SERASA', 2, 700, TRUE)
+            , ('alfa', 'CPF', '11144477735', 'JOSE DA CONCEICAO', 'JOSE DA CONCEICAO', DATE '1980-05-05', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('beta', 'CPF', '11144477735', 'JOSÉ DA CONCEIÇÃO', 'JOSE DA CONCEICAO', DATE '1980-05-05', TRUE, DATE '2026-07-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('alfa', 'CPF', '12345678909', 'MARIA LIMA', 'MARIA LIMA', DATE '1980-05-05', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('gama', 'CPF', '12345678909', 'ANA LIMA', 'ANA LIMA', DATE '1981-05-05', TRUE, DATE '2026-07-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('alfa', 'CPF', '39053344705', 'PEDRO ALVES', 'PEDRO ALVES', DATE '1900-01-01', FALSE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('gama', 'CPF', '39053344705', 'PEDRO ALVES', 'PEDRO ALVES', DATE '1970-02-02', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('beta', 'RG', '123456789', 'PEDRO ALVES', 'PEDRO ALVES', DATE '1970-02-02', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('alfa', 'CPF', '52998224736', 'LUIZ SILVA', 'LUIZ SILVA', DATE '1960-06-06', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('alfa', 'CPF', '70000000007', 'ROSA PINTO', 'ROSA PINTO', DATE '1955-07-07', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+          ) AS tLinhas (provedor, documento_tipo, documento, nome_devedor, nome_chave, dt_nascimento, nascimento_confiavel, dt_atualizacao, dt_entrega, estado_civil, escolaridade, fonte_score, qt_dependentes, score_externo, flag_possui_imovel)
+      - input: ref('devedores_documentos')
+        format: sql
+        rows: |
+          SELECT
+            CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(situacao_documento AS VARCHAR) AS situacao_documento
+          FROM (
+            VALUES
+            ('CPF', '52998224725', '52998224725', 'cpf_valido')
+            , ('CPF', '11144477735', '11144477735', 'cpf_valido')
+            , ('CPF', '12345678909', '12345678909', 'cpf_valido')
+            , ('CPF', '39053344705', '39053344705', 'cpf_valido')
+            , ('RG', '123456789', '39053344705', 'rg_por_nome_nascimento')
+            , ('CPF', '52998224736', '52998224736', 'cpf_invalido')
+            , ('CPF', '70000000007', '70000000007', 'cpf_valido')
+          ) AS tLinhas (documento_tipo, documento, cpf, situacao_documento)
+      - input: ref('devedores_conflitos_versao')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+          FROM (
+            VALUES
+            ('alfa', 'CPF', '12345678909')
+            , ('alfa', 'CPF', '70000000007')
+          ) AS tLinhas (provedor, documento_tipo, documento)
+    expect:
+      rows:
+        - {sk_devedor: 1, cpf: "11144477735", situacao_cpf: "valido", tipo_conflito_cadastral: "nenhum", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "JOSÉ DA CONCEIÇÃO", qt_dependentes: null, score_externo: null, qt_provedores: 2, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: "1980-05-05"}
+        - {sk_devedor: 2, cpf: "12345678909", situacao_cpf: "valido", tipo_conflito_cadastral: "identidade_e_versao", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "MARIA LIMA", qt_dependentes: null, score_externo: null, qt_provedores: 2, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: null}
+        - {sk_devedor: 3, cpf: "39053344705", situacao_cpf: "valido", tipo_conflito_cadastral: "nenhum", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "PEDRO ALVES", qt_dependentes: null, score_externo: null, qt_provedores: 3, qt_documentos_vinculados: 1, flag_possui_imovel: null, dt_nascimento: "1970-02-02"}
+        - {sk_devedor: 4, cpf: "52998224725", situacao_cpf: "valido", tipo_conflito_cadastral: "nenhum", estado_civil: "CASADO", escolaridade: "SUPERIOR", fonte_score: "SERASA", nome_devedor: "ANA CRISTINA SOUZA", qt_dependentes: 2, score_externo: 700, qt_provedores: 2, qt_documentos_vinculados: 0, flag_possui_imovel: true, dt_nascimento: "1990-01-01"}
+        - {sk_devedor: 5, cpf: "52998224736", situacao_cpf: "invalido", tipo_conflito_cadastral: "nenhum", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "LUIZ SILVA", qt_dependentes: null, score_externo: null, qt_provedores: 1, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: "1960-06-06"}
+        - {sk_devedor: 6, cpf: "70000000007", situacao_cpf: "valido", tipo_conflito_cadastral: "versao", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "ROSA PINTO", qt_dependentes: null, score_externo: null, qt_provedores: 1, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: "1955-07-07"}

@@ -1,0 +1,111 @@
+version: 2
+
+models:
+  - name: devedores_registros
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. A versão atual de cada documento das
+      três fontes, empilhada no mesmo formato: uma linha por provedor e documento. Traz o nome para
+      comparar (`nome_chave`, macro `nome_comparavel`) e `nascimento_confiavel`, que separa a data
+      que pode votar (fora a sentinela 1900-01-01 e a data posterior à entrega). Alimenta
+      `devedores_documentos` e `dim_devedor`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_documentos
+    description: >
+      Etapa efêmera (não vira tabela) que liga cada documento recebido ao devedor (G3a'). Uma linha
+      por documento distinto (`documento_tipo`, `documento`). `cpf` é o CPF do devedor e
+      `situacao_documento` diz por que o documento pertence a ele: `cpf_valido`, `cpf_corrigido`
+      (CPF inválido a um dígito de um único CPF válido com mesmo nome e nascimento),
+      `rg_por_nome_nascimento` (RG do beta com mesmo nome e nascimento de um único CPF válido),
+      `cpf_invalido` (CPF inválido sem ligação, devedor próprio) ou `sem_documento` (RG sem
+      ligação, que não é devedor e tem `cpf` NULL). Empate de correspondências nunca se resolve. As
+      tabelas de contatos, endereços e vínculos usam esta ligação para chegar ao `sk_devedor`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_conflitos_versao
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Um documento por provedor cuja versão
+      mais recente empata com outra versão diferente na data de atualização, na data de entrega e
+      no arquivo (ponto 4); na `devedores` da silver só `_linha DESC` desempata. Alimenta a marca
+      `versao` de `dim_devedor.tipo_conflito_cadastral`.
+    config:
+      materialized: ephemeral
+
+  - name: dim_devedor
+    description: >
+      Uma linha por pessoa identificada por um CPF (G3a'). Os documentos ruidosos se ligam ao
+      devedor quando a evidência é forte (ver `devedores_documentos`); o CPF inválido sem ligação
+      tem linha própria com `situacao_cpf` `invalido`; RG sem ligação e documento vazio não são
+      devedores. Os atributos seguem a G3b: um voto por provedor (a versão atual mais recente do
+      provedor entre os documentos do devedor); nome pela maioria depois de resolver abreviações,
+      empate pela forma mais recente e, entre grafias que só diferem no acento, a acentuada;
+      nascimento pela maioria entre as datas confiáveis, com empate `NULL`; perfil só da gama.
+      Sem rastreabilidade (ponto 8): a linha junta até três provedores, e a origem de cada atributo
+      se acha nas tabelas filhas e na silver.
+    columns:
+      - name: sk_devedor
+        description: >-
+          Chave substituta: a posição do CPF em ordem crescente. Determinística porque o banco é
+          recriado a cada execução, e não carrega o CPF (G6).
+        data_tests:
+          - unique
+          - not_null
+      - name: cpf
+        description: >-
+          CPF do devedor, só dígitos. Chave natural. Para `situacao_cpf` `invalido` é o CPF inválido
+          como foi recebido.
+        data_tests:
+          - unique
+          - not_null
+      - name: situacao_cpf
+        description: "`valido` quando o dígito verificador confere; `invalido` quando não confere e o documento não se ligou a outro."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [valido, invalido]
+      - name: tipo_conflito_cadastral
+        description: >-
+          `identidade` quando o primeiro ou o último nome difere entre os provedores (G3c);
+          `versao` quando algum documento do devedor tem duas versões diferentes no topo, com as
+          mesmas datas e o mesmo arquivo (ponto 4); `identidade_e_versao` quando os dois ocorrem;
+          `nenhum` caso contrário. Sinal para a régua; não muda os atributos.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [nenhum, identidade, versao, identidade_e_versao]
+      - name: estado_civil
+        description: "Estado civil, como a gama o mandou. `NULL` quando a gama não manda ou não informou."
+      - name: escolaridade
+        description: "Escolaridade, como a gama a mandou. `NULL` quando a gama não manda ou não informou."
+      - name: fonte_score
+        description: "Fonte do score externo, como a gama a mandou. `NULL` quando a gama não manda ou não informou."
+      - name: nome_devedor
+        description: >-
+          Nome escolhido pela G3b. Texto em maiúscula, com acento quando algum provedor o mandou.
+        data_tests:
+          - not_null
+      - name: qt_dependentes
+        description: "Quantidade de dependentes, da versão atual da gama. `NULL` quando a gama não manda ou não informou."
+      - name: score_externo
+        description: "Score externo, da versão atual da gama. `NULL` quando a gama não manda ou não informou."
+      - name: qt_provedores
+        description: "Quantos provedores (de 1 a 3) têm algum documento ligado a este devedor."
+        data_tests:
+          - not_null
+      - name: qt_documentos_vinculados
+        description: "Quantos documentos distintos foram ligados a este devedor por correção de dígito ou por RG."
+        data_tests:
+          - not_null
+      - name: flag_possui_imovel
+        description: >-
+          Atributo recebido da gama, e não sinal da régua. `NULL` quando a gama não manda ou não
+          informou.
+      - name: dt_nascimento
+        description: >-
+          Data de nascimento pela maioria dos provedores, só entre datas confiáveis. `NULL` quando
+          não há data confiável ou quando há empate, inclusive dia e mês trocados (ponto 9/b2: é a
+          falta de um valor confiável, e não uma data recebida trocada).
