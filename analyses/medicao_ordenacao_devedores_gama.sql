@@ -8,6 +8,7 @@
     - `muda_so_entrega`: a atualização não entra na ordenação (só entrega, arquivo e linha).
   Rodar com `dbt compile --select medicao_ordenacao_devedores_gama` e executar o SQL de
   `target/compiled/` no banco, ou `dbt show --select medicao_ordenacao_devedores_gama`.
+  Só entram linhas com documento: a linha sem documento não é devedor e não forma grupo.
   Medido em 2026-11-09 (resultado no commit que criou esta consulta).
 #}
 WITH tBase AS (
@@ -22,6 +23,8 @@ WITH tBase AS (
       ELSE dt_ref
     END AS dt_ref_sem_sentinela
   FROM {{ ref('silver_gama_devedores_padronizados') }}
+  WHERE 1 = 1
+    AND documento IS NOT NULL
 )
 
 , tOrdens AS (
