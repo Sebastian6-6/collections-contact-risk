@@ -328,8 +328,8 @@ models:
           - not_null
       - name: tipo
         description: >-
-          Campo `tipo` do telefone informado pelo provedor, `celular` ou `fixo`, na aparição mais recente
-          do contato. `NULL` no e-mail.
+          Campo `tipo` do telefone informado pelo provedor, `celular` ou `fixo`, na versão de maior
+          `ordem_versao` que contém o par. `NULL` no e-mail.
         data_tests:
           - accepted_values:
               arguments:
@@ -343,15 +343,15 @@ models:
         data_tests:
           - not_null
       - name: _arquivo
-        description: "Da aparição mais recente do par (documento, tipo_contato, contato). {{ doc('bronze_arquivo') }}"
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, tipo_contato, contato) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_arquivo') }}"
         data_tests:
           - not_null
       - name: _linha
-        description: "Da aparição mais recente do par (documento, tipo_contato, contato). {{ doc('bronze_linha') }}"
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, tipo_contato, contato) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_linha') }}"
         data_tests:
           - not_null
       - name: _hash_arquivo
-        description: "Da aparição mais recente do par (documento, tipo_contato, contato). {{ doc('bronze_hash_arquivo') }}"
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, tipo_contato, contato) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_hash_arquivo') }}"
         data_tests:
           - not_null
 
@@ -383,7 +383,7 @@ models:
         data_tests:
           - not_null
       - name: endereco
-        description: "Endereço em texto da aparição mais recente do par, aparado nas pontas. Não entra na identidade do endereço. Texto livre em maiúscula (H4)."
+        description: "Endereço em texto da versão de maior `ordem_versao` que contém o par (a data de atualização da fonte pesa antes da data de entrega), aparado nas pontas. Não entra na identidade do endereço. Texto livre em maiúscula (H4)."
       - name: logradouro
         description: "Logradouro, vindo do texto ou das colunas do layout; `NULL` quando não veio. Texto livre em maiúscula (H4)."
       - name: numero
@@ -413,14 +413,14 @@ models:
         data_tests:
           - not_null
       - name: _arquivo
-        description: "Da aparição mais recente do par (documento, endereço). {{ doc('bronze_arquivo') }}"
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, endereço) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_arquivo') }}"
         data_tests:
           - not_null
       - name: _linha
-        description: "Da aparição mais recente do par (documento, endereço). {{ doc('bronze_linha') }}"
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, endereço) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_linha') }}"
         data_tests:
           - not_null
       - name: _hash_arquivo
-        description: "Da aparição mais recente do par (documento, endereço). {{ doc('bronze_hash_arquivo') }}"
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, endereço) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_hash_arquivo') }}"
         data_tests:
           - not_null

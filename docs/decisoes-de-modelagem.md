@@ -136,7 +136,7 @@ A silver trabalha dentro de uma fonte só: tipos, limpeza, normalização, abert
 | `silver_cobranca.contatos_realizados` | contato_id | 15.053 |
 | `silver_cobranca.contatos_realizados_provedores` | contato_id, provedor_origem | 24.774 |
 
-Toda tabela tem teste de chave primária (`unique` ou `combinacao_unica`), e as filhas da histórica têm `relationships` para ela. Um teste `*_linhas_representadas` falha se uma linha da bronze não estiver representada: o documento em `devedores` ou, na linha sem documento, os contatos dela em `devedores_contatos`. As contagens de `devedores`, `devedores_contatos` e das tabelas da cobrança são de 2026-11-09, depois da segunda revisão da silver, e não mudaram quando essas tabelas passaram a sair da histórica (seção 6.6). As da histórica, das filhas e dos pares de endereço são de 2026-11-10 (os pares, no commit ca207e1, antes da maiúscula da seção 6.4). Nas tabelas de pares, o `NULL` de `documento` é um valor da chave (seção 5.8).
+Toda tabela tem teste de chave primária (`unique` ou `combinacao_unica`), e as filhas da histórica têm `relationships` para ela. Um teste `*_linhas_representadas` falha se uma linha da bronze não estiver representada: o documento em `devedores` ou, na linha sem documento, os contatos dela em `devedores_contatos`; os endereços preenchidos dela em `devedores_enderecos` (mesmo `hash_endereco`); e uma versão em `devedores_historico` com os mesmos campos simples. Essa última conferência deixa as listas de fora: que os contatos e endereços de cada versão estão nas filhas é garantido pela construção e pelos testes unitários, não por um teste sobre os dados. O teste `cabecalho_fora_de_toda_historica` (severidade de erro) falha se o cabeçalho repetido entrar numa histórica. As contagens de `devedores`, `devedores_contatos` e das tabelas da cobrança são de 2026-11-09, depois da segunda revisão da silver, e não mudaram quando essas tabelas passaram a sair da histórica (seção 6.6). As da histórica, das filhas e dos pares de endereço são do commit cdbc2f9, com o texto em maiúscula da seção 6.4. Nas tabelas de pares, o `NULL` de `documento` é um valor da chave (seção 5.8).
 
 ### 5.2 Padronizar antes de deduplicar
 
@@ -370,7 +370,7 @@ A silver guardava só a versão mais recente de cada documento. O enunciado pede
 | Versões (campos, contatos e endereços padronizados) | 18.587 | 17.866 | 18.565 (18.564 sem o cabeçalho repetido) |
 | Versões que só diferem na data de atualização | 1.724 | 257 | 0 |
 | Documentos com mais de uma renda | 1.982 | 1.416 | — (a gama não manda renda) |
-| Conflitos no topo: mesmo documento, mesmas datas, conteúdos diferentes, decididos pela linha | 55 | 76 | 80 |
+| Conflitos no topo: mesmo documento, mesmas datas, conteúdos diferentes, decididos pela linha (antes da maiúscula; depois dela, 55 / 73 / 80, seção 6.5) | 55 | 76 | 80 |
 
 ### 6.2 Estrutura: as opções e por que M3
 
@@ -408,7 +408,7 @@ Os testes `macro_hash_conteudo` e `macro_assinatura_lista` provam que `NULL` dif
 
 **Colisão.** Com cerca de 18,6 mil versões por fonte, a chance de duas versões diferentes terem o mesmo `MD5` é da ordem de n²/2¹²⁹, cerca de 10⁻³¹. É uma estimativa de probabilidade, não uma medição. O `MD5` serve aqui só como impressão digital do conteúdo, sem adversário.
 
-**Filhas.** `devedores_historico_contatos` (beta e gama) tem chave (`hash_conteudo`, `tipo_contato`, `contato`); medi 0 contatos repetidos dentro de uma lista, e um teste guarda isso. `devedores_historico_enderecos` (beta) tem chave (`hash_conteudo`, `posicao`). As duas têm `relationships` para a histórica. A `posicao` é atributo, vindo da aparição mais recente. As 21 linhas da gama com a lista de contatos truncada viram versões sem contatos, porque é o que foi recebido.
+**Filhas.** `devedores_historico_contatos` (beta e gama) tem chave (`hash_conteudo`, `tipo_contato`, `contato`); medi 0 contatos repetidos dentro de uma lista, e um teste guarda isso. `devedores_historico_enderecos` (beta) tem chave (`hash_conteudo`, `posicao`). As duas têm `relationships` para a histórica. A `posicao` é atributo, vindo da aparição mais recente. As 21 linhas da gama com a lista de contatos truncada viram versões sem contatos, porque é o que foi recebido: são 20 versões, e 8 delas são a versão atual na `devedores` (medido no commit d872a8d). A gold não deve ler a falta de contatos nessas versões como "sem contato" (`docs/contratos-de-dados.md`, seção 6.4).
 
 ### 6.4 Endereços e texto em maiúscula
 
@@ -436,13 +436,13 @@ Nas versões da histórica, a maiúscula tirou 5 do beta (17.866 → 17.861) e n
 
 ### 6.5 Desempate da versão atual: uma convenção arbitrária
 
-Em 211 documentos (alfa 55, beta 76, gama 80), duas versões diferentes têm o mesmo documento, as mesmas datas de atualização e de entrega e o mesmo arquivo. Só a linha decide. A ordem completa está na seção 5.3; o último critério é `_linha DESC`, "o último registro escrito vale".
+Em 208 documentos (alfa 55, beta 73, gama 80, medido no commit d872a8d; antes da maiúscula eram 211, com beta 76), duas versões diferentes têm o mesmo documento, as mesmas datas de atualização e de entrega e o mesmo arquivo. Só a linha decide. A ordem completa está na seção 5.3; o último critério é `_linha DESC`, "o último registro escrito vale".
 
 Essa regra é **arbitrária e determinística**. A posição da linha no arquivo não tem significado medido:
 - o documento vem em ordem crescente em cerca de 50 % dos pares de linhas vizinhas, o que é o esperado de uma ordem sem relação com o documento;
 - nos conflitos, o provedor reenvia depois tanto a linha de cima (alfa 6, beta 4, gama 4 vezes) quanto a de baixo (6, 5 e 7 vezes).
 
-As alternativas eram `_linha ASC` e o próprio hash, igualmente arbitrárias. O autor ficou com `_linha DESC`, a regra que já estava em uso. Ela garante a mesma escolha a cada execução (p. 2), mas não diz qual conteúdo é verdadeiro. Isso é conflito cadastral (p. 3), e a gold, que "resolve conflitos" (AGENTS.md, "Camadas e nomes"), resolve os 211 com regra própria.
+As alternativas eram `_linha ASC` e o próprio hash, igualmente arbitrárias. O autor ficou com `_linha DESC`, a regra que já estava em uso. Ela garante a mesma escolha a cada execução (p. 2), mas não diz qual conteúdo é verdadeiro. Isso é conflito cadastral (p. 3), e a gold, que "resolve conflitos" (AGENTS.md, "Camadas e nomes"), resolve os 208 com regra própria.
 
 ### 6.6 Prova da refatoração
 

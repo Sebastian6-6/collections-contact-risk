@@ -57,8 +57,7 @@
   decrescentes, com NULL por último nas datas. `_arquivo` usa `COLLATE "C"` (ordem por bytes), e
   por isso `..._reenvio` vence o original da mesma data. O `_linha DESC` final é uma convenção
   arbitrária e determinística ("o último registro escrito vale"): a posição da linha no arquivo
-  não tem significado medido (o documento vem em ordem crescente em cerca de 50 % dos pares de
-  linhas vizinhas). Ela decide 211 documentos em conflito, que a gold resolve com regra própria.
+  não tem significado medido. Os conflitos que ela decide a gold resolve com regra própria.
 #}
 {% macro ordem_versao(coluna_atualizacao) -%}
   {{ coluna_atualizacao }} DESC NULLS LAST
