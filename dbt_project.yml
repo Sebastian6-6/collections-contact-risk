@@ -20,6 +20,20 @@ vars:
     beta: "contact_data/provedor_beta.jsonl"
     gama: "contact_data/provedor_gama.csv"
 
+  # Feriados nacionais de 2026 para a janela de horário de contato (G7). Fonte: Lei 662/1949, art. 1º,
+  # com a redação da Lei 10.607/2002 (planalto.gov.br, lida em 2026-11-10): 1º de janeiro, 21 de
+  # abril, 1º de maio, 7 de setembro, 2 de novembro, 15 de novembro e 25 de dezembro. Só os feriados
+  # nacionais fixos dessa lei. Não verificado: feriados criados por lei posterior, os móveis
+  # (Carnaval, Sexta-feira Santa, Corpus Christi), os estaduais e os municipais.
+  feriados_nacionais_2026:
+    - "2026-01-01"
+    - "2026-04-21"
+    - "2026-05-01"
+    - "2026-09-07"
+    - "2026-11-02"
+    - "2026-11-15"
+    - "2026-12-25"
+
 clean-targets:
   - target
   - dbt_packages
