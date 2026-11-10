@@ -17,7 +17,7 @@ Os números saem de `gold_monitoramento.ft_entrega_diaria`: uma linha por proved
 
 São 11 alertas em 5 entregas, e os 6 incidentes conhecidos aparecem. Nenhuma outra entrega gera alerta.
 
-**Data padrão 2025-09-01.** Não é problema de um dia: são cerca de 370 registros por provedor (376 no alfa, 372 no beta e 372 na gama) com essa data de atualização, só nos arquivos históricos, e nenhum nas entregas diárias. A data fica como veio na ordenação da versão atual (decisão de 2026-11-09). Tratá-la como ausente mudaria a versão atual de no máximo 5 devedores por fonte ([decisoes-de-modelagem.md](decisoes-de-modelagem.md), 5.4). Como o histórico fica fora do monitoramento, quem vigia é o par de testes `beta_data_20250901_so_no_historico` e `gama_data_20250901_so_no_historico`, que avisam se a data aparecer numa entrega diária. O alfa não tem esse teste.
+**Data padrão 2025-09-01.** Não é problema de um dia: são cerca de 370 linhas da bronze por provedor (376 no alfa, 372 no beta e 372 na gama; em versões da silver são 372, 365 e 367, em [perfil-das-fontes.md](perfil-das-fontes.md)). com essa data de atualização, só nos arquivos históricos, e nenhum nas entregas diárias. A data fica como veio na ordenação da versão atual (decisão de 2026-11-09). Tratá-la como ausente mudaria a versão atual de no máximo 5 devedores por fonte ([decisoes-de-modelagem.md](decisoes-de-modelagem.md), 5.4). Como o histórico fica fora do monitoramento, quem vigia é o par de testes `beta_data_20250901_so_no_historico` e `gama_data_20250901_so_no_historico`, que avisam se a data aparecer numa entrega diária. O alfa não tem esse teste.
 
 ## 2. Como o alerta pega
 
@@ -25,7 +25,7 @@ Cada entrega é comparada com o próprio provedor:
 
 - **Volume:** a média das 5 entregas anteriores do mesmo tipo de dia (útil ou fim de semana) e um limite de ±50%. Com menos de 3 entregas na base, a situação é `sem_base`: são 18 entregas, as 3 primeiras de cada tipo de dia em cada provedor. Feriado conta como o dia da semana em que cai.
 - **Dia sem entrega:** a entrega *n* contra a *n − 1*, por `ROW_NUMBER()`. Mais de um dia de calendário entre as duas é um dia perdido.
-- **Reenvio e cabeçalho:** mais de um arquivo no dia, ou um cabeçalho diferente do da entrega anterior.
+- **Reenvio e cabeçalho:** mais de um arquivo no dia, ou um cabeçalho diferente do da entrega anterior. A checagem de cabeçalho não vale para o beta, que chega em JSON Lines e não tem cabeçalho.
 - **Linhas repetidas ou atrasadas:** acima de 25% da entrega. Toda entrega traz algumas (no alfa de 28/09, 35 de 441, 8%), por isso o limite não é zero.
 - **Linhas ilegíveis:** qualquer uma.
 

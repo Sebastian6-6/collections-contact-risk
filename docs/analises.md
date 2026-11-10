@@ -36,7 +36,7 @@ O enunciado pede para "demonstrar o que a base de CNPJ agrega à esteira de cobr
 
 A margem é a meia largura do intervalo de 95% (aproximação normal). Os 8 empregadores encontrados estão todos `ATIVA` e com porte `DEMAIS`: nenhum devedor tem vínculo com empresa baixada, inapta ou suspensa. As taxas das três situações cabem nas margens umas das outras, então a situação do empregador não separa o risco de falar com terceiro nem a chance de confirmar o contato.
 
-**Setor e porte** (`cnpj_cobertura_empregadores`). Os 8 encontrados são 4 instituições financeiras (CNAE 6421200, 6422100 e 6423900), petróleo, minério de ferro, cerveja e lojas de departamento. Cada empregador tem de 1.296 a 1.423 devedores e de 943 a 1.095 tentativas; o terceiro vai de 2,94% a 4,66% (margens de ±1,1 a ±1,3 p.p.) e o contato confirmado, de 11,24% a 13,57% (±1,9 a ±2,1 p.p.). O porte é o mesmo para todos. A ordem dos canais também não muda com o empregador: em cada situação, ligação e WhatsApp confirmam mais (16,5% a 18,4%) e o e-mail menos (5,5% a 6,3%). A estratégia de canal segue o nível de risco, e não o setor ou o porte.
+**Setor e porte** (`cnpj_cobertura_empregadores`). Os 8 encontrados são 4 instituições financeiras (CNAE 6421200, 6422100 e 6423900), petróleo, minério de ferro, cerveja e lojas de departamento. Cada um dos 13 empregadores (os 8 encontrados e os 5 não encontrados) tem de 1.296 a 1.423 devedores e de 943 a 1.095 tentativas; o terceiro vai de 2,94% a 4,66% (margens de ±1,1 a ±1,3 p.p.) e o contato confirmado, de 11,24% a 13,57% (±1,9 a ±2,1 p.p.). O porte é o mesmo para todos. A ordem dos canais também não muda com o empregador: em cada situação, ligação e WhatsApp confirmam mais (16,5% a 18,4%) e o e-mail menos (5,5% a 6,3%). A estratégia de canal segue o nível de risco, e não o setor ou o porte.
 
 **O que agrega, então:**
 
@@ -64,7 +64,7 @@ A evidência de cada sinal vem da validação sem vazamento (`regua_validacao_pe
 
 - **Falecido e opt-out** bloqueiam por ser fato ou pedido, não pela taxa de terceiro: depois de um `opt_out` houve 84 tentativas ao mesmo destino e, depois de um `falecido`, 38 ao mesmo CPF (`perfil_contatos_realizados`). Esses números mostram que a operação de setembro não aplicava essas salvaguardas.
 - **O migrado tem taxa menor que o compartilhado** (27,1% contra 32,2%), e mesmo assim é bloqueado. A razão é o princípio: o número foi visto depois para outra pessoa. Na validação, passá-lo para `atencao` não muda a métrica (hipótese H4, abaixo), então a escolha é de política, e fica a mais protetora.
-- **A lista de não-contatar** é a `dim_contato` com `nivel_risco = 'bloqueado'` (`lista_nao_contatar`): 3.434 pares. 154 devedores têm todos os pares bloqueados.
+- **A lista de não-contatar** é a `dim_contato` com `nivel_risco = 'bloqueado'` (`lista_nao_contatar`): 3.434 pares, dos quais 3.159 pertencem a devedores dos segmentos (2.527 + 290 + 342); os 275 restantes são pares sem devedor na dimensão, que não entram em nenhum segmento. 154 devedores têm todos os pares bloqueados.
 - **Ganho e custo** no corte de 15/09 (`scripts/medir_regua.py`): a régua põe em `atencao` ou `bloqueado` 202 de 275 tentativas que terminaram com terceiro (73,45%), e 99 de 774 contatos confirmados (12,8%) cairiam nesses níveis (67 em `atencao`, que ainda recebe uma mensagem neutra, e 32 em `bloqueado`).
 - **Horário** diz quando, não com quem, e não muda o nível. Em setembro, 519 de 2.576 ligações (20,1%), 419 de 1.993 SMS (21,0%) e 991 de 4.781 WhatsApp (20,7%) ficaram fora da janela adotada (`conformidade_horario_por_canal`; janela na seção 9.10 de [decisoes-de-modelagem.md](decisoes-de-modelagem.md)).
 
@@ -137,6 +137,8 @@ O terceiro é bem previsto (73% pegos); o opt-out, não: 136 dos 158 opt-outs co
 | provedor único | 234 de 3.695 (6,33%) | 41 de 2.986 (1,37%) | 4,6 | não |
 | opt-out | 4 de 36 (11,11%) | 271 de 6.645 (4,08%) | 2,7 | sim |
 | sem tentativa anterior | 235 de 5.394 (4,36%) | 40 de 1.287 (3,11%) | 1,4 | não |
+
+O sinal de conflito de identidade soma 49 + 6.627 = 6.676 das 6.681 tentativas: as 5 restantes não têm o sinal calculado (sem valor, e não zero), por isso ficam fora das duas colunas desse sinal.
 
 Os quatro sinais de maior peso já definem o nível. O provedor único pesa, mas atinge 55% das tentativas: é o sinal que mais custaria em alcance (H1, abaixo).
 

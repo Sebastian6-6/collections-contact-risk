@@ -54,7 +54,7 @@ As contagens de cada item estão nas seções 2 a 4 de [contratos-de-dados.md](c
 | Dias com reenvio | 0 | 0 | 1 (original de 85 linhas, reenvio de 311) |
 | Média de linhas, dia útil / fim de semana | 395,5 / 146,3 | 388,0 / 156,9 | 374,4 / 158,6 |
 | Linhas atualizadas antes do dia da entrega, nas entregas comuns | 7,1% a 8,0% | 7,5% a 8,0% | 7,5% a 8,1% |
-| Versões com data de atualização 2025-09-01 (todas na histórica) | 372 | 365 | 367 |
+| Versões da silver com data de atualização 2025-09-01 (todas na histórica; em linhas da bronze são 376, 372 e 372, em [monitoramento.md](monitoramento.md)) | 372 | 365 | 367 |
 | Documentos das entregas diárias que já estavam na histórica | 4.619 de 6.466 (71,4%) | 4.332 de 6.045 (71,7%) | 4.598 de 6.428 (71,5%) |
 
 O fim de semana tem cerca de 40% do volume de um dia útil, por isso o monitoramento compara cada entrega com a média do mesmo tipo de dia. A entrega diária é, na maior parte, atualização de devedor que já existe. O que aconteceu em cada dia com problema (alfa sem 22/09 e o 23/09 com o dia anterior, beta sem 24 e 25/09, beta de 29/09 repetindo o dia 28, gama de 15/09 truncada e reenviada, cabeçalho do alfa mudando em 12/09) e como a pipeline trata cada caso estão em [monitoramento.md](monitoramento.md).
