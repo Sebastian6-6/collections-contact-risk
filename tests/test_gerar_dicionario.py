@@ -26,9 +26,9 @@ MANIFEST = {
 CATALOG = {
     "nodes": {
         "model.p.gold_dim": {
-            "metadata": {"schema": "gold", "name": "dim_devedor"},
+            "metadata": {"schema": "gold_devedores", "name": "dim_devedor"},
             "columns": {
-                "num_cpf": {"index": 2, "type": "VARCHAR"},
+                "cpf": {"index": 2, "type": "VARCHAR"},
                 "sk_devedor": {"index": 1, "type": "INTEGER"},
             },
         },
@@ -51,10 +51,10 @@ def test_junta_por_camada_e_ordena_colunas_pelo_indice():
     assert [(t["schema"], t["nome"]) for t in tabelas] == [
         ("bronze_alfa", "x"),
         ("silver_alfa", "x"),
-        ("gold", "dim_devedor"),
+        ("gold_devedores", "dim_devedor"),
     ]
     gold = tabelas[2]
-    assert [c["nome"] for c in gold["colunas"]] == ["sk_devedor", "num_cpf"]
+    assert [c["nome"] for c in gold["colunas"]] == ["sk_devedor", "cpf"]
     assert gold["colunas"][0]["tipo"] == "INTEGER"
 
 
@@ -63,6 +63,6 @@ def test_markdown_escapa_barra_e_marca_coluna_sem_descricao():
     assert texto.startswith("# Dicionário de dados")
     assert "Abertura." in texto
     assert r"Chave \| substituta." in texto
-    assert "| `num_cpf` | `VARCHAR` | sem descrição |" in texto
+    assert "| `cpf` | `VARCHAR` | sem descrição |" in texto
     assert "## Camada gold" in texto
-    assert "### `gold.dim_devedor`" in texto
+    assert "### `gold_devedores.dim_devedor`" in texto

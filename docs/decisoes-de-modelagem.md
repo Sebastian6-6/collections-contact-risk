@@ -30,7 +30,7 @@ O banco tem três camadas: bronze, silver e gold. Não há pasta de pouso entre 
 | Leitura completa das relações da silver | 0,343 s | 0,007 s | 0,010 s |
 | Tamanho do banco | — | 39,9 MB | 49,6 MB |
 
-Os modelos efêmeros (`*_padronizados`) continuam efêmeros. Eles são etapas internas no grão da linha recebida, sem a deduplicação que define uma tabela da silver; como tabela, ficariam ao lado das tabelas da camada e poderiam ser consumidos pela gold como se fossem contrato. Também não trariam ganho: a pipeline ficou em 15,7 s contra 15,4 s, dentro do ruído das execuções (14,8 a 15,9 s), e o banco cresceria 24 %. Os datasets do schema `analises` ficam fora desta regra; a gold substituiu esses datasets por consultas em `analyses/`, que não são materializadas (seção 9.1).
+Os modelos efêmeros (`*_padronizados`) continuam efêmeros. Eles são etapas internas no grão da linha recebida, sem a deduplicação que define uma tabela da silver; como tabela, ficariam ao lado das tabelas da camada e poderiam ser consumidos pela gold como se fossem contrato. Também não trariam ganho: a pipeline ficou em 15,7 s contra 15,4 s, dentro do ruído das execuções (14,8 a 15,9 s), e o banco cresceria 24 %.
 
 ## 2. Fontes: base única não é fonte única
 
@@ -49,7 +49,7 @@ A fonte externa citada para essa divisão é a arquitetura medalhão: a bronze �
 
 | Opção | Ganho | Custo |
 |---|---|---|
-| Reler tudo a cada execução (adotada) | execuções idênticas sem estado guardado; nenhum caso especial para reenvio ou arquivo atrasado | o tempo cresce com o histórico; hoje a pipeline completa leva cerca de 6,5 s |
+| Reler tudo a cada execução (adotada) | execuções idênticas sem estado guardado; nenhum caso especial para reenvio ou arquivo atrasado | o tempo cresce com o histórico; hoje a pipeline completa leva cerca de 30,7 s (mediana de 3 execuções em 2026-11-10) |
 | Pular arquivo já carregado (caminho e hash) | lê só o que é novo | exige estado persistente entre execuções e regras para reenvio e substituição |
 
 Em produção, com volume que torne a releitura cara, a evolução é pular o arquivo já carregado pelo caminho e pelo hash. É o padrão dos carregadores consagrados: o Snowflake guarda metadados de carga por arquivo e pula o que já foi carregado, a menos que se use `FORCE = TRUE`, que pode duplicar linhas (https://docs.snowflake.com/en/user-guide/data-load-considerations-load). O Auto Loader do Databricks ingere cada arquivo uma vez, rastreado pelo caminho (https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/faq). Um reenvio com outro nome (como `provedor_gama_2026-09-15_reenvio.csv`) é um arquivo novo nos dois casos. Quem resolve a duplicação é a deduplicação por chave da silver, e não a ingestão.

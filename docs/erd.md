@@ -1,6 +1,6 @@
 # ERD
 
-Diagramas em Mermaid das três camadas do banco. As colunas mostradas são as chaves e alguns atributos; a lista completa está em `models/gold/*/_modelos.yml` e no dicionário de dados. Os tipos entre parênteses das chaves substitutas não aparecem porque o `_modelos.yml` não os declara.
+Diagramas em Mermaid das três camadas do banco. As colunas mostradas são as chaves e alguns atributos; a lista completa está em `models/gold/*/_modelos.yml` e no dicionário de dados.
 
 ## Gold: estrela de devedores (`models/gold/devedores`)
 
@@ -104,7 +104,7 @@ Grão: um provedor (`alfa`, `beta`, `gama`) por data de referência.
 
 ## Visão por camada
 
-Cada fonte tem o seu schema nas três camadas: `bronze_<fonte>`, `silver_<fonte>` e `gold`. A ingestão grava a bronze; a silver trabalha dentro de uma fonte; a gold une as fontes. Os modelos efêmeros (`*_padronizados`) e as etapas internas da gold não aparecem.
+Cada fonte tem o seu schema nas três camadas: `bronze_<fonte>`, `silver_<fonte>` e `gold_devedores` e `gold_monitoramento`. A ingestão grava a bronze; a silver trabalha dentro de uma fonte; a gold une as fontes. Os modelos efêmeros (`*_padronizados`) e as etapas internas da gold não aparecem.
 
 ### Bronze para silver, por fonte
 
@@ -247,5 +247,3 @@ flowchart LR
   d_emp --> f_vin
   d_con --> f_ten
 ```
-
-`ft_entrega_diaria` não vem da silver: lê direto `bronze_<fonte>.devedores` e `bronze_<fonte>.arquivos` das três fontes de provedor (alfa, beta e gama), e a Cobrança não entra. Por isso não aparece no diagrama acima.

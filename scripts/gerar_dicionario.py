@@ -7,7 +7,7 @@ Uso, a partir da raiz do repositório, depois de `python pipeline.py`:
 O manifest (`target/manifest.json`) traz a descrição de cada tabela e coluna escrita nos YAML; o
 catalog (`target/catalog.json`) traz o tipo real que o DuckDB gravou. A justificativa do tipo fica
 na descrição do YAML, então o dicionário nunca diverge do banco. Modelos efêmeros não existem no
-banco e ficam de fora. Os datasets do schema `analises` também.
+banco e ficam de fora.
 """
 
 import json

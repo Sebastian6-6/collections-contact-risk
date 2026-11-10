@@ -1040,7 +1040,7 @@ Monitoramento diário (D1 a D4): uma entrega diária de um provedor (`provedor`,
 | Coluna | Tipo | Descrição |
 |---|---|---|
 | `provedor` | `VARCHAR` | `alfa`, `beta` ou `gama`. |
-| `tp_dia` | `VARCHAR` | `util` (segunda a sexta) ou `fim_de_semana` (sábado e domingo); feriado conta como o dia da semana. |
+| `tipo_dia` | `VARCHAR` | `util` (segunda a sexta) ou `fim_de_semana` (sábado e domingo); feriado conta como o dia da semana. |
 | `qt_arquivos` | `BIGINT` | Arquivos do dia. Maior que 1 é reenvio. |
 | `qt_registros` | `HUGEINT` | Linhas recebidas no dia, legíveis ou não, somados todos os arquivos do dia. |
 | `qt_media_movel` | `DECIMAL(12,2)` | Média de `qt_registros` das até `janela_media_movel` entregas anteriores do mesmo provedor e tipo de dia. `NULL` na primeira entrega de cada tipo de dia. |
