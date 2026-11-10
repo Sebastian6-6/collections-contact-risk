@@ -4,7 +4,7 @@ Este documento registra como os dados recebidos chegam até a silver e por quê:
 
 - **Base:** o enunciado (`.context/converted/case-tecnico-dados-cobranca.md`, citado pela página), as convenções do case no `AGENTS.md` e as fontes externas listadas na seção 4 e na seção 5.
 - **Números:** medidos em 2026-11-09 sobre a carga completa (92 arquivos, 73.050 linhas recebidas); os da histórica de versões (seção 6), em 2026-11-09 e 2026-11-10. Cada número vem do corpo de um commit do tópico ou de uma consulta indicada aqui. Os dados são sintéticos (p. 2) e cobrem um mês de entregas diárias; nenhum número daqui vale como estimativa para dados reais.
-- **O que não foi verificado** está reunido na seção 8.
+- **O que não foi verificado** está reunido na seção 8; o da Receita Federal, na seção 9.4.
 
 O que se espera de cada provedor (nomes de coluna, formatos, valores sentinela) fica em [contratos-de-dados.md](contratos-de-dados.md).
 
@@ -490,3 +490,46 @@ A gama mediu 18.565 versões antes da implementação; a diferença é o cabeça
 - **Números dos commits que não reproduzi:** o 0 do alfa e o 35 da gama para a data 2025-09-01, e os 87 vencedores da gama que mudariam frente à ordem só por entrega (seção 5.4). Os números reproduzidos estão nas consultas de `analyses/`; o 60 de uma refeita anterior vinha dos 58 empates entre original e reenvio, já eliminados. Também não investiguei por que medi 8 nomes distintos sob o CPF zerado do beta (o plano dizia 5) e 81 tentativas da cobrança nos contatos sem documento (o plano dizia 79).
 - **Fuso horário:** a origem não traz fuso, e o horário de Brasília é uma regra do projeto, não uma informação confirmada pelos provedores.
 - **Desempenho:** os tempos (pipeline de cerca de 20 s com os testes, gravação em lote de 53 a 74 vezes mais rápida) foram medidos numa única máquina.
+
+## 9. Receita Federal: dados abertos do CNPJ
+
+O enunciado pede para "cruzar as informações de empregador com os dados abertos do CNPJ da Receita Federal (utilize dados públicos disponíveis em dados.gov.br)" (p. 1) e para demonstrar "o que a base de CNPJ agrega à esteira de cobrança" (p. 2). As decisões abaixo foram fechadas com o autor em 2026-11-10. As fontes oficiais e as medidas vêm da pesquisa do tópico, com acesso em 2026-11-10, e do `ORIGEM.md` do extrato. Como o componente funciona está em [ingestao.md](ingestao.md); o contrato da bronze e da silver, em [contratos-de-dados.md](contratos-de-dados.md), seção 9.
+
+### 9.1 Decisões
+
+- **C1. A Receita é uma fonte, `receita`,** com o mesmo caminho das outras: `bronze_receita.<entidade>` → `silver_receita.<entidade>` → gold. Os arquivos não têm cabeçalho, então os nomes das colunas vêm do layout oficial (`cnpj-metadados.pdf`, 02/12/2021), na ordem do layout, por uma regra de transcrição: minúsculas, sem acento, cada sequência fora de `a-z` e `0-9` vira um único `_` (`RAZÃO SOCIAL / NOME EMPRESARIAL` vira `razao_social_nome_empresarial`). Os nomes curtos que projetos de terceiros usam não são oficiais; a regra é determinística, e o nome original fica na descrição de cada coluna. Bronze e silver mantêm esses nomes e os valores como vieram, como nas outras fontes (seção 5.9).
+- **C2. O baixador `receita`** (`@baixador("receita")` em `ingestion/conectores.py`) usa o WebDAV público do compartilhamento oficial, com o mês 2026-10 fixado em `ingestion/fontes.yml`. Ele baixa os 37 zips para um cache fora do git, confere o tamanho e o CRC e calcula o sha256 de cada um, porque a Receita não publica checksum. Na pasta versionada `dados_externos/receita/2026-10/`, grava as 6 tabelas de domínio inteiras, as linhas de `empresas`, `estabelecimentos`, `simples` e `socios` das raízes de CNPJ recebidas e o `ORIGEM.md`. Só roda quando chamado (`python -m ingestion.main --baixar receita`); a pipeline e o CI leem só a pasta versionada.
+- **C3. Leitor.** O leitor `csv` passou a aceitar, por configuração, a lista de colunas de um arquivo sem cabeçalho; o separador (`;`) e o encoding (`latin-1`) já eram configuráveis. As aspas seguem o CSV, inclusive a quebra de linha dentro de campo que a Receita tem em Estabelecimentos. Não foi preciso um formato novo: é a regra do AGENTS.md de reaproveitar o componente da fonte "com configuração em vez de código novo".
+- **C4. Silver.** Datas AAAAMMDD viram `DATE`, com `00000000`, vazio e data inexistente como `NULL`; o capital social com vírgula decimal vira `NUMERIC(18, 2)`; o CNPJ completo é montado de base + ordem + DV e conferido pela regra oficial do DV alfanumérico (valor = ASCII − 48); cada tabela é deduplicada pela sua chave, com teste de chave primária. Detalhes por tabela em [contratos-de-dados.md](contratos-de-dados.md), seção 9.2.
+- **C5. Gold.** A `dim_empregador` recebe da silver da Receita, por `LEFT JOIN`, a razão social, a natureza jurídica (código e descrição), o porte, a situação cadastral (código, descrição, data e motivo), o CNAE principal e a descrição, a UF, o município, a data de início da atividade e a opção pelo Simples e pelo MEI. O CNPJ que a Receita não tem fica com a situação `nao_encontrado` e os atributos `NULL`, sem linha fictícia (AGENTS.md, colunas da gold). A implementação fica no modelo da gold.
+- **C6. Achado esperado.** Os provedores mandam 13 CNPJs distintos, todos com DV válido (seção 5.13), 3 deles com letras. A base de 2026-10 tem um único CNPJ alfanumérico, `00.000.000/E08G-12`, gerado em 31/07/2026, e ele não é nenhum dos três. Medido no extrato: 10 das 13 raízes estão na Receita, e as 3 ausentes são justamente as alfanuméricas (`3RT8XB51`, `A7K2M9Q4`, `Z0P4LC22`). É um achado sobre os dados sintéticos (p. 2): esses empregadores vão aparecer como `nao_encontrado`.
+
+### 9.2 Opções descartadas
+
+| Opção | Por que não |
+|---|---|
+| Ingerir a base inteira na bronze | São 37 zips com 7.808.752.942 bytes (7,8 GB) e 223.636.289 registros em 2026-10, para usar os de 13 raízes. Descompactada, a base tem algumas dezenas de GB em texto (estimativa pela compressão das amostras, não medida). O CI teria de baixar 7,8 GB a cada execução, cerca de 30 min a 4,2 MB/s (estimativa a partir de uma medição), depender do servidor da Receita e ter disco para tudo isso. Reler 223 milhões de registros a cada execução, ou guardar estado para não relê-los, esbarra na regra da ingestão: "não há cópia intermediária nem modos de carga" (AGENTS.md, Ingestão) |
+| Baixar sempre o mês mais recente | O resultado mudaria de um mês para o outro sem nenhuma mudança no repositório, contra o requisito de execuções idênticas (p. 2). Com o mês fixado, mesma origem e mesmo mês dão os mesmos arquivos |
+| Consultar só os 13 CNPJs por uma API oficial | Não encontrei API oficial aberta e gratuita. A consulta pública é só pela web, um CNPJ por vez e com conta gov.br nível Prata ou Ouro; a API do Conecta gov.br é para órgãos públicos federais e estaduais; a do Serpro é paga. APIs de terceiros não são oficiais e não foram avaliadas |
+| Usar o `ETag` do WebDAV como hash | Não é hash do conteúdo: o `ETag` do `Motivos.zip` (`316cb8cf...`) não é o MD5 do arquivo (`c61eb441...`). Serve para saber que o arquivo mudou, não para conferir a integridade; por isso o sha256 é calculado |
+| Um leitor próprio para a Receita | O `csv` cobre o formato com três campos de configuração (C3); um leitor a mais seria código para manter, sem ganho |
+
+### 9.3 Números
+
+| Medida (mês 2026-10) | Valor | Origem |
+|---|---|---|
+| Zips baixados | 37, com 7.808.752.942 bytes | listagem WebDAV; `ORIGEM.md` |
+| Registros nos zips | 223.636.289 (Empresas 70.517.438, Estabelecimentos 73.809.379, Socios 28.495.961, Simples 50.806.102 e 7.409 nos domínios) | `ORIGEM.md` |
+| Extrato versionado | 10 arquivos, 40.190 registros, 7.815.171 bytes (cerca de mil vezes menos que os zips) | `ORIGEM.md` |
+| Raízes de CNPJ recebidas | 13, das quais 10 estão na Receita | `ORIGEM.md` |
+| Linhas da bronze e da silver | `estabelecimentos` 32.411, `socios` 356, `empresas` 10, `simples` 4, domínios de 63 a 5.572 | [contratos-de-dados.md](contratos-de-dados.md), seção 9 |
+| CNPJ alfanumérico na base inteira | 1 (`00.000.000/E08G-12`; a letra fica em `cnpj_ordem`) | varredura de todos os registros na pesquisa |
+| Inconsistência da origem | 1 estabelecimento com o código de país 367, que a tabela de países de 2026-10 não tem (aviso, não erro) | teste `relationships` da silver |
+| Velocidade de download | cerca de 4,2 MB/s; o mês inteiro, perto de 30 min | uma única medição (estimativa) |
+
+### 9.4 O que não foi verificado
+
+- **Encoding:** os bytes de acento coincidem em ISO-8859-1 e Windows-1252, e nenhum documento oficial declara qual dos dois a Receita usa. O projeto lê como `latin-1`.
+- **Licença:** o dados.gov.br diz "Creative Commons Attribution", sem a versão.
+- **Layout:** o PDF de 02/12/2021 não tem número de versão, e não confirmei que é o arquivo por trás do botão do dados.gov.br (só a coincidência de data). O CNPJ de sócio pessoa jurídica passou de 14 para 8 dígitos entre 2026-07 e 2026-10 sem registro no layout.
+- **Acesso:** o WebDAV é o mecanismo padrão do Nextcloud, não uma API documentada pela Receita; o endereço pode mudar sem aviso, como já mudou (os endereços antigos respondem 404).
