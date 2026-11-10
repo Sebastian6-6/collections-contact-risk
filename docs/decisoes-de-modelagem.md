@@ -1,6 +1,6 @@
-# Decisões de modelagem: ingestão e silver
+# Decisões de modelagem: ingestão, silver e gold
 
-Este documento registra como os dados recebidos chegam até a silver e por quê: as camadas, as fontes, a ingestão, a rastreabilidade e as regras da silver. A gold (base única, régua de risco) é de outro tópico e só aparece aqui quando uma decisão da silver existe para servir a ela.
+Este documento registra como os dados recebidos chegam até a silver e por quê: as camadas, as fontes, a ingestão, a rastreabilidade e as regras da silver (seções 1 a 8). As decisões da gold (base única, régua de risco) estão na seção 9.
 
 - **Base:** o enunciado (`.context/converted/case-tecnico-dados-cobranca.md`, citado pela página), as convenções do case no `AGENTS.md` e as fontes externas listadas na seção 4 e na seção 5.
 - **Números:** medidos em 2026-11-09 sobre a carga completa (92 arquivos, 73.050 linhas recebidas); os da histórica de versões (seção 6), em 2026-11-09 e 2026-11-10. Cada número vem do corpo de um commit do tópico ou de uma consulta indicada aqui. Os dados são sintéticos (p. 2) e cobrem um mês de entregas diárias; nenhum número daqui vale como estimativa para dados reais.
@@ -16,7 +16,7 @@ O banco tem três camadas: bronze, silver e gold. Não há pasta de pouso entre 
 |---|---|---|
 | bronze | tudo o que foi recebido, como veio, uma linha por linha recebida | gravada pela ingestão (`ingestion/`); `models/bronze/` guarda só o contrato (fontes do dbt com descrição e testes) |
 | silver | padroniza e deduplica cada fonte isoladamente | modelos dbt em `models/silver/<fonte>/` |
-| gold | une as fontes, resolve conflitos, aplica a régua | `models/gold/` (próximo tópico) |
+| gold | une as fontes, resolve conflitos, aplica a régua | `models/gold/<domínio>/` (seção 9) |
 
 **Por que três e não quatro.** O enunciado avalia "a clareza da arquitetura das camadas (bronze, staging/silver, marts/gold)" (p. 3). A primeira versão deste tópico gravava um pouso em Parquet e expunha a bronze como view sobre ele. O pouso era uma cópia a mais dos mesmos bytes: `contact_data/` já é a zona bruta imutável, e o banco é recriado do zero a cada execução. A cópia não acrescentava informação, só um lugar a mais para manter. Ela foi descartada.
 
@@ -30,7 +30,7 @@ O banco tem três camadas: bronze, silver e gold. Não há pasta de pouso entre 
 | Leitura completa das relações da silver | 0,343 s | 0,007 s | 0,010 s |
 | Tamanho do banco | — | 39,9 MB | 49,6 MB |
 
-Os modelos efêmeros (`*_padronizados`) continuam efêmeros. Eles são etapas internas no grão da linha recebida, sem a deduplicação que define uma tabela da silver; como tabela, ficariam ao lado das tabelas da camada e poderiam ser consumidos pela gold como se fossem contrato. Também não trariam ganho: a pipeline ficou em 15,7 s contra 15,4 s, dentro do ruído das execuções (14,8 a 15,9 s), e o banco cresceria 24 %. Os datasets do schema `analises` ficam fora desta regra; o tópico que os criar decide a materialização.
+Os modelos efêmeros (`*_padronizados`) continuam efêmeros. Eles são etapas internas no grão da linha recebida, sem a deduplicação que define uma tabela da silver; como tabela, ficariam ao lado das tabelas da camada e poderiam ser consumidos pela gold como se fossem contrato. Também não trariam ganho: a pipeline ficou em 15,7 s contra 15,4 s, dentro do ruído das execuções (14,8 a 15,9 s), e o banco cresceria 24 %. Os datasets do schema `analises` ficam fora desta regra; a gold substituiu esses datasets por consultas em `analyses/`, que não são materializadas (seção 9.1).
 
 ## 2. Fontes: base única não é fonte única
 
@@ -482,11 +482,288 @@ A gama mediu 18.565 versões antes da implementação; a diferença é o cabeça
 ## 8. O que não foi verificado
 
 - **O `hash_conteudo` e o `hash_endereco` não são portáveis entre motores.** O texto que o `CAST` gera (booleano, decimal, data) pode diferir entre DuckDB e PostgreSQL, e então o mesmo conteúdo daria outro hash. A deduplicação daria o mesmo resultado nos dois, porque compara o conteúdo do mesmo motor; a chave, não. Não há instância de PostgreSQL para testar. `MD5`, `STRING_AGG ... ORDER BY` e `COLLATE "C"` foram conferidos na documentação do PostgreSQL 18 e executados só no DuckDB.
-- **962 x 1.416 documentos do beta com renda alterada.** A medição do desenho da gold, sobre os arquivos brutos com salário numérico, contou 962 documentos do beta com mudança de renda (e 1.984 no alfa); pela regra da pipeline (renda padronizada, versões da histórica), são 1.416 no beta (e 1.982 no alfa). Não reproduzi o 962 nem investiguei a diferença.
-- **Acentos:** não conferi se o `unaccent` existe no PostgreSQL sem instalar uma extensão; os acentos ficam como vieram (seção 6.4).
+- **962 x 1.416 documentos do beta com renda alterada.** A medição do desenho da gold, sobre os arquivos brutos com salário numérico, contou 962 documentos do beta com mudança de renda (e 1.984 no alfa); pela regra da pipeline (renda padronizada, versões da histórica), são 1.416 no beta (e 1.982 no alfa). Não reproduzi o 962; a seção 9.8 explica a maior parte da diferença (renda em texto no beta).
+- **Acentos:** os acentos ficam como vieram na silver (seção 6.4). Para a gold, conferi depois na documentação do PostgreSQL 18 que o `unaccent` é uma extensão do `contrib`, e a comparação de nomes usa `TRANSLATE` (seção 9.6).
 
 - **Versões PostgreSQL das macros.** As macros com `adapter.dispatch` têm uma versão DuckDB, executada e testada, e uma versão PostgreSQL escrita só a partir da documentação, nunca executada (não há instância PostgreSQL no projeto): `json_ou_nulo` (`IS JSON`, `CAST AS JSONB`), `data_iso_ou_nulo` e `timestamp_ou_nulo` (`pg_input_is_valid`, PostgreSQL 16 ou mais novo), `json_texto` e `json_abrir_lista` (`jsonb_array_elements ... WITH ORDINALITY`). `STRING_TO_ARRAY` com `UNNEST` existe nos dois motores, mas só rodou no DuckDB. As macros novas (`cnpj_*`, `uf_normalizada`, `mes_como_data`, `nulo_se_so_zeros`) usam só `ASCII`, `SUBSTRING`, `LPAD`, `UPPER`, `CASE`, o resto inteiro (`%`) e os operadores `~` e `!~`, que existem nos dois motores, mas também rodaram só no DuckDB. A junção `IS NOT DISTINCT FROM` do histórico de contatos não usa hash join no PostgreSQL.
 - **Testes genéricos fora do lint.** O SQLFluff com o templater do dbt não analisa os arquivos de `{% test %}` em `tests/generic/`. O uso de `graph.sources` nesses testes foi verificado só pela execução, não na documentação do dbt.
 - **Números dos commits que não reproduzi:** o 0 do alfa e o 35 da gama para a data 2025-09-01, e os 87 vencedores da gama que mudariam frente à ordem só por entrega (seção 5.4). Os números reproduzidos estão nas consultas de `analyses/`; o 60 de uma refeita anterior vinha dos 58 empates entre original e reenvio, já eliminados. Também não investiguei por que medi 8 nomes distintos sob o CPF zerado do beta (o plano dizia 5) e 81 tentativas da cobrança nos contatos sem documento (o plano dizia 79).
 - **Fuso horário:** a origem não traz fuso, e o horário de Brasília é uma regra do projeto, não uma informação confirmada pelos provedores.
 - **Desempenho:** os tempos (pipeline de cerca de 20 s com os testes, gravação em lote de 53 a 74 vezes mais rápida) foram medidos numa única máquina.
+
+## 9. Gold: base única e régua de risco (decidida antes do código)
+
+Esta seção registra as decisões da gold, tomadas pelo autor em 2026-11-09 e 2026-11-10, antes de qualquer modelo da camada ser escrito. Ela fecha a ponte que a seção 6 abriu: a silver passou a guardar as versões porque a gold pede o histórico de vínculo e de endereço.
+
+- **Base:** o enunciado (p. 1 a 4), as convenções do `AGENTS.md` e as fontes externas citadas em cada decisão.
+- **Números:** os do desenho (G1 a G7) foram medidos sobre os arquivos brutos de `contact_data/`; os da conferência contra a silver (pontos 1 a 9), sobre o banco da pipeline, em conexão só de leitura. As consultas foram descartáveis. Cada passo da execução mede de novo sobre a silver e põe as contagens finais no corpo do commit; uma contagem que divergir mais de 10% da que está aqui para a execução e volta para decisão.
+- **Limites:** dados sintéticos (p. 2) e um mês de tentativas (setembro de 2026). As taxas abaixo descrevem estes dados; nenhuma vale como estimativa para dados reais.
+- **Contato com terceiro**, em todas as taxas desta seção, é a tentativa com resultado `numero_errado` ou `nao_conhece_devedor`.
+
+### 9.1 O papel da gold: o critério é o grão
+
+A gold tem só tabelas `dim_` e `ft_` em que cada linha é uma entidade ou um evento derivado de registros recebidos, com as regras de negócio já aplicadas. Os agregados que respondem às perguntas do case (matriz de acertos, calibração, peso das variáveis, horário, provedor) são consultas em `analyses/`, com `ref()`, executadas com `dbt show`; as conclusões vão para o README.
+
+Base: o enunciado separa a camada "confiável para uso operacional em cobrança" (p. 1) das análises que avaliam a régua (p. 2); a convenção do case diz que "cada linha corresponde a um registro recebido" (AGENTS.md); o guia de estrutura do dbt, na parte Marts, trata o que vem depois dos marts como métricas, e não como mais tabelas (cópia em `.context/converted/referencias-dbt-how-we-structure-4-marts.md`). Conferi no dbt Core 1.12.6, num projeto descartável, que as consultas de `analyses/` entram no manifesto com as dependências, aparecem no grafo da documentação e rodam com `dbt show` contra o banco construído. Sem exposures. Como `analyses/` não é materializado, a regra de materialização do AGENTS.md (Stack) não se aplica a ele.
+
+| Opção | Ganho | Custo |
+|---|---|---|
+| **Só `dim_`/`ft_` na gold; agregados em `analyses/` (adotada)** | cada tabela tem um grão que vem da origem; o agregado não vira contrato | quem quer o agregado roda a consulta |
+| Datasets derivados como views num schema `analises` (rascunho anterior) | o agregado fica pronto para um painel | um terceiro tipo de tabela, sem grão de registro recebido |
+
+### 9.2 Tabelas, schema e nomes
+
+Todas no schema `gold_devedores`. O schema da gold é o domínio de negócio, e não a fonte; o fato de monitoramento da ingestão (etapa seguinte) vai para outro `gold_<domínio>`. O nome `gold_cobranca` ficou de fora porque repete o nome da fonte `cobranca` (AGENTS.md, "Camadas e nomes").
+
+| Tabela | Grão | Base |
+|---|---|---|
+| `dim_devedor` | uma pessoa identificada por CPF (seção 9.5) | silver `devedores` e `devedores_historico` das três fontes |
+| `dim_contato` | CPF × contato normalizado; contato sem documento com `sk_devedor` `NULL`; guarda a régua | silver `devedores_contatos` das três fontes |
+| `dim_endereco` | CPF × endereço padronizado distinto | silver `devedores_enderecos` das três fontes |
+| `dim_empregador` | um CNPJ recebido; o enriquecimento pela Receita é de outra etapa | CNPJs das históricas |
+| `ft_vinculo_empresa` | período contínuo de um mesmo vínculo, por documento e provedor | silver `devedores_historico` |
+| `ft_tentativa_contato` | uma tentativa (`contato_id`) | silver `cobranca.contatos_realizados` |
+
+**Dimensão ou fato.** O teste usado foi: aconteceu num momento ou descreve alguém? O par devedor × contato descreve o devedor, por isso é dimensão; a tentativa aconteceu num momento, e é o único fato de evento. `dim_contato` → `dim_devedor` é um floco pequeno, aceito.
+
+**Endereço numa dimensão própria**, e não um endereço escolhido como atributo da `dim_devedor`: o beta manda 867 registros com dois endereços (um `atual`), e cerca de 2.030 dos 10.251 CPFs presentes em mais de um provedor têm CEPs diferentes entre eles (contagem aproximada, nos arquivos brutos). Escolher um endereço apagaria os outros.
+
+**Contato sem documento (G2c′).** Os contatos das linhas sem documento utilizável (124 linhas recebidas, seção 5.8) entram na `dim_contato` com `sk_devedor` `NULL`, bloqueados. Assim a tentativa que chega a eles se liga a alguma coisa e não vira ponto cego (p. 1: "pontos cegos", "contato ligado a vários CPFs"). A consulta dos contatos de um devedor filtra `sk_devedor IS NOT NULL`.
+
+**Canal e resultado (G2b).** `canal` (4 valores) e `resultado` (10 valores, conferidos na silver: 15.053 tentativas) ficam como colunas da `ft_tentativa_contato`, com as classificações derivadas num lugar só. Sem `dim_canal`, `dim_resultado` nem dimensão junk; uma dimensão só se justifica quando um segundo fato usar esses valores. As classes de `tipo_desfecho`:
+
+| `tipo_desfecho` | `resultado` | Por quê |
+|---|---|---|
+| `contato_confirmado` | `pagamento`, `promessa_pagamento`, `reclamacao` | a reclamação também confirma que a pessoa certa foi alcançada |
+| `terceiro` | `numero_errado`, `nao_conhece_devedor` | a pessoa alcançada diz não ser o devedor |
+| `opt_out` | `opt_out` | pedido explícito |
+| `falecido` | `falecido` | |
+| `sem_confirmacao` | `entregue`, `lido`, `sem_resposta` | `lido` não confirma quem leu |
+
+Um valor novo de `resultado` fora da lista reprova um teste `accepted_values`, para não cair numa classe por acaso.
+
+**Provedor (G2d).** Linha montada a partir de vários provedores traz só `qt_provedores`. Sem uma flag por provedor, sem tabela ponte e sem a coluna de vários valores `desc_provedores_origem` que o AGENTS.md pedia antes (ela fere a primeira forma normal). A pergunta "qual provedor" é uma consulta em `analyses/` sobre `silver_cobranca.contatos_realizados_provedores`. O número de provedores é o sinal: nas tentativas de setembro, o contato visto por um provedor só teve 9,3% de contato com terceiro na gama, 6,3% no alfa e 4,0% no beta; o visto por dois ou mais, de 1,1% a 1,2%. Uma coluna de provedor só entra depois, como `fix:` com ganho medido.
+
+**Nomes de coluna.** O substantivo que é o próprio identificador ou valor fica sem prefixo (`cpf`, `cnpj`, `cep`, `canal`, `contato`); os prefixos dizem o papel (`sk_`, `desc_`, `nome_`, `tipo_`, `situacao_`, `qt_`, `vl_`, `tx_`, `flag_`, `dt_`, `hr_`), e o nível vai por extenso (`nivel_risco`). Saíram `cod_`, `num_` e `sigla_`; `tp_` virou `tipo_`, e `sit_` vai por extenso. O `sk_` fica: nenhuma das fontes consultadas (Kimball, o guia de esquema estrela da Microsoft Learn, dbt-utils) prescreve um nome, e o prefixo evita confundir a chave substituta com identificadores da origem como `contato_id`. O texto está no AGENTS.md, "Colunas da gold".
+
+**Sinais como colunas categóricas.** Sinais que respondem à mesma pergunta viram uma coluna `situacao_` ou `tipo_` com valores fechados, e não uma flag por sinal. O estado conhecido "sem sinal" tem valor próprio (`nenhum`, `exclusivo`), e `NULL` fica para dado ausente. Quando dois valores do mesmo grupo coexistem, vale a prioridade da seção 9.9; nada se perde, porque os eventos estão na `ft_tentativa_contato` e as contagens ficam em `qt_`. A gold tem uma flag só, `flag_possui_imovel`, que é dado recebido da gama, e não sinal.
+
+### 9.3 Chave substituta
+
+`INTEGER` por `ROW_NUMBER()` ordenado pela chave natural (`dim_devedor`: `cpf`; `dim_contato`: `cpf`, `tipo_contato`, `contato`; o mesmo padrão nas outras dimensões), com o frame declarado em `ROWS BETWEEN`, como pede o case. É determinística porque o banco é recriado a cada execução (p. 2) e não carrega o CPF.
+
+| Opção | Ganho | Custo |
+|---|---|---|
+| **`ROW_NUMBER()` pela chave natural (adotada)** | determinística, compacta, não revela o CPF | muda se o conjunto de chaves mudar; não serve para carga incremental |
+| `md5` da chave natural (`dbt_utils.generate_surrogate_key`) | estável entre cargas | reversível: medi 10 milhões de `md5` de CPFs possíveis em 3,1 s no DuckDB desta máquina, o que dá cerca de 5 minutos para todos os 10⁹ CPFs (extrapolação, não medido); o CPF se espalharia por toda tabela |
+| Hash com sal | estável e não reversível | o sal é um segredo, fora do repositório, e a execução deixa de ser reproduzível só com o repositório |
+
+Evolução para carga incremental em produção: uma tabela de chaves persistida ou um hash com sal guardado num cofre.
+
+### 9.4 Premissa: os mesmos devedores, uma operação
+
+Os três provedores falam dos mesmos devedores, e a cobrança é uma operação só. O `provedor_origem` de uma tentativa é a origem do contato discado, e não uma carteira separada.
+
+Base: "dados cadastrais dos devedores todos os dias, de três provedores diferentes", "base cadastral única" e "consolidar" (p. 1); "cada provedor fornece o que tem disponível" (p. 2). Nos dados, 10.250 dos 20.106 CPFs válidos aparecem em dois ou mais provedores; nesses, cerca de 97% dos nomes são compatíveis (730 das 998 divergências são abreviações); e o contato confirmado por dois ou mais provedores erra 1,1%, contra 4% a 9% no de um só.
+
+Nada é sobrescrito: a silver guarda cada provedor, e a `dim_contato`, a `dim_endereco` e a `ft_vinculo_empresa` guardam as linhas de cada provedor. Só o nome e o nascimento da `dim_devedor` guardam um valor escolhido. A premissa vai para o README.
+
+### 9.5 Quem é o devedor: documentos ruidosos ligados a um CPF
+
+A `dim_devedor` tem uma linha por **pessoa identificada por um CPF**. Todo documento recebido chega à gold, mas um documento ruidoso é **ligado a um devedor que já existe** quando a evidência é forte, em vez de virar uma segunda pessoa.
+
+| Caso | Regra | Medido (arquivos brutos, 2026-11-10) | Resultado |
+|---|---|---|---|
+| 1. CPF inválido (dígito verificador falha pela macro `cpf_valido` da silver), não zerado | mesmo nome comparável **e** mesmo nascimento de **exatamente um** CPF válido **e** um dígito de diferença para ele | 372 documentos | ligado ao devedor desse CPF válido |
+| 2. Documento marcado `RG` pelo beta | mesmo nome comparável **e** mesmo nascimento de **exatamente um** CPF válido (não há teste de dígito possível) | 30 documentos | ligado a esse devedor, como evidência mais fraca, marcada à parte |
+| 3a. CPF inválido sem ligação (cerca de 100, contando 9 empates) | nenhuma ligação | — | linha própria com `situacao_cpf = 'invalido'`; continua sendo um CPF, e a chave natural continua `cpf`. Vale também para CPF com mais de 11 dígitos (0 hoje) |
+| 3b. `RG` sem ligação (12 sem par, 1 empate) | nenhuma ligação | 13 documentos | não é devedor: os contatos entram na `dim_contato` com `sk_devedor` `NULL`, bloqueados, como os das linhas sem documento |
+| CPF válido | chave natural | 20.106 documentos distintos | linha própria, `situacao_cpf = 'valido'` |
+| Documento vazio ou zerado (seção 5.8) | não é devedor | 124 linhas recebidas | contatos na `dim_contato` com `sk_devedor` `NULL`, bloqueados |
+
+O registro ligado contribui com os contatos, os endereços e os vínculos para o devedor a que foi ligado, e os atributos dele entram nas regras de escolha da seção 9.7 como os de qualquer outro registro desse devedor. A `dim_devedor` conta os documentos ligados em `qt_documentos_vinculados`; na `dim_contato`, `situacao_documento` diz por qual documento o contato chegou ao devedor (`cpf_valido`, `cpf_corrigido`, `rg_por_nome_nascimento`, `cpf_invalido`, `sem_documento`), com `documento_original` quando não é `cpf_valido`. Assim, toda contribuição ligada é rastreável e pode ser excluída com um filtro.
+
+**Por quê.**
+- p. 1: "base cadastral **única**": a cópia ruidosa de uma pessoa não pode virar uma segunda pessoa.
+- p. 1: o risco central é contatar quem não deve. Fundir duas pessoas diferentes é o pior erro, por isso a regra é determinística e exige várias concordâncias independentes.
+- p. 3: a avaliação pede "consistência no tratamento de **deduplicações**, conflitos cadastrais e dados incompletos ou **ruidosos**".
+- p. 4: "transparência quanto aos **limites das inferências**": a regra, as contagens e o risco que sobra vão para o README.
+- Convenção do case, "modelos não geram linhas que não existam na origem": nada é inventado; o registro ligado é um registro recebido preso a um devedor recebido.
+- Cruzar fontes é da gold (seção 2; AGENTS.md, "Camadas e nomes").
+
+**Evidência.** Medido com uma consulta descartável no DuckDB sobre todos os arquivos históricos e diários dos três provedores, com esta normalização: documento só com dígitos, completado com zeros à esquerda até 11; dígito verificador pelo módulo 11 nos dois dígitos, sequências de dígitos iguais rejeitadas; nome `UPPER(strip_accents(TRIM(nome)))`; nascimento `dd/mm/aaaa` convertido para ISO, senão os 10 primeiros caracteres.
+
+| Grupo | Documentos | Mesmo nome e nascimento de um CPF válido | Exatamente um par | Diferença de dígitos para o CPF encontrado |
+|---|---|---|---|---|
+| CPF inválido | 481 | 381 (79%) | 372 (9 têm 2) | os 381 pares a exatamente 1 dígito; alguns outros pares a 7–11 dígitos |
+| `RG` do beta | 42 (9 caracteres, máscara `NN.NNN.NNN-D`; nenhum aparece como CPF no alfa nem na gama) | 31 (74%) | 30 (1 tem 2) | não se aplica |
+| Controle: CPF válido contra outro CPF válido | cerca de 20.100 | 415 (cerca de 2%) | — | — |
+
+Leitura: um CPF inválido é quase sempre um **erro de um dígito** de uma pessoa que já está na base, exatamente a classe de erro que o dígito verificador foi feito para pegar. A diferença entre 79% e os 2% do controle mostra que a concordância de nome e nascimento não é acaso. Nenhuma das 15.053 tentativas de setembro vai para um CPF inválido.
+
+**A regra, exatamente.**
+1. Só um CPF válido, de qualquer provedor, pode receber um documento ruidoso; esse CPF é o par do documento.
+2. Nome e nascimento são comparados depois da padronização da silver e do nome comparável (seção 9.6); os números acima são medidos de novo com essa chave na execução.
+3. O caso 1 exige as três concordâncias: mesmo nome, mesmo nascimento e distância de Hamming 1 entre as cadeias de 11 dígitos.
+4. O caso 2 exige mesmo nome e mesmo nascimento.
+5. Os dois casos exigem **exatamente um** par. Empate nunca é resolvido: cai no caso 3.
+6. As funções de janela permitidas pelo case bastam: `SUM(1)` com `ROWS BETWEEN` conta os pares de cada documento ruidoso, e ficam só as linhas em que a contagem é 1.
+
+**Testes da execução.**
+- Teste unitário do dbt para cada regra: erro de um dígito com par único é ligado; dois dígitos de diferença não é ligado; dois pares não é ligado; RG com nome e nascimento únicos é ligado; RG sem par fica de fora.
+- Todo documento ligado aponta para um devedor com `situacao_cpf = 'valido'`.
+- Nenhum CPF válido é ligado a outro documento.
+- `cpf` e `sk_devedor` únicos.
+- Contagem (aviso) de documentos ligados por caso e por provedor, no corpo do commit e no README.
+
+**Opções.**
+
+| Opção | Ganho | Custo |
+|---|---|---|
+| **Ligar o documento ruidoso quando a evidência é forte (adotada)** | uma pessoa, uma linha; os contatos do registro ruidoso servem ao devedor certo | risco de fundir duas pessoas (abaixo) |
+| Todo documento vira linha própria, com a validade como coluna (primeira decisão) | nenhuma fusão | 372 pessoas contadas duas vezes, cada metade com parte dos contatos |
+| Só CPFs válidos na `dim_devedor` (linha do resumo da silver) | dimensão limpa | o documento inválido sem ligação some da base cadastral |
+| RG sem ligação como devedor, com chave (`tipo_documento`, `documento`) | nenhum registro fora da dimensão | a chave natural deixa de ser uma coluna só e a dimensão deixa de ser "pessoa identificada por CPF", por 13 documentos |
+
+**Riscos e limites (README).**
+- Duas pessoas diferentes com o mesmo nome, o mesmo nascimento e CPFs a um dígito de distância seriam fundidas. A exigência de par único torna isso improvável, mas **a probabilidade não foi medida**.
+- O caso 2 não tem teste de dígito e é evidência mais fraca. As contribuições dele levam `situacao_documento = 'rg_por_nome_nascimento'`, e a régua as põe em `atencao` (seção 9.9).
+- Dados sintéticos: a colisão de nome e nascimento entre CPFs válidos (cerca de 2%) mostra que nomes se repetem nestes dados; dados reais podem ser diferentes.
+- Não verificado: o formato oficial do RG de qualquer estado (nenhuma fonte oficial consultada) e a validade dos números de RG (não há dígito verificador nacional).
+- Evolução com mais tempo: ligação probabilística de registros (semelhança de nome, endereço, contatos em comum) em vez de igualdade exata.
+
+### 9.6 Nome comparável
+
+A macro da gold `nome_comparavel` é um `TRANSLATE` com o mapa dos acentos maiúsculos (`ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ` → `AAAAAEEEEIIIIOOOOOUUUUCN`), aplicado ao nome que a silver já passou para maiúscula (seção 6.4). É a chave de comparação de nomes da seção 9.5 e da 9.7; a coluna `nome_devedor` continua mostrando o nome recebido.
+
+Medido sobre a histórica: o resultado é igual ao do `strip_accents` nos 21.650 nomes distintos, sem nenhum caractere fora do ASCII sobrando. O alfa manda nomes sem acento (0%), o beta e a gama em cerca de 38%; por isso os documentos com dois ou mais nomes entre as versões atuais dos provedores caem de 3.494 para 569 com a chave. Quando as formas diferem só no acento, a coluna mostra a forma acentuada. Um teste de aviso conta caracteres fora do ASCII que sobrem na chave, para pegar um acento fora do mapa.
+
+| Opção | Ganho | Custo |
+|---|---|---|
+| **`TRANSLATE` com mapa fixo (adotada)** | existe no núcleo do PostgreSQL 18 e no DuckDB 2.0 (conferido nas duas documentações) | o mapa é fixo; um caractere fora dele passa (por isso o teste de aviso) |
+| `strip_accents` | completo | só existe no DuckDB |
+| `unaccent` | completo no PostgreSQL | é extensão do `contrib` (confiável, mas precisa ser instalada; documentação do PostgreSQL 18) e não existe no DuckDB |
+
+### 9.7 Escolha de atributos e conflitos
+
+**Atributos estáveis (nome, nascimento): maioria entre provedores**, um voto por provedor, a versão atual de cada um.
+- Nome: abreviação não é conflito (mesmo primeiro e último nome e mesmas iniciais: fica a forma por extenso); depois, maioria das formas completas; empate, a mais recente.
+- Nascimento: sentinelas (1900-01-01, datas futuras como 2031-05-10, datas inválidas) não votam; empate, inclusive dia e mês trocados, dá `NULL`. Medido: 52 linhas com 1900-01-01, 36 com 2031-05-10, 455 CPFs com duas ou mais datas válidas, 49 deles com dia e mês trocados.
+
+**Atributos mutáveis (endereço, vínculo, renda): o mais recente.** `situacao_endereco = 'atual'` e `situacao_vinculo = 'atual'` saem da versão mais recente entre os provedores (no beta, o `atual` do endereço).
+
+**Perfil da gama** (`estado_civil`, dependentes, `score_externo`, `escolaridade`, imóvel, `fonte_score`): só a gama manda (verificado: zero ocorrências nos arquivos do alfa e do beta). Vale a versão atual da gama, e quem a gama não manda fica com `NULL` estrutural, documentado na coluna.
+
+**Recência.** A versão atual de cada fonte é a da silver (`devedores`), com a data de atualização como veio, inclusive 2025-09-01. A primeira versão desta regra tratava 2025-09-01 como ausente; ela foi substituída para a gold seguir a ordem da silver (seção 5.4).
+
+**Datas recebidas.** A gold nunca troca uma data recebida por `NULL`: `dt_atualizacao` e as demais datas mostram o valor de origem. O `NULL` do nascimento por empate não contradiz isso: ali falta um valor confiável escolhido, e nenhuma data recebida é apagada.
+
+**Conflito de identidade (G3c).** Primeiro ou último nome diferentes para o mesmo CPF marcam `identidade` em `tipo_conflito_cadastral`. Os atributos continuam seguindo a regra acima, e a régua decide o que fazer (seção 9.9). Medido: 998 CPFs com nomes divergentes (730 abreviações, 249 com primeiro ou último nome diferente, 19 só no nome do meio). Dos 249: 68 em três provedores, 144 em dois e 37 dentro de um provedor só, ao longo do tempo; 130 têm maioria entre provedores e 119 empatam; o nascimento também difere em 224 (90%). As 207 tentativas de setembro a esses CPFs tiveram 29,5% de contato com terceiro, contra 3,6% nos demais. A alternativa, atribuir cada contato à versão de onde veio, fica como evolução no README; os 37 casos dentro de um provedor ganham nota própria lá.
+
+**Conflito de versões (ponto 4).** Nos 208 documentos com duas versões diferentes no mesmo arquivo e nas mesmas datas (seção 6.5), vale a escolha da silver (`_linha DESC`, declarada arbitrária), e a `dim_devedor` marca `versao` em `tipo_conflito_cadastral` (os dois juntos dão `identidade_e_versao`). O sinal fica como coluna, sem mudar o nível de risco agora. Contatos, endereços e vínculos não dependem da escolha, porque guardam todas as versões; ela decide só `situacao_endereco`, `situacao_vinculo`, o voto desse provedor e o perfil da gama. Numa definição mais larga (empate em qualquer posição: 83, 92 e 101 documentos, contra 55, 73 e 80 da silver), as diferenças são sobretudo de endereço (alfa 54, gama 53 no logradouro), de renda (34 e 33) e de contatos; de nome, 3, 5 e 3; de nascimento, 2, 0 e 2. As alternativas de desempate são igualmente arbitrárias (seção 6.5).
+
+**Salário 0,00 do alfa.** Vira `vl_renda` `NULL` ("não informado"), pela convenção do case "ausência de dado é `NULL`, nunca zero". As 330 linhas (325 documentos) têm cargo e CNPJ; em 210 desses documentos outra versão do alfa traz salário maior que zero, e 155 têm renda maior que zero no beta. A silver guarda o 0,00, e a rastreabilidade leva até ele; a suposição vai para os limites do README. É diferente da data recebida: a data é um valor real, e o 0,00 com empregador é o "não sei" do provedor.
+
+### 9.8 Vínculo e endereço
+
+**`ft_vinculo_empresa`: um período por linha.** Uma linha por período contínuo do mesmo conteúdo de vínculo, por documento e provedor. As versões da histórica são ordenadas pela data de atualização como veio, depois entrega, arquivo e linha, e um vínculo que volta depois de outro abre uma linha nova (ilhas pela diferença de dois `ROW_NUMBER()`, sem `LAG`, que o case não permite). Conteúdo comparado: alfa `cnpj_empregador`, `cargo`, `salario_informado`; beta `vinculo_empresa_cnpj`, `vinculo_empresa_desde`, `renda_mensal`; gama `cnpj_empregador_raw`. Conteúdo todo vazio não vira linha, mas separa períodos (A → vazio → A dá dois períodos). `dt_inicio_vinculo` guarda o mês do vínculo, no dia 01 por convenção (seção 5.10), e `dt_atualizacao` é a da primeira versão do período, como veio.
+
+Medido: 18.554, 17.821 e 18.523 versões (alfa, beta, gama) contra 13.840, 13.897 e 12.536 conteúdos de vínculo distintos (todo vazio: 1.819, 1.789 e 1.794); um vínculo A volta depois de B em 149 documentos do alfa e 157 do beta (podem incluir conflitos de versão, não separados). O contrato da silver diz "uma linha por versão" (`docs/contratos-de-dados.md`, seção 6.3); a gold refina isso em períodos.
+
+| Opção | Ganho | Custo |
+|---|---|---|
+| **Um período contínuo por linha (adotada)** | o histórico de empregador e renda sem repetir a versão que só mudou a data | a regra de ilhas precisa de teste unitário (A → B → A dá três linhas; A → vazio → A dá duas) |
+| Uma linha por versão recebida (primeira decisão) | direta | repete o vínculo nas versões que mudaram outro campo (13.840 conteúdos distintos em 18.554 versões no alfa) |
+| Uma linha por CPF × CNPJ | compacta | perde a volta a um empregador e a mudança de renda |
+| Vínculo escolhido como atributo da `dim_devedor` | simples | perde o histórico que o enunciado pede consolidar (p. 1) |
+| SCD2 com data de fim | consulta "vigente em" direta | a data de fim pediria `LEAD`, fora das funções de janela permitidas pelo case |
+
+**Renda alterada.** 1.982 documentos no alfa e 1.416 no beta, confirmados pela regra da pipeline. O 962 da medição do desenho contava só a renda do beta que veio como número JSON: 3.262 linhas do beta mandam texto (`"R$ 9.241,83"`), e, restrita aos valores numéricos, a conta dá 960. A consulta de reconciliação vai para `analyses/` no passo dos vínculos. Isso explica a diferença registrada na seção 8 (o 960 contra 962 restante não foi investigado).
+
+**`dim_endereco`.** CPF × endereço distinto pelo `hash_endereco` da silver (sem o documento, igual nas três fontes, seção 6.4), com `qt_provedores`. Dois endereços do mesmo CPF iguais em tudo menos o complemento se juntam quando um dos complementos é `NULL`: fica o preenchido, a menor primeira entrega e a maior última entrega. Dois complementos diferentes continuam separados. Medido: 342 grupos (684 pares) na gama, todos `NULL` contra um valor; nenhum no alfa e no beta. A seção 6.4 fala em 221 pares na gama; a diferença é reconciliada na execução.
+
+**Contatos truncados da gama.** Nenhum sinal sai da falta de um contato na versão atual: as 8 versões atuais da gama com a lista cortada (seção 6.3) não são "sem contato".
+
+### 9.9 Régua de risco
+
+**Três níveis, por par devedor × contato**, cada um com `desc_motivo_risco`:
+
+| `nivel_risco` | O que a operação faz |
+|---|---|
+| `liberado` | contato com mensagem de cobrança |
+| `atencao` | contato sem expor a dívida: mensagem neutra pedindo retorno ou confirmação de identidade antes de qualquer menção à dívida |
+| `bloqueado` | sem contato; vai para a lista de não-contatar com o motivo |
+
+Base: níveis e critérios "a seu critério", "aplicável a cada telefone e e-mail de cada devedor", e o risco de expor a dívida a um terceiro (p. 1); canais e mensagens por nível e a justificativa de cada sinal de bloqueio (p. 2); equilíbrio entre efetividade de cobrança e proteção a terceiros (p. 4). Textos legais lidos em planalto.gov.br em 2026-11-10: CDC art. 42 e art. 71 e LGPD art. 6º, I, III e VII, e art. 7º, X. O bloqueio por opt-out e por falecimento é a política de proteção desta régua; não verifiquei uma obrigação legal específica para eles.
+
+**Princípio dos sinais.** `bloqueado` quando a evidência diz que o contato é de outra pessoa ou há um pedido explícito; `atencao` quando a dúvida é estatística ou de identidade; `liberado` nos demais.
+
+| Sinal | Nível | Evidência nas tentativas de setembro (contato com terceiro) |
+|---|---|---|
+| contato sem devedor (seção 9.2) | `bloqueado` | não há a quem cobrar |
+| `numero_errado` ou `nao_conhece_devedor` no histórico do par | `bloqueado` | nova tentativa depois de `numero_errado`: 57,1% de terceiro; depois de `nao_conhece_devedor`: 49,3% |
+| `opt_out` no contato | `bloqueado` | pedido explícito; 77 tentativas depois de um opt-out |
+| `falecido` em qualquer contato do devedor (bloqueia todos os pares dele) | `bloqueado` | 15 tentativas depois de um falecimento |
+| contato que migrou (compartilhado e visto depois para outro CPF) | `bloqueado` | 34,0%, contra 2,3% |
+| contato compartilhado sem migração | `atencao` | 14,4% |
+| conflito de identidade (seção 9.7) | `atencao` | 29,5%, contra 3,6% |
+| documento ligado por correção ou por RG (seção 9.5) | `atencao` | nenhuma tentativa vai a CPF inválido; a dúvida é de identidade |
+| CPF inválido sem ligação | `atencao` | idem |
+| só coluna, sem mudar o nível agora: provedor único, par ausente das entregas, contagens, conflito de versão | — | provedor único sozinho: 1,6% contra 1,1%; par ausente das entregas antes de 15/09: 5,3% contra 2,1% |
+
+As taxas são descritivas, medidas nos arquivos brutos contra as tentativas de setembro, e não são a validação da régua (abaixo). Os sinais "só coluna" ficam guardados para o estudo de pontuação; as regras de combinação ficam para esse estudo.
+
+**Colunas, e não o nível só.** Cada grupo de sinais é uma coluna categórica ou `qt_` na `dim_contato` (`situacao_documento`, `situacao_compartilhamento`, `tipo_alerta_historico`, `situacao_entrega`, `qt_provedores`, `qt_devedores_mesmo_contato`, `qt_tentativas`, `qt_tentativas_terceiro`), e o nível sai delas. Os sinais do devedor ficam só na `dim_devedor`, e a régua os lê pela chave. A evolução estudada nas análises é uma régua de quatro níveis e uma pontuação de 0 a 100 com rótulos por faixa; com os sinais já em colunas, ela se calcula sem remodelar.
+
+| Opção | Ganho | Custo |
+|---|---|---|
+| **Três níveis por regra (adotada)** | cada nível tem uma ação clara e um motivo legível; é o exemplo do enunciado (p. 1) | sinais estatísticos fracos não mudam o nível |
+| Quatro níveis | separa a dúvida forte da fraca | estudo nas análises |
+| Pontuação de 0 a 100 com rótulos por faixa | ordena dentro de cada nível | estudo nas análises; os pesos dependem da calibração |
+
+**Lista de não-contatar.** É a `dim_contato` filtrada por `nivel_risco = 'bloqueado'`, com a consulta no README; não há tabela nova. `desc_motivo_risco` guarda o motivo principal pela prioridade falecido > opt-out > disse não ser o devedor > contato migrado > contato sem devedor; os demais motivos ficam visíveis nas colunas de sinal, sem texto concatenado. O opt-out bloqueia o contato para todos os CPFs ligados a ele, porque quem pediu foi o titular do número; `numero_errado` e `nao_conhece_devedor` valem para o par. Uma tabela própria só se justifica quando um consumidor real precisar de um contrato próprio.
+
+**Validação sem vazamento.** Um corte único D = 2026-09-15: os sinais são calculados só com entregas e tentativas até D e avaliados nas tentativas depois de D (cerca de 7.280 antes e 7.770 depois; taxa de terceiro de 3,5%–3,7% antes e 3,8%–4,4% depois). Uma macro só, `regua_de_risco(data_corte)`: a `dim_contato` a chama sem corte (régua de operação), a análise a chama com D, e a régua validada é a mesma que opera. A validação não depende de colunas de data guardadas: a macro recalcula cada sinal só com os dados até o corte. As datas da `dim_contato` (`dt_situacao_compartilhamento`, `dt_alerta_historico`) são informativas, e os sinais do devedor não têm data própria. Conferi no dbt Core 1.12.6, num projeto descartável, que uma macro chamada dentro de `analyses/` compila com o argumento e roda com `dbt show`. As métricas de validação e a calibração são da etapa de análises. Evolução no README: avaliar cada tentativa com a régua de sete dias antes, no mesmo dia da semana, `regua_de_risco(data_da_tentativa - 7 dias)`.
+
+**Linha de base da validação.** Medida por `scripts/medir_regua.py`, com as tentativas sem par no corte fora das frações (uma contagem à parte, porque a régua não deu nível a elas). Em 15/09: acurácia balanceada 0,6871; 202 de 275 terceiros pegos; 675 de 774 confirmados liberados; 1.090 tentativas sem par. Em 22/09: acurácia balanceada 0,7208; 134 de 180 terceiros pegos; 389 de 438 confirmados liberados; 480 sem par. O loop de refinamento (passo 4.7b) partiu desses números.
+
+**Par ausente das entregas.** Calculado só na régua de operação (a última entrega do par é anterior à última entrega do provedor) e fora da validação em D, porque a silver guarda só a primeira e a última entrega de cada par. Evolução: uma tabela de presença por entrega na silver. Não verificado: se as entregas diárias são retratos completos ou atualizações parciais.
+
+### 9.10 Horário de contato
+
+O horário diz quando, e não com quem, e por isso nunca muda `nivel_risco`. A janela é única e conservadora, a interseção das duas regras lidas:
+
+| Regra | Segunda a sexta | Sábado | Domingo e feriado |
+|---|---|---|---|
+| Lei SP 17.832/2023, art. 51 (em vigor; a ADI 2342591-64.2023 do TJSP derrubou só os art. 194 e 195) | 8h às 20h | 8h às 14h | proibido |
+| SARB 27/2023, art. 32 ("salvo legislação específica"; e-mail em qualquer dia e hora) | 7h às 21h | 9h às 16h | — |
+| **Janela adotada, todo canal exceto e-mail** | **8h às 20h** | **9h às 14h** | **proibido** |
+
+`situacao_horario` na `ft_tentativa_contato` (`permitido`, `fora_do_horario`, `domingo`, `feriado`, `nao_se_aplica` para e-mail); o resumo de conformidade fica em `analyses/`. Os feriados nacionais ficam numa `var` do dbt, citando a Lei 662/1949 com a redação da Lei 10.607/2002 (7 de setembro; 2026-09-07 é uma segunda-feira), a Lei 6.802/1980 (12 de outubro) e a Lei 14.759/2023 (20 de novembro), e não numa tabela gerada.
+
+Medido nas tentativas de setembro fora de e-mail (domingo, 07/09, dia útil fora de 8h–20h, sábado fora de 8h–14h):
+
+| Canal | Tentativas | Domingo | 07/09 | Dia útil fora da janela | Sábado fora de 8h–14h |
+|---|---|---|---|---|---|
+| ligação | 2.576 | 101 | 74 | 103 | 212 |
+| SMS | 1.993 | 80 | 76 | 78 | 158 |
+| WhatsApp | 4.781 | 237 | 158 | 196 | 344 |
+
+A medição do sábado usou 8h–14h; a janela adotada começa às 9h, e a contagem final sai da execução.
+
+Fontes lidas em 2026-11-10: al.sp.gov.br (Lei 17.832/2023), o PDF do Normativo SARB 27/2023 em autorregulacaobancaria.com.br, o relatório de autorregulação de 2024 da Febraban e planalto.gov.br (Leis 662/1949, 6.802/1980 e 14.759/2023). Não verificado (limites do README): se SMS e WhatsApp contam como "telefonemas", o alcance territorial da lei de SP, se a operação é signatária da autorregulação da Febraban, feriados estaduais e municipais e o texto consolidado do SARB depois da alteração (o relatório da Febraban fala em contato fora do horário só com agendamento ou consentimento e num art. 32-A que proíbe ligar por dívida vencida há mais de cinco anos).
+
+### 9.11 Rastreabilidade
+
+As tabelas que vêm de um registro de um provedor (`dim_contato`, `dim_endereco`, `ft_vinculo_empresa`, `ft_tentativa_contato`, `dim_empregador`) terminam com `_arquivo`, `_linha` e `_hash_arquivo` da aparição mais recente, como na silver (seção 4). A `dim_devedor` não tem essas colunas: a linha junta até três provedores, e nenhum trio de arquivo e linha a descreve; a origem de cada atributo se acha pelas tabelas filhas e pela silver. `hash_conteudo` e `hash_endereco` são usados só dentro da pipeline e não viram coluna da gold, porque não são portáveis entre motores (seção 8).
+
+A tentativa liga-se ao par (CPF, contato); sem par, ao contato sem devedor de mesmo valor; sem nenhum dos dois, as chaves ficam `NULL` (AGENTS.md, "Colunas da gold") e são contadas por motivo no passo das tentativas.
+
+### 9.12 O que não foi verificado na gold
+
+- A probabilidade de fundir duas pessoas pela regra da seção 9.5; o formato oficial do RG e a validade dos números de RG.
+- O enquadramento de SMS e WhatsApp, o alcance da lei de SP, a adesão à autorregulação bancária, os feriados locais e o texto consolidado do SARB (seção 9.10).
+- Uma obrigação legal específica para bloquear por opt-out e por falecimento (seção 9.9).
+- Se as entregas diárias são retratos completos ou parciais (seção 9.9).
+- Os 342 grupos de complemento contra os 221 pares da seção 6.4, e o 960 contra o 962 da renda do beta (seção 9.8).
+- Todos os números desta seção vêm de consultas descartáveis; os finais saem da execução, no corpo de cada commit.

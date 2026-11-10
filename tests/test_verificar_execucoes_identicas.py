@@ -17,26 +17,35 @@ def criar_banco(caminho: Path, linhas_alfa: list[tuple], criar_gold: bool = True
     conexao.execute("CREATE VIEW silver_alfa.devedores AS SELECT id FROM bronze_alfa.devedores")
     conexao.execute("CREATE TABLE externo.ignorada (x INTEGER)")
     if criar_gold:
-        conexao.execute("CREATE SCHEMA gold")
-        conexao.execute("CREATE TABLE gold.dim_devedor (sk INTEGER)")
+        conexao.execute("CREATE SCHEMA gold_devedores")
+        conexao.execute("CREATE SCHEMA gold_outro_dominio")
+        conexao.execute("CREATE SCHEMA golden")
+        conexao.execute("CREATE TABLE gold_devedores.dim_devedor (sk INTEGER)")
+        conexao.execute("CREATE TABLE gold_outro_dominio.dim_outra (sk INTEGER)")
+        conexao.execute("CREATE TABLE golden.ignorada (sk INTEGER)")
     conexao.close()
     return caminho
 
 
-def test_resume_so_os_schemas_de_bronze_silver_e_gold(tmp_path):
+def test_resume_so_os_schemas_de_bronze_silver_e_gold_por_prefixo(tmp_path):
     banco = criar_banco(tmp_path / "a.duckdb", [("1", 1.5), ("2", None)])
 
     resumo = verificacao.resumir_banco(banco)
 
-    assert set(resumo) == {"bronze_alfa.devedores", "silver_alfa.devedores", "gold.dim_devedor"}
+    assert set(resumo) == {
+        "bronze_alfa.devedores",
+        "silver_alfa.devedores",
+        "gold_devedores.dim_devedor",
+        "gold_outro_dominio.dim_outra",
+    }
     assert resumo["bronze_alfa.devedores"][0] == 2
-    assert resumo["gold.dim_devedor"][0] == 0
+    assert resumo["gold_devedores.dim_devedor"][0] == 0
 
 
 def test_gold_ausente_nao_e_erro(tmp_path):
     banco = criar_banco(tmp_path / "a.duckdb", [("1", 1.0)], criar_gold=False)
 
-    assert "gold.dim_devedor" not in verificacao.resumir_banco(banco)
+    assert not [tabela for tabela in verificacao.resumir_banco(banco) if tabela.startswith("gold")]
 
 
 def test_a_ordem_das_linhas_nao_muda_o_resumo(tmp_path):
