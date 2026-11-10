@@ -93,7 +93,7 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `qualidade-python`) sã
   - **silver:** trabalha dentro de uma fonte só: tipos, limpeza, normalização, listas abertas em linhas e deduplicação de cada tabela pela sua chave, com `ROW_NUMBER()`. Toda a padronização vem antes da deduplicação, e toda tabela que muda de grão tem teste de chave primária.
   - **gold:** une as fontes, resolve conflitos, aplica as regras de negócio e expõe o modelo dimensional.
 - Cada provedor é uma fonte (`alfa`, `beta`, `gama`); o histórico de contatos é a fonte `cobranca`.
-- Schemas no banco: `bronze_<fonte>`, `silver_<fonte>` e `gold`. A tabela leva só o nome da entidade (`bronze_alfa.devedores`).
+- Schemas no banco: `bronze_<fonte>`, `silver_<fonte>` e `gold_<domínio>`. Na bronze e na silver o sufixo é a fonte; na gold, o domínio de negócio (`gold_devedores`), e nenhum domínio repete o nome de uma fonte. A tabela leva só o nome da entidade (`bronze_alfa.devedores`, `gold_devedores.dim_devedor`). O schema sai da pasta: `models/gold/<domínio>/`.
 - O dbt exige nomes de modelo únicos, por isso o arquivo leva camada e fonte (`models/silver/alfa/silver_alfa_devedores.sql`). Schema e nome da tabela saem da pasta, pelas macros `generate_schema_name` e `generate_alias_name`.
 - Nomes de tabela, coluna e arquivo com um único `_` entre as palavras, sem prefixos de camada (`stg_`, `int_` e similares). As CTEs seguem o padrão `tNomeCte` (ver "Estilo do código").
 - Na gold, só dois prefixos de tabela: `dim_` para dimensões e `ft_` para fatos.
@@ -102,23 +102,22 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `qualidade-python`) sã
 
 ### Colunas da gold
 
-- Nomes em português, minúsculos, no formato prefixo de tipo + assunto:
+- Nomes em português, minúsculos. O substantivo que é o próprio identificador ou valor não leva prefixo (`cpf`, `cnpj`, `cnae`, `cep`, `uf`, `canal`, `contato`, `resultado`, `cargo`); os prefixos dizem o papel da coluna:
 
   | Prefixo | Uso | Exemplo |
   |---|---|---|
   | `sk_` | chave substituta | `sk_devedor` |
-  | `cod_` | código | `cod_cnae` |
-  | `desc_` | descrição | `desc_cnae` |
+  | `desc_` | descrição de um código ou de um motivo | `desc_cnae`, `desc_motivo_risco` |
   | `nome_` | nome | `nome_devedor` |
-  | `num_` | número, numérico ou não | `num_cpf`, `num_telefone` |
-  | `qt_` · `vl_` · `tx_` | quantidade · valor · taxa | `qt_tentativas`, `vl_renda` |
-  | `tp_` · `sit_` · `sigla_` | tipo · situação · sigla | `tp_canal`, `sit_risco`, `sigla_uf` |
-  | `flag_` | booleano | `flag_contato_compartilhado` |
-  | `dt_` · `hr_` | data · hora | `dt_atualizacao` |
+  | `tipo_` · `situacao_` | tipo · situação (valores fechados) | `tipo_contato`, `situacao_cpf` |
+  | `qt_` · `vl_` · `tx_` | quantidade · valor · taxa | `qt_provedores`, `vl_renda` |
+  | `flag_` | booleano | `flag_possui_imovel` |
+  | `dt_` · `hr_` | data · hora | `dt_atualizacao`, `hr_tentativa` |
 
-- Ordem das colunas nas dimensões: chave substituta → chave natural → atributos, com cada código seguido da própria descrição (`cod_x`, `desc_x`, `cod_y`, `desc_y`) → nomes → números e valores → flags → datas → rastreabilidade por último.
+  Nível vai por extenso: `nivel_risco`. Sinais que respondem à mesma pergunta viram uma coluna `situacao_` ou `tipo_`, e não uma flag por sinal; o estado "sem sinal" tem valor próprio, e `NULL` fica para dado ausente.
+- Ordem das colunas nas dimensões: chave substituta → chave natural → atributos, com cada código seguido da própria descrição (`cnae`, `desc_cnae`) → nomes → números e valores → flags → datas → rastreabilidade por último.
 - Ordem das colunas nos fatos: chave substituta (se houver) → chaves das dimensões → identificadores da origem → medidas → flags → datas → rastreabilidade por último.
-- Dimensões montadas a partir de várias fontes trazem uma coluna com os provedores que contribuíram para a linha (ex.: `desc_provedores_origem`).
+- Linhas montadas a partir de várias fontes trazem `qt_provedores`, a quantidade de provedores que contribuíram para a linha. A pergunta "qual provedor" é respondida por uma análise sobre a silver, e não por uma coluna com vários valores.
 - Quando um fato não encontra a dimensão correspondente, a chave fica `NULL`. Nenhuma dimensão ganha linha fictícia do tipo "desconhecido", porque os modelos não geram linhas que não existam na origem. A junção do fato com essas dimensões usa `LEFT JOIN`.
 
 ### Commits e branches
