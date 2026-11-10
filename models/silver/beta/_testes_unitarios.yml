@@ -103,30 +103,34 @@ unit_tests:
         - {documento_tipo: null, documento: null, tipo_contato: "telefone", contato: "11900405285", tipo: "celular", principal: true, data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "b6", _linha: 6, _hash_arquivo: "h6"}
         - {documento_tipo: null, documento: null, tipo_contato: "email", contato: "z@x.com", tipo: null, principal: null, data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "b6", _linha: 6, _hash_arquivo: "h6"}
 
-  - name: silver_beta_devedores_enderecos_versao_atual
+  - name: silver_beta_devedores_enderecos_pares_de_documento_e_endereco
     description: >
-      Só a lista de endereços da versão atual do devedor entra, com a posição de cada um e o
-      `atual` como veio; o objeto único vira a posição 1; o CEP de 7 dígitos ou com hífen vira 8
-      dígitos. A lista de uma versão antiga fica fora.
+      O mesmo endereço em duas versões do mesmo documento vira um par só, com a primeira e a
+      última entrega e o `tipo`, o `atual` e a rastreabilidade da versão mais recente (no empate, a
+      maior posição na lista); a posição não entra na identidade; endereço diferente é outro par;
+      o endereço de uma versão sem documento (NULL) é deduplicado só entre os sem documento e
+      nunca se junta ao par de um documento válido com o mesmo endereço. Um endereço que saiu da
+      versão mais recente continua registrado.
     model: silver_beta_devedores_enderecos
     given:
-      - input: ref('silver_beta_devedores')
+      - input: ref('silver_beta_devedores_historico')
         rows:
-          - {documento_tipo: "CPF", documento: "123", _arquivo: "f2", _linha: 1, _hash_arquivo: "h"}
-          - {documento_tipo: "CPF", documento: "456", _arquivo: "f2", _linha: 2, _hash_arquivo: "h"}
-      - input: ref('silver_beta_devedores_padronizados')
-        format: sql
-        rows: |
-          SELECT 'f1' AS _arquivo, 9 AS _linha, CAST('[{"logradouro": "Rua Antiga", "atual": true}]' AS JSON) AS lista_enderecos, CAST(NULL AS JSON) AS endereco_unico
-          UNION ALL
-          SELECT 'f2', 1, CAST('[{"tipo": "residencial", "logradouro": " Rua A ", "numero": "S/N", "complemento": null, "bairro": "Centro", "cidade": "Santos", "uf": " sp ", "cep": "11010-000", "atual": true}, {"tipo": "comercial", "logradouro": "Rua B", "numero": "10", "complemento": "sala 2", "bairro": "Gonzaga", "cidade": "Santos", "uf": "XX", "cep": "7359422", "atual": false}]' AS JSON), CAST(NULL AS JSON)
-          UNION ALL
-          SELECT 'f2', 2, CAST(NULL AS JSON), CAST('{"tipo": "residencial", "logradouro": "Rua C", "numero": "5", "complemento": "", "bairro": "Boqueirao", "cidade": "Santos", "uf": "SP", "cep": "11055300", "atual": true}' AS JSON)
+          - {hash_conteudo: "v1", documento_tipo: "CPF", documento: "123", atualizado_em: "2026-08-30", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31"}
+          - {hash_conteudo: "v2", documento_tipo: "CPF", documento: "123", atualizado_em: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-12"}
+          - {hash_conteudo: "v3", documento_tipo: null, documento: null, atualizado_em: "2026-09-01", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-01"}
+          - {hash_conteudo: "v4", documento_tipo: null, documento: null, atualizado_em: "2026-09-12", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12"}
+      - input: ref('silver_beta_devedores_historico_enderecos')
+        rows:
+          - {hash_conteudo: "v1", posicao: 1, tipo: "residencial", logradouro: "Rua A", numero: "10", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: true, _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+          - {hash_conteudo: "v1", posicao: 2, tipo: "comercial", logradouro: "Rua B", numero: "20", complemento: "sala 2", bairro: "Gonzaga", cidade: "Santos", uf: "SP", cep: "11055300", atual: false, _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+          - {hash_conteudo: "v2", posicao: 2, tipo: "residencial", logradouro: "Rua A", numero: "10", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: false, _arquivo: "b2", _linha: 5, _hash_arquivo: "h2"}
+          - {hash_conteudo: "v3", posicao: 1, tipo: "residencial", logradouro: "Rua A", numero: "10", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: true, _arquivo: "b3", _linha: 2, _hash_arquivo: "h3"}
+          - {hash_conteudo: "v4", posicao: 1, tipo: "residencial", logradouro: "Rua A", numero: "10", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: false, _arquivo: "b4", _linha: 7, _hash_arquivo: "h4"}
     expect:
       rows:
-        - {documento_tipo: "CPF", documento: "123", posicao: 1, tipo: "residencial", logradouro: "Rua A", numero: "S/N", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: true, _arquivo: "f2", _linha: 1}
-        - {documento_tipo: "CPF", documento: "123", posicao: 2, tipo: "comercial", logradouro: "Rua B", numero: "10", complemento: "sala 2", bairro: "Gonzaga", cidade: "Santos", uf: null, cep: "07359422", atual: false, _arquivo: "f2", _linha: 1}
-        - {documento_tipo: "CPF", documento: "456", posicao: 1, tipo: "residencial", logradouro: "Rua C", numero: "5", complemento: null, bairro: "Boqueirao", cidade: "Santos", uf: "SP", cep: "11055300", atual: true, _arquivo: "f2", _linha: 2}
+        - {documento_tipo: "CPF", documento: "123", tipo: "residencial", logradouro: "Rua A", numero: "10", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: false, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-12", _arquivo: "b2", _linha: 5, _hash_arquivo: "h2"}
+        - {documento_tipo: "CPF", documento: "123", tipo: "comercial", logradouro: "Rua B", numero: "20", complemento: "sala 2", bairro: "Gonzaga", cidade: "Santos", uf: "SP", cep: "11055300", atual: false, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+        - {documento_tipo: null, documento: null, tipo: "residencial", logradouro: "Rua A", numero: "10", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: false, data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "b4", _linha: 7, _hash_arquivo: "h4"}
 
   - name: silver_beta_contatos_abertos_da_linha
     description: >

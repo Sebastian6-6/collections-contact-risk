@@ -2,11 +2,11 @@
   Toda linha da bronze do beta com JSON válido está representada na silver: o documento existe
   em `devedores`, cada telefone e e-mail preenchido tem o par em `devedores_contatos` (com
   `documento_tipo` e `documento` NULL quando a linha não tem documento, vazio ou só zeros, e
-  então não é devedor) e a versão
-  atual de cada devedor tem em `devedores_enderecos` tantos endereços quanto a lista dela traz.
-  As listas são abertas de novo aqui, a partir da etapa padronizada, sem passar pelos modelos
-  testados. Cada linha devolvida é um documento, um contato ou um grupo de endereços que a
-  silver perdeu ou duplicou.
+  então não é devedor) e cada endereço de cada linha (partes padronizadas, na etapa
+  `devedores_enderecos_padronizados`) tem o par com o documento em `devedores_enderecos`, mesmo
+  quando o documento é NULL. As listas são abertas de novo aqui, a partir da etapa padronizada,
+  sem passar pelos modelos testados. Cada linha devolvida é um documento, um contato ou um
+  endereço que a silver perdeu.
 #}
 WITH tTelefones AS (
   SELECT DISTINCT
@@ -87,79 +87,28 @@ WITH tTelefones AS (
     AND s.contato IS NULL
 )
 
-, tEnderecosDaVersaoAtual AS (
-  SELECT
-    d.documento_tipo
-    , d.documento
-    , 1 AS qt_enderecos
-  FROM {{ ref('silver_beta_devedores') }} AS d
-  INNER JOIN {{ ref('silver_beta_devedores_padronizados') }} AS p
-    ON d._arquivo = p._arquivo
-      AND d._linha = p._linha
-  CROSS JOIN LATERAL {{ json_abrir_lista('p.lista_enderecos', 'l') }}
-
-  UNION ALL
-
-  SELECT
-    d.documento_tipo
-    , d.documento
-    , 1 AS qt_enderecos
-  FROM {{ ref('silver_beta_devedores') }} AS d
-  INNER JOIN {{ ref('silver_beta_devedores_padronizados') }} AS p
-    ON d._arquivo = p._arquivo
-      AND d._linha = p._linha
-  WHERE 1 = 1
-    AND p.endereco_unico IS NOT NULL
-)
-
-, tEnderecosEsperados AS (
-  SELECT
-    documento_tipo
-    , documento
-    , SUM(qt_enderecos) AS qt_enderecos
-  FROM tEnderecosDaVersaoAtual
-  GROUP BY
-    documento_tipo
-    , documento
-)
-
-, tEnderecosSilver AS (
-  SELECT
-    documento_tipo
-    , documento
-    , COUNT(*) AS qt_enderecos
-  FROM {{ ref('silver_beta_devedores_enderecos') }}
-  GROUP BY
-    documento_tipo
-    , documento
-)
-
-, tEnderecosDivergentes AS (
-  SELECT
-    e.documento_tipo
-    , e.documento
+, tEnderecosPerdidos AS (
+  SELECT DISTINCT
+    p.documento_tipo
+    , p.documento
     , CAST(NULL AS VARCHAR) AS tipo_contato
     , CAST(NULL AS VARCHAR) AS contato
-  FROM tEnderecosEsperados AS e
-  LEFT JOIN tEnderecosSilver AS s
-    ON e.documento_tipo = s.documento_tipo
-      AND e.documento = s.documento
+  FROM {{ ref('silver_beta_devedores_padronizados') }} AS p
+  INNER JOIN {{ ref('silver_beta_devedores_enderecos_padronizados') }} AS e
+    ON p._arquivo = e._arquivo
+      AND p._linha = e._linha
+  LEFT JOIN {{ ref('silver_beta_devedores_enderecos') }} AS s
+    ON p.documento_tipo IS NOT DISTINCT FROM s.documento_tipo
+      AND p.documento IS NOT DISTINCT FROM s.documento
+      AND e.logradouro IS NOT DISTINCT FROM s.logradouro
+      AND e.numero IS NOT DISTINCT FROM s.numero
+      AND e.complemento IS NOT DISTINCT FROM s.complemento
+      AND e.bairro IS NOT DISTINCT FROM s.bairro
+      AND e.cidade IS NOT DISTINCT FROM s.cidade
+      AND e.uf IS NOT DISTINCT FROM s.uf
+      AND e.cep IS NOT DISTINCT FROM s.cep
   WHERE 1 = 1
-    AND e.qt_enderecos IS DISTINCT FROM s.qt_enderecos
-
-  UNION ALL
-
-  SELECT
-    s.documento_tipo
-    , s.documento
-    , CAST(NULL AS VARCHAR) AS tipo_contato
-    , CAST(NULL AS VARCHAR) AS contato
-  FROM tEnderecosSilver AS s
-  LEFT JOIN tEnderecosEsperados AS e
-    ON s.documento_tipo = e.documento_tipo
-      AND s.documento = e.documento
-  WHERE 1 = 1
-    AND e.documento IS NULL
+    AND s.hash_endereco IS NULL
 )
 
 SELECT
@@ -185,4 +134,4 @@ SELECT
   , documento
   , tipo_contato
   , contato
-FROM tEnderecosDivergentes
+FROM tEnderecosPerdidos

@@ -8,11 +8,13 @@
 #}
 -- depends_on: {{ ref('silver_alfa_devedores') }}
 -- depends_on: {{ ref('silver_alfa_devedores_contatos') }}
+-- depends_on: {{ ref('silver_alfa_devedores_enderecos') }}
 -- depends_on: {{ ref('silver_beta_devedores') }}
 -- depends_on: {{ ref('silver_beta_devedores_contatos') }}
 -- depends_on: {{ ref('silver_beta_devedores_enderecos') }}
 -- depends_on: {{ ref('silver_gama_devedores') }}
 -- depends_on: {{ ref('silver_gama_devedores_contatos') }}
+-- depends_on: {{ ref('silver_gama_devedores_enderecos') }}
 -- depends_on: {{ ref('silver_alfa_devedores_historico') }}
 -- depends_on: {{ ref('silver_beta_devedores_historico') }}
 -- depends_on: {{ ref('silver_beta_devedores_historico_contatos') }}

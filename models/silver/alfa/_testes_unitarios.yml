@@ -103,6 +103,30 @@ unit_tests:
         - {documento: null, tipo_contato: "telefone", contato: "11900405285", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
         - {documento: null, tipo_contato: "email", contato: "z@x.com", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
 
+  - name: silver_alfa_devedores_enderecos_pares_de_documento_e_endereco
+    description: >
+      Um endereço que aparece em duas versões do mesmo documento vira um par só, com a primeira
+      e a última entrega e a rastreabilidade da versão mais recente; o texto original não entra na
+      identidade (o mesmo endereço com texto diferente é o mesmo par); endereço diferente é outro
+      par; versão sem nenhum dado de endereço não gera linha; o endereço de uma versão sem
+      documento (NULL) é deduplicado só entre os sem documento e nunca se junta ao par de um
+      documento válido com o mesmo endereço.
+    model: silver_alfa_devedores_enderecos
+    given:
+      - input: ref('silver_alfa_devedores_historico')
+        rows:
+          - {documento: "A", endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_atualizacao: "2026-08-31", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "a1", _linha: 4, _hash_arquivo: "h1"}
+          - {documento: "A", endereco: "Rua X, 1, Centro, Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_atualizacao: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
+          - {documento: "A", endereco: "Rua Y, 2 - Gonzaga - Santos", logradouro: "Rua Y", numero: "2", complemento: null, bairro: "Gonzaga", cidade: "Santos", cep: "11055300", uf: "SP", data_atualizacao: "2026-09-11", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "a3", _linha: 1, _hash_arquivo: "h3"}
+          - {documento: "B", endereco: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, cep: null, uf: null, data_atualizacao: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 10, _hash_arquivo: "h2"}
+          - {documento: null, endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_atualizacao: "2026-09-01", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-01", _arquivo: "a4", _linha: 2, _hash_arquivo: "h4"}
+          - {documento: null, endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_atualizacao: "2026-09-12", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "a5", _linha: 7, _hash_arquivo: "h5"}
+    expect:
+      rows:
+        - {documento: "A", endereco: "Rua X, 1, Centro, Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
+        - {documento: "A", endereco: "Rua Y, 2 - Gonzaga - Santos", logradouro: "Rua Y", numero: "2", complemento: null, bairro: "Gonzaga", cidade: "Santos", cep: "11055300", uf: "SP", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "a3", _linha: 1, _hash_arquivo: "h3"}
+        - {documento: null, endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "a5", _linha: 7, _hash_arquivo: "h5"}
+
   - name: silver_alfa_devedores_historico_versoes
     description: >
       Uma linha por versão. A duplicata real (mesmo conteúdo, só `_arquivo`, `_linha`, `_hash_arquivo`

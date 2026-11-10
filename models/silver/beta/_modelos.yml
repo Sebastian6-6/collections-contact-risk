@@ -407,29 +407,34 @@ models:
 
   - name: silver_beta_devedores_enderecos
     description: >
-      Endereços do provedor beta, uma linha por (tipo de documento, documento, posição na lista)
-      da versão atual do devedor (a mesma de `silver_beta.devedores`). O provedor manda uma lista
-      (`enderecos`) ou um objeto só (`endereco`); o objeto vira a posição 1. O `atual` fica como
-      veio: nenhuma regra escolhe o endereço vigente nesta camada.
+      Endereços do provedor beta, uma linha por (tipo de documento, documento, endereço
+      padronizado), tirada de `devedores_historico` e `devedores_historico_enderecos`. Considera
+      todas as versões, não só a atual: um endereço que saiu da versão mais recente continua
+      registrado. O endereço é o conjunto das partes padronizadas; a posição na lista não entra na
+      identidade. O provedor manda uma lista (`enderecos`) ou um objeto só (`endereco`). O `tipo` e
+      o `atual` são da aparição mais recente e ficam como vieram: nenhuma regra escolhe o endereço
+      vigente nesta camada. A versão sem documento entra com `documento_tipo` e `documento`
+      `NULL`, deduplicada só pelo endereço e nunca junta a um documento válido.
     data_tests:
       - combinacao_unica:
           arguments:
-            colunas: [documento_tipo, documento, posicao]
+            colunas: [documento_tipo, documento, hash_endereco]
     columns:
       - name: documento_tipo
-        description: "Tipo do documento, como em `silver_beta.devedores`."
-        data_tests:
-          - not_null
+        description: "Tipo do documento, como em `silver_beta.devedores`. `NULL` nas versões sem documento."
       - name: documento
-        description: "Documento do devedor, como em `silver_beta.devedores`."
-        data_tests:
-          - not_null
-      - name: posicao
-        description: "Posição do endereço na lista da versão atual (1, 2, ...); 1 para o objeto único."
+        description: "Documento do devedor, como em `silver_beta.devedores`. `NULL` nas versões sem documento."
+      - name: hash_endereco
+        description: >-
+          Identidade do endereço, criada na silver: `MD5` das partes padronizadas (`logradouro`,
+          `numero`, `complemento`, `bairro`, `cidade`, `uf`, `cep`) pela macro `hash_conteudo`, sem
+          o documento, para a gold achar o mesmo endereço em documentos diferentes. O texto original
+          só entra quando todas as partes são `NULL`. Igual nas três fontes para as mesmas partes
+          (o hash não é portável entre DuckDB e PostgreSQL, não verificado).
         data_tests:
           - not_null
       - name: tipo
-        description: "Tipo do endereço informado pelo provedor (por exemplo `residencial`); `NULL` quando vazio."
+        description: "Tipo do endereço informado pelo provedor (por exemplo `residencial`) na aparição mais recente; `NULL` quando vazio."
       - name: logradouro
         description: "Logradouro, sem espaços nas pontas; `NULL` quando vazio."
       - name: numero
@@ -452,17 +457,25 @@ models:
         description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições."
       - name: atual
         description: >-
-          Marcação `atual` do provedor, como veio (verdadeiro ou falso); `NULL` quando o provedor
-          não a enviou. Não escolhe o endereço vigente: isso é regra da gold.
+          Marcação `atual` do provedor na aparição mais recente, como veio (verdadeiro ou falso);
+          `NULL` quando o provedor não a enviou. Não escolhe o endereço vigente: isso é regra da gold.
+      - name: data_primeira_entrega
+        description: "Menor data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
+      - name: data_ultima_entrega
+        description: "Maior data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
       - name: _arquivo
-        description: "{{ doc('bronze_arquivo') }}"
+        description: "Da aparição mais recente do par (documento_tipo, documento, endereço). {{ doc('bronze_arquivo') }}"
         data_tests:
           - not_null
       - name: _linha
-        description: "{{ doc('bronze_linha') }}"
+        description: "Da aparição mais recente do par (documento_tipo, documento, endereço). {{ doc('bronze_linha') }}"
         data_tests:
           - not_null
       - name: _hash_arquivo
-        description: "{{ doc('bronze_hash_arquivo') }}"
+        description: "Da aparição mais recente do par (documento_tipo, documento, endereço). {{ doc('bronze_hash_arquivo') }}"
         data_tests:
           - not_null

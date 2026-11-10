@@ -348,3 +348,73 @@ models:
         description: "Da aparição mais recente do par (documento, tipo_contato, contato). {{ doc('bronze_hash_arquivo') }}"
         data_tests:
           - not_null
+
+  - name: silver_gama_devedores_enderecos
+    description: >
+      Endereços do provedor gama, uma linha por (documento, endereço padronizado), tirada de
+      `devedores_historico`. Considera todas as versões da histórica, não só a atual: um endereço que saiu da versão mais recente continua registrado. O endereço é o conjunto das partes
+      padronizadas, e o texto original não entra na identidade (só se todas as partes forem
+      `NULL`). Só existe linha para endereço que veio preenchido. A versão sem documento entra com
+      `documento` `NULL`, deduplicada só pelo endereço e nunca junta a um documento válido. Com a
+      primeira e a última data de entrega em que o par apareceu.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [documento, hash_endereco]
+    columns:
+      - name: documento
+        description: >-
+          Documento do devedor, como em `silver_gama.devedores`. `NULL` nos endereços de linhas de
+          documento vazio ou zerado, que não são devedor: nesse caso o endereço é único entre as
+          linhas sem documento.
+      - name: hash_endereco
+        description: >-
+          Identidade do endereço, criada na silver: `MD5` das partes padronizadas (`logradouro`,
+          `numero`, `complemento`, `bairro`, `cidade`, `uf`, `cep`) pela macro `hash_conteudo`, sem
+          o documento, para a gold achar o mesmo endereço em documentos diferentes. O texto original
+          só entra quando todas as partes são `NULL`. Igual nas três fontes para as mesmas partes
+          (o hash não é portável entre DuckDB e PostgreSQL, não verificado).
+        data_tests:
+          - not_null
+      - name: endereco
+        description: "Endereço em texto da aparição mais recente do par, como veio (aparado nas pontas). Não entra na identidade do endereço."
+      - name: logradouro
+        description: "Logradouro, vindo do texto ou das colunas do layout; `NULL` quando não veio."
+      - name: numero
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando não veio."
+      - name: endereco_json_complemento
+        description: "Complemento do endereço (`endereco_json_complemento` na histórica); `NULL` quando não há."
+      - name: bairro
+        description: "Bairro; `NULL` quando não veio."
+      - name: cidade
+        description: "Cidade; `NULL` quando não veio."
+      - name: uf
+        description: >-
+          Sigla da UF em maiúsculas e sem espaços nas pontas. Valor fora das 27 UFs vira `NULL`;
+          `NULL` também quando vazio.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO]
+      - name: cep
+        description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições."
+      - name: data_primeira_entrega
+        description: "Menor data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
+      - name: data_ultima_entrega
+        description: "Maior data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "Da aparição mais recente do par (documento, endereço). {{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "Da aparição mais recente do par (documento, endereço). {{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "Da aparição mais recente do par (documento, endereço). {{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null

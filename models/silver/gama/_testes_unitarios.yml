@@ -122,6 +122,30 @@ unit_tests:
         - {tipo_contato: "email", contato: "ana@x.com", tipo: null, posicao: 2, _arquivo: "g1", _linha: 3, _hash_arquivo: "h1"}
         - {tipo_contato: "telefone", contato: "21947801773", tipo: "fixo", posicao: 1, _arquivo: "g2", _linha: 7, _hash_arquivo: "h2"}
 
+  - name: silver_gama_devedores_enderecos_pares_de_documento_e_endereco
+    description: >
+      O mesmo endereço em layouts diferentes (texto numa versão, partes em colunas noutra) é um
+      par só, porque a identidade são as partes padronizadas e não o texto; ele traz a primeira e
+      a última entrega e a rastreabilidade da versão mais recente. Endereço diferente é outro par;
+      versão sem nenhum dado de endereço não gera linha; o endereço de uma versão sem documento
+      (NULL) é deduplicado só entre os sem documento e nunca se junta ao par de um documento
+      válido com o mesmo endereço.
+    model: silver_gama_devedores_enderecos
+    given:
+      - input: ref('silver_gama_devedores_historico')
+        rows:
+          - {documento: "A", endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", endereco_json_complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", dt_ref: "2026-08-31", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "g1", _linha: 4, _hash_arquivo: "h1"}
+          - {documento: "A", endereco: null, logradouro: "Rua X", numero: "1", endereco_json_complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", dt_ref: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "g2", _linha: 9, _hash_arquivo: "h2"}
+          - {documento: "A", endereco: null, logradouro: "Rua Y", numero: "2", endereco_json_complemento: "Ap 3", bairro: "Gonzaga", cidade: "Santos", cep: "11055300", uf: "SP", dt_ref: "2026-09-11", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "g3", _linha: 1, _hash_arquivo: "h3"}
+          - {documento: "B", endereco: null, logradouro: null, numero: null, endereco_json_complemento: null, bairro: null, cidade: null, cep: null, uf: null, dt_ref: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "g2", _linha: 10, _hash_arquivo: "h2"}
+          - {documento: null, endereco: null, logradouro: "Rua X", numero: "1", endereco_json_complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", dt_ref: "2026-09-01", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-01", _arquivo: "g4", _linha: 2, _hash_arquivo: "h4"}
+          - {documento: null, endereco: null, logradouro: "Rua X", numero: "1", endereco_json_complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", dt_ref: "2026-09-12", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "g5", _linha: 7, _hash_arquivo: "h5"}
+    expect:
+      rows:
+        - {documento: "A", endereco: null, logradouro: "Rua X", numero: "1", endereco_json_complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "g2", _linha: 9, _hash_arquivo: "h2"}
+        - {documento: "A", endereco: null, logradouro: "Rua Y", numero: "2", endereco_json_complemento: "Ap 3", bairro: "Gonzaga", cidade: "Santos", cep: "11055300", uf: "SP", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "g3", _linha: 1, _hash_arquivo: "h3"}
+        - {documento: null, endereco: null, logradouro: "Rua X", numero: "1", endereco_json_complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "g5", _linha: 7, _hash_arquivo: "h5"}
+
   - name: silver_gama_devedores_historico_versoes
     description: >
       Uma linha por versão. A duplicata real (mesmo conteúdo, só `_arquivo`, `_linha`, `_hash_arquivo`
