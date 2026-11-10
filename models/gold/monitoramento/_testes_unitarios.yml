@@ -1,0 +1,87 @@
+version: 2
+
+unit_tests:
+  - name: ft_entrega_diaria_acha_dia_sem_entrega_e_cabecalho_que_mudou
+    description: >
+      D2. A entrega n é comparada com a n - 1 do mesmo provedor: 1 dia entre 01/09 e 02/09, 3 entre
+      02/09 e 05/09 (dois dias sem entrega). A primeira entrega não tem anterior. O cabeçalho que
+      muda entre duas entregas dá `mudou`; igual dá `igual`; a primeira fica `NULL`. Outro provedor
+      não entra na comparação.
+    model: ft_entrega_diaria
+    given:
+      - input: ref('entregas_diarias_apuradas')
+        format: sql
+        rows: |
+          SELECT
+            provedor
+            , dt_referencia
+            , CAST(1 AS BIGINT) AS qt_arquivos
+            , CAST(qt_registros AS BIGINT) AS qt_registros
+            , CAST(0 AS BIGINT) AS qt_registros_repetidos
+            , CAST(0 AS BIGINT) AS qt_registros_atrasados
+            , CAST(0 AS BIGINT) AS qt_linhas_ilegiveis
+            , desc_cabecalho
+            , 'arquivo' AS desc_arquivos
+          FROM (
+            VALUES
+            ('alfa', DATE '2026-09-01', 0, 'cpf,nome')
+            , ('alfa', DATE '2026-09-02', 0, 'cpf,nome')
+            , ('alfa', DATE '2026-09-05', 0, 'documento,nome')
+            , ('gama', DATE '2026-09-03', 0, 'documento,nome')
+          ) AS tLinhas (provedor, dt_referencia, qt_registros, desc_cabecalho)
+    expect:
+      rows:
+        - {provedor: alfa, dt_referencia: 2026-09-01, qt_dias_desde_entrega_anterior: null, situacao_cabecalho: null}
+        - {provedor: alfa, dt_referencia: 2026-09-02, qt_dias_desde_entrega_anterior: 1, situacao_cabecalho: igual}
+        - {provedor: alfa, dt_referencia: 2026-09-05, qt_dias_desde_entrega_anterior: 3, situacao_cabecalho: mudou}
+        - {provedor: gama, dt_referencia: 2026-09-03, qt_dias_desde_entrega_anterior: null, situacao_cabecalho: null}
+
+  - name: ft_entrega_diaria_media_movel_por_tipo_de_dia_com_janela_de_5_e_limiar_de_50_por_cento
+    description: >
+      D3. A média usa as entregas anteriores do mesmo provedor e tipo de dia (útil ou fim de
+      semana), no máximo 5, sem a do próprio dia: o fim de semana não entra na média dos dias
+      úteis. Com menos de 3 entregas na base o volume é `sem_base`. 400 contra média 100 é `acima`
+      (+300%); 20 contra 160 é `abaixo` (-87,5%); 160 contra 144 é `normal`, já com a entrega de
+      07/09 fora da janela e a de 14/09 dentro. Outro provedor não entra na média.
+    model: ft_entrega_diaria
+    given:
+      - input: ref('entregas_diarias_apuradas')
+        format: sql
+        rows: |
+          SELECT
+            provedor
+            , dt_referencia
+            , CAST(1 AS BIGINT) AS qt_arquivos
+            , CAST(qt_registros AS BIGINT) AS qt_registros
+            , CAST(0 AS BIGINT) AS qt_registros_repetidos
+            , CAST(0 AS BIGINT) AS qt_registros_atrasados
+            , CAST(0 AS BIGINT) AS qt_linhas_ilegiveis
+            , desc_cabecalho
+            , 'arquivo' AS desc_arquivos
+          FROM (
+            VALUES
+            ('alfa', DATE '2026-09-07', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-08', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-09', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-10', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-11', 100, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-12', 50, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-13', 150, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-14', 400, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-15', 20, CAST(NULL AS VARCHAR))
+            , ('alfa', DATE '2026-09-16', 160, CAST(NULL AS VARCHAR))
+            , ('gama', DATE '2026-09-14', 1000, CAST(NULL AS VARCHAR))
+          ) AS tLinhas (provedor, dt_referencia, qt_registros, desc_cabecalho)
+    expect:
+      rows:
+        - {provedor: alfa, dt_referencia: 2026-09-07, tipo_dia: util, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-08, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 1, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-09, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 2, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-10, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 3, tx_variacao_media: 0, situacao_volume: normal}
+        - {provedor: alfa, dt_referencia: 2026-09-11, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 4, tx_variacao_media: 0, situacao_volume: normal}
+        - {provedor: alfa, dt_referencia: 2026-09-12, tipo_dia: fim_de_semana, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-13, tipo_dia: fim_de_semana, qt_media_movel: 50, qt_entregas_base: 1, tx_variacao_media: null, situacao_volume: sem_base}
+        - {provedor: alfa, dt_referencia: 2026-09-14, tipo_dia: util, qt_media_movel: 100, qt_entregas_base: 5, tx_variacao_media: 3, situacao_volume: acima}
+        - {provedor: alfa, dt_referencia: 2026-09-15, tipo_dia: util, qt_media_movel: 160, qt_entregas_base: 5, tx_variacao_media: -0.875, situacao_volume: abaixo}
+        - {provedor: alfa, dt_referencia: 2026-09-16, tipo_dia: util, qt_media_movel: 144, qt_entregas_base: 5, tx_variacao_media: 0.1111, situacao_volume: normal}
+        - {provedor: gama, dt_referencia: 2026-09-14, tipo_dia: util, qt_media_movel: null, qt_entregas_base: null, tx_variacao_media: null, situacao_volume: sem_base}

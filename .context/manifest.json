@@ -205,17 +205,6 @@
       "origin": "https://github.com/sqlfluff/sqlfluff/blob/4.5.0/LICENSE.md · acesso 2026-11-09"
     },
     "referencias-dbt-how-we-structure-2-staging": {
-      "source": "raw/referencias/dbt/how-we-structure-2-staging.md",
-      "sha256": "7f1059072d0a48ad3ba1d5ff910486859aeda1c87229d8950e8513b3d941480f",
-      "size": 14036,
-      "kind": "document",
-      "converted_at": "2026-11-09 07:43",
-      "converted": "converted/referencias-dbt-how-we-structure-2-staging.md",
-      "status": "ok",
-      "error": null,
-      "pages": 0,
-      "converter": "plain",
-      "summary": "dbt structure guide, staging layer: one model per source table, subfolder per source system, renaming/typing only, views; maps to this project's bronze/silver per source.",
       "tags": [
         "reference",
         "dbt",
@@ -223,20 +212,20 @@
         "staging",
         "stage-3"
       ],
-      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/2-staging.md · acesso 2026-11-09"
-    },
-    "referencias-dbt-how-we-structure-4-marts": {
-      "source": "raw/referencias/dbt/how-we-structure-4-marts.md",
-      "sha256": "26e67c3bcde1c863c44406e99a4c4af2fbbdf4aa392d2f0e200cb30de3b10f3d",
-      "size": 12118,
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/2-staging.md · acesso 2026-11-09",
+      "source": "raw/referencias/dbt/how-we-structure-2-staging.md",
+      "sha256": "cb5b94b9b68d86f1b492e752a5ba03441fd99784a10803cadf7d537e8e05cd48",
+      "size": 14414,
       "kind": "document",
-      "converted_at": "2026-11-09 07:43",
-      "converted": "converted/referencias-dbt-how-we-structure-4-marts.md",
+      "converted_at": "2026-11-10 03:20",
+      "converted": "converted/referencias-dbt-how-we-structure-2-staging.md",
       "status": "ok",
       "error": null,
       "pages": 0,
       "converter": "plain",
-      "summary": "dbt structure guide, marts layer: business-conformed entities, materialized as tables, wide denormalized marts preferred over a classic star unless needed; basis for the gold star schema plus analysis datasets.",
+      "summary": "dbt structure guide, staging layer: one model per source table, subfolder per source system, renaming/typing only, views; maps to this project's bronze/silver per source."
+    },
+    "referencias-dbt-how-we-structure-4-marts": {
       "tags": [
         "reference",
         "dbt",
@@ -245,7 +234,18 @@
         "gold",
         "stage-6"
       ],
-      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/4-marts.md · acesso 2026-11-09"
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/4-marts.md · acesso 2026-11-09",
+      "source": "raw/referencias/dbt/how-we-structure-4-marts.md",
+      "sha256": "bc4616159de4a03b614e61acf02e77292461df8466f75347a54f617253ca1e5c",
+      "size": 12548,
+      "kind": "document",
+      "converted_at": "2026-11-10 03:20",
+      "converted": "converted/referencias-dbt-how-we-structure-4-marts.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt structure guide, marts layer: business-conformed entities, materialized as tables, wide denormalized marts preferred over a classic star unless needed; basis for the gold star schema plus analysis datasets."
     },
     "referencias-dbt-how-we-structure-6-mapping-folders-to-warehouse": {
       "source": "raw/referencias/dbt/how-we-structure-6-mapping-folders-to-warehouse.md",
@@ -367,17 +367,6 @@
       "origin": "https://github.com/duckdb/duckdb-web/blob/main/docs/stable/sql/query_syntax/with.md · acesso 2026-11-09"
     },
     "referencias-ruff-configuration-0-17-4": {
-      "source": "raw/referencias/ruff/configuration-0.17.4.md",
-      "sha256": "ad98019d25c70e6f4f8e149a3d496daee5a617cc32fb2926f03acd35273cb252",
-      "size": 11212,
-      "kind": "document",
-      "converted_at": "2026-11-09 07:43",
-      "converted": "converted/referencias-ruff-configuration-0-17-4.md",
-      "status": "ok",
-      "error": null,
-      "pages": 0,
-      "converter": "plain",
-      "summary": "Ruff 0.17.4 configuration docs (ruff.toml format, config file discovery, Python version inference); basis for the project's ruff.toml.",
       "tags": [
         "reference",
         "ruff",
@@ -385,20 +374,19 @@
         "lint",
         "stage-3"
       ],
-      "origin": "https://github.com/astral-sh/ruff/blob/0.17.4/docs/configuration.md · acesso 2026-11-09"
-    },
-    "referencias-sqlfluff-regras-usadas-4-5-0": {
-      "source": "raw/referencias/sqlfluff/regras-usadas-4.5.0.md",
-      "sha256": "a8a543220a8e4f50981bf1146fa8a43a3eb20f5c7f25224a8fe0ab77a840ad78",
-      "size": 10068,
+      "origin": "https://github.com/astral-sh/ruff/blob/0.17.4/docs/configuration.md · acesso 2026-11-09",
+      "source": "raw/referencias/ruff/configuration-0.17.4.md",
+      "sha256": "33b4b1a9c063d3c0c3aec64f5e9aa62514f23026861e96e693576c0145fb90ea",
+      "size": 10893,
       "kind": "document",
-      "converted_at": "2026-11-09 07:43",
-      "converted": "converted/referencias-sqlfluff-regras-usadas-4-5-0.md",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-ruff-configuration-0-17-4.md",
       "status": "ok",
       "error": null,
       "pages": 0,
-      "converter": "plain",
-      "summary": "SQLFluff 4.5.0 rule docstrings and default settings for the rules this project configures (CP01, CP03, CP04, CP05 capitalisation; LT02 indentation; ST05 subqueries; CV11 cast style; AM04 select star); basis for .sqlfluff.",
+      "converter": "plain"
+    },
+    "referencias-sqlfluff-regras-usadas-4-5-0": {
       "tags": [
         "reference",
         "sqlfluff",
@@ -406,7 +394,260 @@
         "sql-conventions",
         "stage-3"
       ],
-      "origin": "https://github.com/sqlfluff/sqlfluff/tree/4.5.0/src/sqlfluff (rules + core/default_config.cfg) · acesso 2026-11-09"
+      "origin": "https://github.com/sqlfluff/sqlfluff/tree/4.5.0/src/sqlfluff (rules + core/default_config.cfg) · acesso 2026-11-09",
+      "source": "raw/referencias/sqlfluff/regras-usadas-4.5.0.md",
+      "sha256": "10560862d66390c5ce0763299c4b0e2240e0c52fe085d808f72c6fcfe23e8e65",
+      "size": 9679,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-sqlfluff-regras-usadas-4-5-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain"
+    },
+    "referencias-claude-notas-subagentes-e-modelos": {
+      "source": "raw/referencias/claude/notas-subagentes-e-modelos.md",
+      "sha256": "56bf31696cd558121cb5941dc397980c90a20d097a9f692db641da9523c5175c",
+      "size": 2856,
+      "kind": "document",
+      "converted_at": "2026-11-09 09:02",
+      "converted": "converted/referencias-claude-notas-subagentes-e-modelos.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Facts used from the Claude Code subagent docs and the Claude models overview (subagent frontmatter fields, model/effort resolution, skills preload, watcher restart caveat, official model-choice guidance and default efforts); a note, not a copy, since the docs have no open license.",
+      "tags": [
+        "reference",
+        "claude-code",
+        "subagents",
+        "models",
+        "effort",
+        "stage-3"
+      ],
+      "origin": "https://code.claude.com/docs/en/sub-agents + https://platform.claude.com/docs/en/models/overview · acesso 2026-11-09"
+    },
+    "referencias-licencas-dlt-docs-apache-2-0": {
+      "source": "raw/referencias/_licencas/dlt-docs-Apache-2.0.txt",
+      "sha256": "3bd68ce12f57c10e265b3d19b3251efa5aa40f780f590bc8bb7b1c83f85854ca",
+      "size": 11348,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:46",
+      "converted": "converted/referencias-licencas-dlt-docs-apache-2-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Apache License 2.0 text of the dlt repository, covering the archived dlt documentation page.",
+      "tags": [
+        "license",
+        "apache-2.0",
+        "dlt"
+      ],
+      "origin": "https://github.com/dlt-hub/dlt/blob/devel/LICENSE.txt · acesso 2026-11-09"
+    },
+    "referencias-dbt-how-we-structure-3-intermediate": {
+      "source": "raw/referencias/dbt/how-we-structure-3-intermediate.html",
+      "sha256": "487825881e3cb0db262ac0f80f26e30f3fb9139012d05b0a3f1db06136be81eb",
+      "size": 61362,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:46",
+      "converted": "converted/referencias-dbt-how-we-structure-3-intermediate.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "docling 2.149.0",
+      "summary": "dbt structure guide, intermediate layer (published HTML page): re-graining (fan out/collapse), isolating complex logic, primary key tests on re-grained models; basis for what silver may do inside one source.",
+      "tags": [
+        "reference",
+        "dbt",
+        "project-structure",
+        "intermediate",
+        "re-graining",
+        "stage-5",
+        "format-html"
+      ],
+      "origin": "https://docs.getdbt.com/best-practices/how-we-structure/3-intermediate (fonte fcccf9b no repositório docs.getdbt.com) · acesso 2026-11-09"
+    },
+    "referencias-dbt-snapshots": {
+      "source": "raw/referencias/dbt/snapshots.md",
+      "sha256": "974a0a7cf73cd401d3a94018634353280557bebd09115faa21b584f70ca47d05",
+      "size": 29059,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:46",
+      "converted": "converted/referencias-dbt-snapshots.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt snapshots page (Markdown source): type-2 SCD over mutable sources with dbt_valid_from/dbt_valid_to, timestamp vs check strategies, needs persisted state between runs; basis for rejecting full-record history in silver.",
+      "tags": [
+        "reference",
+        "dbt",
+        "snapshots",
+        "scd2",
+        "history",
+        "stage-5",
+        "format-md"
+      ],
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/72897a57aa319eeaf505cbeac04b13f98b7b7af6/website/docs/docs/build/snapshots.md · acesso 2026-11-09"
+    },
+    "referencias-dlt-destination-tables": {
+      "source": "raw/referencias/dlt/destination-tables.pdf",
+      "sha256": "9e132f5078300dc178ff73340642972842e020ff48ea18d3f2acb22794006ae6",
+      "size": 965825,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:46",
+      "converted": "converted/referencias-dlt-destination-tables.md",
+      "status": "ok",
+      "error": null,
+      "pages": 13,
+      "converter": "docling 2.149.0",
+      "summary": "dlt 1.32.0 destination tables page (PDF print, 13 pages): _dlt_load_id on every row pointing to the _dlt_loads register, _dlt_id per row, nested tables via _dlt_parent_id; basis for the load-register part of the lineage design.",
+      "tags": [
+        "reference",
+        "dlt",
+        "lineage",
+        "load-register",
+        "ingestion",
+        "stage-4",
+        "format-pdf"
+      ],
+      "origin": "https://dlthub.com/docs/general-usage/destination-tables (fonte 3ec3cfc no repositório dlt-hub/dlt) · impresso em PDF · acesso 2026-11-09"
+    },
+    "referencias-padroes-de-mercado-notas-ingestao-e-silver": {
+      "source": "raw/referencias/padroes-de-mercado/notas-ingestao-e-silver.md",
+      "sha256": "30d3d40fffa4a544ab9b083fa82cafb95993bd17510c248ac672845ffc4f51db",
+      "size": 5321,
+      "kind": "document",
+      "converted_at": "2026-11-09 18:47",
+      "converted": "converted/referencias-padroes-de-mercado-notas-ingestao-e-silver.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Note (not a copy) of industry patterns behind ingestion and silver decisions: loaders append and track files (Auto Loader, Snowflake), universal lineage columns (Snowflake, Fivetran, Databricks, dlt, Airbyte), SCD2 vs effectivity history, Kimball bridge tables, dbt staging/intermediate scope.",
+      "tags": [
+        "reference",
+        "notes",
+        "ingestion",
+        "lineage",
+        "medallion",
+        "kimball",
+        "data-vault",
+        "stage-4",
+        "stage-5"
+      ],
+      "origin": "nota própria com as URLs das fontes · 2026-11-09"
+    },
+    "referencias-leis-cdc-8078-1990-arts-42-71": {
+      "source": "raw/referencias/leis/cdc-8078-1990-arts-42-71.md",
+      "sha256": "248ede9b6b48cca4eadcc69e156766a35f21faa561d9c324d453311a6440f7bd",
+      "size": 946,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-cdc-8078-1990-arts-42-71.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Articles 42 and 71 of the Brazilian Consumer Defense Code (Lei 8.078/1990): debt-collection conduct rules.",
+      "tags": [
+        "leis",
+        "cdc",
+        "cobranca"
+      ]
+    },
+    "referencias-leis-lei-14759-2023-art1": {
+      "source": "raw/referencias/leis/lei-14759-2023-art1.md",
+      "sha256": "b0b8c17557512fdbdcdfe1b39a8e4fbf0bff1ab76d160af6a899bc1d8a870b00",
+      "size": 342,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-lei-14759-2023-art1.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Article 1 of Lei 14.759/2023: 20 November declared a national holiday.",
+      "tags": [
+        "leis",
+        "feriados"
+      ]
+    },
+    "referencias-leis-lei-662-1949-art1": {
+      "source": "raw/referencias/leis/lei-662-1949-art1.md",
+      "sha256": "4a46e78a304d8240a5a755f212997e16a54caafc0b850151f6ec5c778e61150d",
+      "size": 406,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-lei-662-1949-art1.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Article 1 of Lei 662/1949 (as amended by Lei 10.607/2002): list of national holidays.",
+      "tags": [
+        "leis",
+        "feriados"
+      ]
+    },
+    "referencias-leis-lei-sp-17832-2023-art51": {
+      "source": "raw/referencias/leis/lei-sp-17832-2023-art51.md",
+      "sha256": "2301e17f6fa789c346afcdf9cedecd2b52ac45976f6a7ec0ed6d43ab111de9d1",
+      "size": 492,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-lei-sp-17832-2023-art51.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Article 51 of Sao Paulo state Lei 17.832/2023: permitted hours for collection phone calls.",
+      "tags": [
+        "leis",
+        "sp",
+        "horario-cobranca"
+      ]
+    },
+    "referencias-leis-lgpd-13709-2018-arts-6-7": {
+      "source": "raw/referencias/leis/lgpd-13709-2018-arts-6-7.md",
+      "sha256": "a37e8c40391b0c8cfe94f81d361c35de871dab23f42610cc5ec112a62af8eff6",
+      "size": 5474,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-lgpd-13709-2018-arts-6-7.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Articles 6 and 7 of the Brazilian LGPD (Lei 13.709/2018): processing principles and legal bases.",
+      "tags": [
+        "leis",
+        "lgpd",
+        "base-legal"
+      ]
+    },
+    "referencias-padroes-de-mercado-notas-gold-e-regua": {
+      "source": "raw/referencias/padroes-de-mercado/notas-gold-e-regua.md",
+      "sha256": "bae7a431b135250fd7fb31bf3a47a954165b860f024e04073eb0ce894f01cf40",
+      "size": 1857,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-padroes-de-mercado-notas-gold-e-regua.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Links and one-line summaries of Kimball, Microsoft Learn and Febraban SARB 27/2023 used for the gold layer and the contact rule; laws kept as links only.",
+      "tags": [
+        "notas",
+        "gold",
+        "regua",
+        "kimball",
+        "sarb"
+      ]
     }
   }
 }

@@ -1,0 +1,474 @@
+version: 2
+
+sources:
+  - name: bronze_receita
+    description: >
+      Dados abertos do CNPJ da Receita Federal (mês 2026-10): o extrato versionado em
+      `external_data/receita/2026-10/`, com as empresas dos CNPJs de empregador recebidos e as seis
+      tabelas de domínio inteiras. Os arquivos não têm cabeçalho; os nomes das colunas vêm do layout
+      oficial (`cnpj-metadados.pdf`, 02/12/2021), em minúsculas, sem acento e com `_` no lugar de espaço
+      e pontuação, na ordem do layout. Fiel à origem: nenhuma linha é descartada nem interpretada na
+      ingestão.
+    tables:
+      - name: empresas
+        description: "Uma linha por empresa recebida (layout EMPRESAS). Colunas de dados em texto, como vieram: nenhum código, data ou valor é interpretado na ingestão. O extrato só traz as empresas dos CNPJs dos empregadores recebidos."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: cnpj_basico
+            description: "Base do CNPJ: os 8 primeiros caracteres, que identificam a empresa. Layout: CNPJ BÁSICO."
+          - name: razao_social_nome_empresarial
+            description: "Razão social (nome empresarial) da empresa. Layout: RAZÃO SOCIAL / NOME EMPRESARIAL."
+          - name: natureza_juridica
+            description: "Código da natureza jurídica; a descrição está em `naturezas`. Layout: NATUREZA JURÍDICA."
+          - name: qualificacao_do_responsavel
+            description: "Código da qualificação do responsável pela empresa; a descrição está em `qualificacoes`. Layout: QUALIFICAÇÃO DO RESPONSÁVEL."
+          - name: capital_social_da_empresa
+            description: "Capital social em reais, com vírgula decimal (`14202162483,70`). Layout: CAPITAL SOCIAL DA EMPRESA."
+          - name: porte_da_empresa
+            description: "Porte da empresa: `00` não informado, `01` micro empresa, `03` empresa de pequeno porte, `05` demais. Layout: PORTE DA EMPRESA."
+          - name: ente_federativo_responsavel
+            description: "Ente federativo responsável; preenchido só para natureza jurídica do grupo 1XXX. Layout: ENTE FEDERATIVO RESPONSÁVEL."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: estabelecimentos
+        description: "Uma linha por estabelecimento (CNPJ completo = base + ordem + DV) das empresas do extrato (layout ESTABELECIMENTOS). Colunas de dados em texto, como vieram."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: cnpj_basico
+            description: "Base do CNPJ (8 caracteres); liga o estabelecimento à empresa. Layout: CNPJ BÁSICO."
+          - name: cnpj_ordem
+            description: "Ordem do CNPJ (4 caracteres, `0001` na matriz em CNPJ numérico). No CNPJ alfanumérico pode ter letras. Layout: CNPJ ORDEM."
+          - name: cnpj_dv
+            description: "Dígitos verificadores do CNPJ (2 dígitos). Layout: CNPJ DV."
+          - name: identificador_matriz_filial
+            description: "`1` matriz, `2` filial. Layout: IDENTIFICADOR MATRIZ/FILIAL."
+          - name: nome_fantasia
+            description: "Nome fantasia do estabelecimento. Layout: NOME FANTASIA."
+          - name: situacao_cadastral
+            description: "Situação cadastral: `01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada (o layout escreve alguns códigos com 1 dígito; o arquivo traz 2). Layout: SITUAÇÃO CADASTRAL."
+          - name: data_situacao_cadastral
+            description: "Data da situação cadastral, `AAAAMMDD`. Layout: DATA SITUAÇÃO CADASTRAL."
+          - name: motivo_situacao_cadastral
+            description: "Código do motivo da situação cadastral; a descrição está em `motivos`. Layout: MOTIVO SITUAÇÃO CADASTRAL."
+          - name: nome_da_cidade_no_exterior
+            description: "Nome da cidade no exterior, para estabelecimento fora do país. Layout: NOME DA CIDADE NO EXTERIOR."
+          - name: pais
+            description: "Código do país; a descrição está em `paises`. Layout: PAIS."
+          - name: data_de_inicio_atividade
+            description: "Data de início da atividade, `AAAAMMDD`. Layout: DATA DE INÍCIO ATIVIDADE."
+          - name: cnae_fiscal_principal
+            description: "Código do CNAE fiscal principal (7 dígitos); a descrição está em `cnaes`. Layout: CNAE FISCAL PRINCIPAL."
+          - name: cnae_fiscal_secundaria
+            description: "CNAEs fiscais secundários, vários códigos separados por vírgula no mesmo campo. Layout: CNAE FISCAL SECUNDÁRIA."
+          - name: tipo_de_logradouro
+            description: "Tipo de logradouro (`RUA`, `AVENIDA`). Layout: TIPO DE LOGRADOURO."
+          - name: logradouro
+            description: "Logradouro. Layout: LOGRADOURO."
+          - name: numero
+            description: "Número do endereço. Layout: NÚMERO."
+          - name: complemento
+            description: "Complemento do endereço. Layout: COMPLEMENTO."
+          - name: bairro
+            description: "Bairro. Layout: BAIRRO."
+          - name: cep
+            description: "CEP. Layout: CEP."
+          - name: uf
+            description: "Sigla da UF. Layout: UF."
+          - name: municipio
+            description: "Código do município (padrão da Receita, não o do IBGE); a descrição está em `municipios`. Layout: MUNICÍPIO."
+          - name: ddd_1
+            description: "DDD do telefone 1. Layout: DDD 1."
+          - name: telefone_1
+            description: "Telefone 1. Layout: TELEFONE 1."
+          - name: ddd_2
+            description: "DDD do telefone 2. Layout: DDD 2."
+          - name: telefone_2
+            description: "Telefone 2. Layout: TELEFONE 2."
+          - name: ddd_do_fax
+            description: "DDD do fax. Layout: DDD DO FAX."
+          - name: fax
+            description: "Número do fax. Layout: FAX."
+          - name: correio_eletronico
+            description: "Correio eletrônico do estabelecimento; a Receita mascara os endereços que ocultou. Layout: CORREIO ELETRÔNICO."
+          - name: situacao_especial
+            description: "Situação especial. Layout: SITUAÇÃO ESPECIAL."
+          - name: data_da_situacao_especial
+            description: "Data da situação especial, `AAAAMMDD`. Layout: DATA DA SITUAÇÃO ESPECIAL."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: simples
+        description: "Uma linha por empresa do extrato com dados do Simples Nacional e do MEI (layout DADOS DO SIMPLES). Colunas de dados em texto, como vieram; `00000000` é a data ausente da origem."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: cnpj_basico
+            description: "Base do CNPJ (8 caracteres). Layout: CNPJ BÁSICO."
+          - name: opcao_pelo_simples
+            description: "Opção pelo Simples Nacional: `S` sim, `N` não, vazio outros. Layout: OPÇÃO PELO SIMPLES."
+          - name: data_de_opcao_pelo_simples
+            description: "Data de opção pelo Simples, `AAAAMMDD`; `00000000` quando não há. Layout: DATA DE OPÇÃO PELO SIMPLES."
+          - name: data_de_exclusao_do_simples
+            description: "Data de exclusão do Simples, `AAAAMMDD`; `00000000` quando não há. Layout: DATA DE EXCLUSÃO DO SIMPLES."
+          - name: opcao_pelo_mei
+            description: "Opção pelo MEI: `S` sim, `N` não, vazio outros. Layout: OPÇÃO PELO MEI."
+          - name: data_de_opcao_pelo_mei
+            description: "Data de opção pelo MEI, `AAAAMMDD`; `00000000` quando não há. Layout: DATA DE OPÇÃO PELO MEI."
+          - name: data_de_exclusao_do_mei
+            description: "Data de exclusão do MEI, `AAAAMMDD`; `00000000` quando não há. Layout: DATA DE EXCLUSÃO DO MEI."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: socios
+        description: "Uma linha por sócio das empresas do extrato (layout SÓCIOS). Colunas de dados em texto, como vieram; o CPF já vem mascarado pela Receita."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: cnpj_basico
+            description: "Base do CNPJ (8 caracteres) da empresa. Layout: CNPJ BÁSICO."
+          - name: identificador_de_socio
+            description: "Identificador do sócio: `1` pessoa jurídica, `2` pessoa física, `3` estrangeiro. Layout: IDENTIFICADOR DE SÓCIO."
+          - name: nome_do_socio_no_caso_pf_ou_razao_social_no_caso_pj
+            description: "Nome do sócio (pessoa física) ou razão social (pessoa jurídica). Layout: NOME DO SÓCIO (NO CASO PF) OU RAZÃO SOCIAL (NO CASO PJ)."
+          - name: cnpj_cpf_do_socio
+            description: "CPF mascarado (`***240659**`) do sócio pessoa física ou CNPJ do sócio pessoa jurídica. Em 2026-10 o CNPJ vem com 8 dígitos (só a base), embora o layout de 2021 não diga isso. Layout: CNPJ/CPF DO SÓCIO."
+          - name: qualificacao_do_socio
+            description: "Código da qualificação do sócio; a descrição está em `qualificacoes`. Layout: QUALIFICAÇÃO DO SÓCIO."
+          - name: data_de_entrada_sociedade
+            description: "Data de entrada na sociedade, `AAAAMMDD`. Layout: DATA DE ENTRADA SOCIEDADE."
+          - name: pais
+            description: "Código do país do sócio estrangeiro. Layout: PAIS."
+          - name: representante_legal
+            description: "CPF mascarado do representante legal. Layout: REPRESENTANTE LEGAL."
+          - name: nome_do_representante
+            description: "Nome do representante legal. Layout: NOME DO REPRESENTANTE."
+          - name: qualificacao_do_representante_legal
+            description: "Código da qualificação do representante legal. Layout: QUALIFICAÇÃO DO REPRESENTANTE LEGAL."
+          - name: faixa_etaria
+            description: "Faixa etária do sócio: `1` 0 a 12 anos, `2` 13 a 20, `3` 21 a 30, `4` 31 a 40, `5` 41 a 50, `6` 51 a 60, `7` 61 a 70, `8` 71 a 80, `9` mais de 80, `0` não se aplica. Layout: FAIXA ETÁRIA."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: cnaes
+        description: "CNAEs (classificação nacional de atividades econômicas): código de 7 dígitos e descrição. Tabela de domínio inteira."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: codigo
+            description: "Código do CNAE (7 dígitos). Layout: CÓDIGO."
+          - name: descricao
+            description: "Descrição do CNAE. Layout: DESCRIÇÃO."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: motivos
+        description: "Motivos de situação cadastral. Tabela de domínio inteira; o layout de 2021 não a descreve, e o arquivo tem as mesmas duas colunas dos outros domínios."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: codigo
+            description: "Código do motivo (2 dígitos). Layout: CÓDIGO."
+          - name: descricao
+            description: "Descrição do motivo. Layout: DESCRIÇÃO."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: municipios
+        description: "Municípios, com o código da Receita (não é o do IBGE). Tabela de domínio inteira."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: codigo
+            description: "Código do município na Receita. Layout: CÓDIGO."
+          - name: descricao
+            description: "Nome do município. Layout: DESCRIÇÃO."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: naturezas
+        description: "Naturezas jurídicas. Tabela de domínio inteira."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: codigo
+            description: "Código da natureza jurídica (4 dígitos). Layout: CÓDIGO."
+          - name: descricao
+            description: "Descrição da natureza jurídica. Layout: DESCRIÇÃO."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: paises
+        description: "Países. Tabela de domínio inteira."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: codigo
+            description: "Código do país. Layout: CÓDIGO."
+          - name: descricao
+            description: "Nome do país. Layout: DESCRIÇÃO."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: qualificacoes
+        description: "Qualificações de sócios e responsáveis. Tabela de domínio inteira."
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_receita', 'arquivos')
+        columns:
+          - name: codigo
+            description: "Código da qualificação (2 dígitos). Layout: CÓDIGO."
+          - name: descricao
+            description: "Descrição da qualificação. Layout: DESCRIÇÃO."
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: arquivos
+        description: "{{ doc('bronze_arquivos_tabela') }}"
+        data_tests:
+        - colunas_declaradas
+        columns:
+          - name: arquivo
+            description: "{{ doc('bronze_arquivos_arquivo') }}"
+            data_tests:
+              - not_null
+              - unique
+          - name: entidade
+            description: "{{ doc('bronze_arquivos_entidade') }}"
+            data_tests:
+              - not_null
+          - name: hash_arquivo
+            description: "{{ doc('bronze_arquivos_hash') }}"
+            data_tests:
+              - not_null
+          - name: bytes
+            description: "{{ doc('bronze_arquivos_bytes') }}"
+            data_tests:
+              - not_null
+          - name: linhas
+            description: "{{ doc('bronze_arquivos_linhas') }}"
+            data_tests:
+              - not_null
+          - name: cabecalho
+            description: "{{ doc('bronze_arquivos_cabecalho') }}"

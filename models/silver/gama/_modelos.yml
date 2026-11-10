@@ -1,0 +1,426 @@
+version: 2
+
+models:
+  - name: silver_gama_devedores_padronizados
+    description: >
+      Etapa efêmera (não vira tabela) da silver do gama. Uma linha por linha lida da bronze que
+      tem documento, com toda a padronização já aplicada e sem deduplicar. Alimenta `devedores_historico`, de onde saem
+      `devedores` (versão mais recente) e `devedores_contatos` (todas as versões), e a etapa que
+      abre a lista de contatos.
+    config:
+      materialized: ephemeral
+
+  - name: silver_gama_devedores
+    description: >
+      Devedores do provedor gama, uma linha por documento normalizado, tirada de `devedores_historico`. Vale a versão mais recente
+      do documento: maior `dt_ref` (a data de atualização da fonte), depois maior data de entrega,
+      depois maior arquivo (nome) e maior linha. Fora ficam, e continuam na bronze, a linha ilegível, o cabeçalho
+      repetido dentro do histórico e o documento vazio ou só com zeros, que não identifica ninguém (S9);
+      os contatos das linhas de documento vazio estão em `devedores_contatos` com `documento` NULL. O endereço vem em três formatos
+      (colunas separadas, `rua` e `endereco`) e sai nas mesmas colunas; nos dois formatos de texto
+      as partes só são separadas quando o texto casa inteiro com o padrão estrito, e o texto
+      original fica em `endereco` (S7). Os `atributos_extra` viram colunas (S8). Nenhuma coluna
+      recebe marcação interpretativa: datas sentinela e valores zero passam como vieram.
+
+      Medição de `dt_ref` como data de atualização (2026-11-09, sobre as 19.505 linhas lidas):
+      19.504 viram data (a restante é o cabeçalho repetido, que não tem data); nenhuma é posterior
+      à data de entrega do arquivo. Nas entregas diárias (9.505 linhas), 8.791 trazem exatamente a
+      data de entrega e 714 trazem 1 a 3 dias antes (mediana 0). No histórico a data vai de
+      2025-01-27 a 2026-08, e 372 linhas trazem 2025-09-01, data que não aparece em nenhuma entrega
+      diária. Com 5.391 documentos em mais de uma linha, ordenar por `dt_ref` escolhe outra linha
+      que não a mais recente por entrega em 59 dos 11.436 documentos; tratar 2025-09-01 como
+      ausente mudaria a escolha em 5 (consulta `analyses/medicao_ordenacao_devedores_gama.sql`;
+      os 87 e 35 anteriores não se reproduzem). A regra da sentinela continua pendente de
+      decisão do autor. Hoje `dt_ref` ordena porque nunca vem do futuro e acompanha
+      a entrega nas diárias, e 2025-09-01 fica como veio (S8); quem trata essa data é a decisão
+      pendente. A suposição de que `dt_ref` é a data de atualização do registro está
+      no contrato do provedor.
+    columns:
+      - name: documento
+        description: >-
+          CPF só com dígitos, com os zeros à esquerda repostos até 11 posições. Chave da tabela.
+        data_tests:
+          - unique
+          - not_null
+      - name: nome
+        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio. Texto livre em maiúscula (H4)."
+      - name: data_nascimento
+        description: "Data de nascimento, lida de `dd/mm/aaaa`. A data sentinela, se houver, fica como veio."
+      - name: cnpj_empregador_raw
+        description: >-
+          CNPJ do empregador (campo `cnpj_empregador_raw` da origem), padronizado para 14
+          caracteres alfanuméricos.
+          Regra (macro `cnpj_normalizado`): só letras e dígitos, em maiúsculas. Com 14
+          caracteres, fica como veio. Com menos, completa com zeros à esquerda se o resultado tiver
+          dígitos verificadores válidos; com 12 caracteres e sem essa possibilidade, calcula os dois
+          dígitos pela regra oficial da Receita. O que não encaixa fica como veio (limitação da
+          base, teste `cnpj_do_empregador_fora_da_regra`). Todo valor de 14 caracteres tem dígitos
+          verificadores válidos (teste `cnpj_do_empregador_com_digito_verificador_valido`).
+          `NULL` quando o provedor não informou.
+      - name: atributos_extra_estado_civil
+        description: "Estado civil de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_qtd_dependentes
+        description: "Quantidade de dependentes de `atributos_extra`; `NULL` quando a chave não veio, e o 0 informado fica 0."
+      - name: atributos_extra_score_externo
+        description: "Score de um birô externo, de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_escolaridade
+        description: "Escolaridade de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_possui_imovel
+        description: "Se o devedor possui imóvel, de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_fonte_score
+        description: "Birô de onde vem o `atributos_extra_score_externo`, de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: endereco
+        description: >-
+          Texto do endereço, nos formatos `rua` ("logradouro, numero") e `endereco`
+          ("logradouro, numero - bairro"). `NULL` quando o endereço veio em colunas separadas.
+          Texto livre em maiúscula (H4).
+      - name: logradouro
+        description: >-
+          Logradouro: da coluna da origem ou, nos formatos de texto, do texto que casa com o
+          padrão estrito; `NULL` quando não casa.
+          Texto livre em maiúscula (H4).
+      - name: numero
+        description: "Número do endereço (pode ser `S/N`), com a mesma regra do logradouro. Texto livre em maiúscula (H4)."
+      - name: endereco_json_complemento
+        description: "Complemento; só existe no formato de colunas separadas, e `NULL` quando não há. Texto livre em maiúscula (H4)."
+      - name: bairro
+        description: >-
+          Bairro: da coluna da origem ou, no formato `endereco`, do texto que casa com o padrão
+          estrito; `NULL` no formato `rua`, que não traz bairro.
+          Texto livre em maiúscula (H4).
+      - name: cidade
+        description: "Cidade, de `cidade` ou `municipio` conforme o formato do endereço. Texto livre em maiúscula (H4)."
+      - name: uf
+        description: >-
+          Sigla da UF, de `uf` ou `estado` conforme o formato do endereço, em maiúsculas e sem
+          espaços nas pontas. Valor fora das 27 UFs vira `NULL`; `NULL` também quando vazio.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO]
+      - name: cep
+        description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições (o provedor manda número em alguns formatos)."
+      - name: dt_ref
+        description: "Data de referência do registro informada pelo provedor, com o nome do campo da origem, usada para escolher a versão."
+      - name: data_entrega
+        description: >-
+          Data da entrega do arquivo de onde veio a versão: a data escrita no nome do arquivo ou,
+          só no arquivo histórico configurado, a variável `data_carga_historica` (2026-08-31, enunciado p. 1). `NULL` em entrega diária sem data válida no nome, o que reprova o teste `entrega_diaria_sem_data_valida`.
+      - name: hash_conteudo
+        description: >-
+          Chave da versão atual na histórica (`silver_gama.devedores_historico`): liga o devedor ao conteúdo de que ele saiu.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_gama_devedores_historico')
+                field: hash_conteudo
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_gama_devedores_contatos_padronizados
+    description: >
+      Etapa efêmera (não vira tabela) dos contatos do gama: os contatos de cada linha recebida,
+      abertos da lista `contatos` e normalizados, sem deduplicar. `celular` e `fixo` viram
+      `telefone`, `email` vira `email`; tipo desconhecido e valor vazio não geram linha, nem a
+      linha de lista truncada. Alimenta a histórica (assinatura da lista) e `devedores_historico_contatos`.
+    config:
+      materialized: ephemeral
+  - name: silver_gama_devedores_historico
+    description: >
+      Todas as versões dos registros do provedor gama, uma linha por versão. Versão é o mesmo
+      conteúdo padronizado (documento incluído, listas incluídas), sem contar `_arquivo`, `_linha`,
+      `_hash_arquivo` e `data_entrega`; a data de atualização da fonte é conteúdo, e NULL é igual a
+      NULL. O conteúdo igual colapsa onde quer que apareça, e a ordem dos elementos de uma lista não
+      cria versão. Entram as linhas sem documento (`documento` NULL). Fica de fora a linha que repete
+      o cabeçalho do próprio arquivo, que continua na bronze (teste `cabecalho_repetido_fora_da_historica`,
+      `warn`). As colunas de negócio são as de `devedores`; as listas viram tabelas filhas por versão
+      ou colunas. Os contatos estão em `devedores_historico_contatos`.
+    columns:
+      - name: documento
+        description: >-
+          Documento do devedor, como em `silver_gama.devedores`. `NULL` nas versões de linhas de documento vazio ou zerado, que não identificam ninguém e estão aqui para a gold e para os contatos delas.
+      - name: nome
+        description: "Nome do devedor, sem espaços nas pontas; `NULL` quando vazio. Texto livre em maiúscula (H4)."
+      - name: data_nascimento
+        description: "Data de nascimento, lida de `dd/mm/aaaa`. A data sentinela, se houver, fica como veio."
+      - name: cnpj_empregador_raw
+        description: >-
+          CNPJ do empregador (campo `cnpj_empregador_raw` da origem), padronizado para 14
+          caracteres alfanuméricos.
+          Regra (macro `cnpj_normalizado`): só letras e dígitos, em maiúsculas. Com 14
+          caracteres, fica como veio. Com menos, completa com zeros à esquerda se o resultado tiver
+          dígitos verificadores válidos; com 12 caracteres e sem essa possibilidade, calcula os dois
+          dígitos pela regra oficial da Receita. O que não encaixa fica como veio (limitação da
+          base, teste `cnpj_do_empregador_fora_da_regra`). Todo valor de 14 caracteres tem dígitos
+          verificadores válidos (teste `cnpj_do_empregador_com_digito_verificador_valido`).
+          `NULL` quando o provedor não informou.
+      - name: atributos_extra_estado_civil
+        description: "Estado civil de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_qtd_dependentes
+        description: "Quantidade de dependentes de `atributos_extra`; `NULL` quando a chave não veio, e o 0 informado fica 0."
+      - name: atributos_extra_score_externo
+        description: "Score de um birô externo, de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_escolaridade
+        description: "Escolaridade de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_possui_imovel
+        description: "Se o devedor possui imóvel, de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: atributos_extra_fonte_score
+        description: "Birô de onde vem o `atributos_extra_score_externo`, de `atributos_extra`; `NULL` quando a chave não veio."
+      - name: endereco
+        description: >-
+          Texto do endereço, nos formatos `rua` ("logradouro, numero") e `endereco`
+          ("logradouro, numero - bairro"). `NULL` quando o endereço veio em colunas separadas.
+          Texto livre em maiúscula (H4).
+      - name: logradouro
+        description: >-
+          Logradouro: da coluna da origem ou, nos formatos de texto, do texto que casa com o
+          padrão estrito; `NULL` quando não casa.
+          Texto livre em maiúscula (H4).
+      - name: numero
+        description: "Número do endereço (pode ser `S/N`), com a mesma regra do logradouro. Texto livre em maiúscula (H4)."
+      - name: endereco_json_complemento
+        description: "Complemento; só existe no formato de colunas separadas, e `NULL` quando não há. Texto livre em maiúscula (H4)."
+      - name: bairro
+        description: >-
+          Bairro: da coluna da origem ou, no formato `endereco`, do texto que casa com o padrão
+          estrito; `NULL` no formato `rua`, que não traz bairro.
+          Texto livre em maiúscula (H4).
+      - name: cidade
+        description: "Cidade, de `cidade` ou `municipio` conforme o formato do endereço. Texto livre em maiúscula (H4)."
+      - name: uf
+        description: >-
+          Sigla da UF, de `uf` ou `estado` conforme o formato do endereço, em maiúsculas e sem
+          espaços nas pontas. Valor fora das 27 UFs vira `NULL`; `NULL` também quando vazio.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO]
+      - name: cep
+        description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições (o provedor manda número em alguns formatos)."
+      - name: dt_ref
+        description: "Data de referência do registro informada pelo provedor, com o nome do campo da origem, usada para escolher a versão."
+      - name: hash_conteudo
+        description: >-
+          Chave da versão: `MD5` do conteúdo padronizado da linha (colunas acima, com o documento) mais a assinatura ordenada de cada lista. Duas linhas com o mesmo conteúdo têm o mesmo hash, onde quer que apareçam; `data_entrega` e a rastreabilidade não entram. Chave da tabela. O texto que o `CAST` gera para o hash pode diferir entre DuckDB e PostgreSQL, então a chave não é portável entre os motores (não verificado).
+        data_tests:
+          - unique
+          - not_null
+      - name: data_primeira_entrega
+        description: >-
+          Menor data de entrega dos arquivos em que a versão apareceu.
+        data_tests:
+          - not_null
+      - name: data_ultima_entrega
+        description: >-
+          Maior data de entrega dos arquivos em que a versão apareceu.
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "Da aparição mais recente da versão. {{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "Da aparição mais recente da versão. {{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "Da aparição mais recente da versão. {{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_gama_devedores_historico_contatos
+    description: >
+      Contatos de cada versão do gama, uma linha por (versão, tipo_contato, contato normalizado),
+      tirados da linha da aparição mais recente da versão e abertos da lista `contatos`. A versão de
+      linha com a lista truncada não tem contato legível e fica sem linhas aqui.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [hash_conteudo, tipo_contato, contato]
+    columns:
+      - name: hash_conteudo
+        description: >-
+          Versão do devedor a que o item pertence, como em `devedores_historico`.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_gama_devedores_historico')
+                field: hash_conteudo
+      - name: tipo_contato
+        description: >-
+          Tipo do contato, criado na silver: `telefone` (`celular` e `fixo` do provedor) ou `email`.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [telefone, email]
+      - name: contato
+        description: >-
+          Telefone (só dígitos, DDD + número, sem o código do país) ou e-mail (minúsculas), conforme `tipo_contato`.
+        data_tests:
+          - not_null
+      - name: tipo
+        description: >-
+          Campo `tipo` do telefone informado pelo provedor, `celular` ou `fixo`. `NULL` no e-mail.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [celular, fixo]
+      - name: posicao
+        description: >-
+          Posição do item na lista da linha recebida (1, 2, ...); 1 para o e-mail ou endereço que veio como valor único.
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "Da aparição mais recente da versão. {{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "Da aparição mais recente da versão. {{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "Da aparição mais recente da versão. {{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_gama_devedores_contatos
+    description: >
+      Histórico de contatos do provedor gama, uma linha por (documento, tipo_contato,
+      contato normalizado), aberto da lista `contatos` e tirado de `devedores_historico` e
+      `devedores_historico_contatos`. Considera todas as linhas da bronze com documento,
+      não só a versão atual do devedor: um telefone ou e-mail que saiu da versão mais recente
+      continua registrado, com a última data de entrega em que apareceu. A linha com a lista
+      truncada não tem contato legível e fica sem contatos aqui, embora o devedor entre em
+      `devedores`.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [documento, tipo_contato, contato]
+    columns:
+      - name: documento
+        description: >-
+          Documento do devedor, como em `silver_gama.devedores`. `NULL` nos contatos de linhas de
+          documento vazio ou zerado, que não são devedor: nesse caso o par (`tipo_contato`,
+          `contato`) é único entre as linhas sem documento.
+      - name: tipo_contato
+        description: "Tipo do contato, criado na silver: `telefone` (`celular` e `fixo` do provedor) ou `email`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [telefone, email]
+      - name: contato
+        description: "Telefone (só dígitos, DDD + número) ou e-mail (minúsculas), conforme `tipo_contato`."
+        data_tests:
+          - not_null
+      - name: tipo
+        description: >-
+          Campo `tipo` do telefone informado pelo provedor, `celular` ou `fixo`, na versão de maior
+          `ordem_versao` que contém o par. `NULL` no e-mail.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [celular, fixo]
+      - name: data_primeira_entrega
+        description: "Menor data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
+      - name: data_ultima_entrega
+        description: "Maior data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, tipo_contato, contato) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, tipo_contato, contato) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, tipo_contato, contato) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_gama_devedores_enderecos
+    description: >
+      Endereços do provedor gama, uma linha por (documento, endereço padronizado), tirada de
+      `devedores_historico`. Considera todas as versões da histórica, não só a atual: um endereço que saiu da versão mais recente continua registrado. O endereço é o conjunto das partes
+      padronizadas, e o texto original não entra na identidade (só se todas as partes forem
+      `NULL`). Só existe linha para endereço que veio preenchido. A versão sem documento entra com
+      `documento` `NULL`, deduplicada só pelo endereço e nunca junta a um documento válido. Com a
+      primeira e a última data de entrega em que o par apareceu.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [documento, hash_endereco]
+    columns:
+      - name: documento
+        description: >-
+          Documento do devedor, como em `silver_gama.devedores`. `NULL` nos endereços de linhas de
+          documento vazio ou zerado, que não são devedor: nesse caso o endereço é único entre as
+          linhas sem documento.
+      - name: hash_endereco
+        description: >-
+          Identidade do endereço, criada na silver: `MD5` das partes padronizadas (`logradouro`,
+          `numero`, `complemento`, `bairro`, `cidade`, `uf`, `cep`) pela macro `hash_conteudo`, sem
+          o documento, para a gold achar o mesmo endereço em documentos diferentes. O texto original
+          só entra quando todas as partes são `NULL`. Igual nas três fontes para as mesmas partes
+          (o hash não é portável entre DuckDB e PostgreSQL, não verificado).
+        data_tests:
+          - not_null
+      - name: endereco
+        description: "Endereço em texto da versão de maior `ordem_versao` que contém o par (a data de atualização da fonte pesa antes da data de entrega), aparado nas pontas. Não entra na identidade do endereço. Texto livre em maiúscula (H4)."
+      - name: logradouro
+        description: "Logradouro, vindo do texto ou das colunas do layout; `NULL` quando não veio. Texto livre em maiúscula (H4)."
+      - name: numero
+        description: "Número do endereço (pode ser `S/N`); `NULL` quando não veio. Texto livre em maiúscula (H4)."
+      - name: endereco_json_complemento
+        description: "Complemento do endereço (`endereco_json_complemento` na histórica); `NULL` quando não há. Texto livre em maiúscula (H4)."
+      - name: bairro
+        description: "Bairro; `NULL` quando não veio. Texto livre em maiúscula (H4)."
+      - name: cidade
+        description: "Cidade; `NULL` quando não veio. Texto livre em maiúscula (H4)."
+      - name: uf
+        description: >-
+          Sigla da UF em maiúsculas e sem espaços nas pontas. Valor fora das 27 UFs vira `NULL`;
+          `NULL` também quando vazio.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO]
+      - name: cep
+        description: "CEP só com dígitos, com o zero à esquerda reposto até 8 posições."
+      - name: data_primeira_entrega
+        description: "Menor data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
+      - name: data_ultima_entrega
+        description: "Maior data de entrega dos arquivos em que o par apareceu."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, endereço) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, endereço) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "Da versão de maior `ordem_versao` que contém o par (documento, endereço) (a data de atualização da fonte pesa antes da data de entrega). {{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null

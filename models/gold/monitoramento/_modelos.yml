@@ -1,0 +1,118 @@
+version: 2
+
+models:
+  - name: entregas_diarias_contagens_alfa
+    description: >
+      Etapa efêmera (não vira tabela). Contagens por arquivo do provedor alfa (macro
+      `contagens_da_entrega`): linhas ilegíveis, repetidas e atrasadas. Um arquivo por linha, a
+      carga histórica incluída; só as entregas diárias seguem para `entregas_diarias_apuradas`.
+    config:
+      materialized: ephemeral
+
+  - name: entregas_diarias_contagens_beta
+    description: >
+      Etapa efêmera (não vira tabela). Contagens por arquivo do provedor beta, como no alfa.
+    config:
+      materialized: ephemeral
+
+  - name: entregas_diarias_contagens_gama
+    description: >
+      Etapa efêmera (não vira tabela). Contagens por arquivo do provedor gama, como no alfa.
+    config:
+      materialized: ephemeral
+
+  - name: entregas_diarias_apuradas
+    description: >
+      Etapa efêmera (não vira tabela) de `ft_entrega_diaria`. Uma entrega diária de um provedor
+      (`provedor`, `dt_referencia`): os arquivos do mesmo dia, o original e o reenvio, somam numa
+      linha, e a carga histórica fica fora. Traz o que os arquivos do dia receberam, sem comparar
+      com outro dia; a comparação (dia faltante, média móvel, cabeçalho) é da `ft_entrega_diaria`,
+      que testa a chave (`provedor`, `dt_referencia`).
+    config:
+      materialized: ephemeral
+
+  - name: ft_entrega_diaria
+    description: >
+      Monitoramento diário (D1 a D4): uma entrega diária de um provedor (`provedor`,
+      `dt_referencia`) comparada com as anteriores. `qt_dias_desde_entrega_anterior` acha o dia
+      sem entrega (a entrega n contra a n - 1, por `ROW_NUMBER()`); `qt_media_movel` é a média das
+      entregas anteriores do mesmo provedor e tipo de dia (útil ou fim de semana), e
+      `situacao_volume` diz se o volume do dia passou de `limite_variacao_volume` sobre ela. As
+      demais colunas respondem uma pergunta cada: reenvio, cabeçalho, linhas repetidas, atrasadas
+      e ilegíveis. As regras de alerta estão na macro `alertas_da_entrega`.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [provedor, dt_referencia]
+    columns:
+      - name: provedor
+        description: "`alfa`, `beta` ou `gama`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [alfa, beta, gama]
+      - name: tipo_dia
+        description: "`util` (segunda a sexta) ou `fim_de_semana` (sábado e domingo); feriado conta como o dia da semana."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [util, fim_de_semana]
+      - name: qt_arquivos
+        description: "Arquivos do dia. Maior que 1 é reenvio."
+        data_tests:
+          - not_null
+      - name: qt_registros
+        description: "Linhas recebidas no dia, legíveis ou não, somados todos os arquivos do dia."
+        data_tests:
+          - not_null
+      - name: qt_media_movel
+        description: >-
+          Média de `qt_registros` das até `janela_media_movel` entregas anteriores do mesmo provedor
+          e tipo de dia. `NULL` na primeira entrega de cada tipo de dia.
+      - name: qt_entregas_base
+        description: "Quantas entregas entraram na média. `NULL` sem entrega anterior do tipo de dia."
+      - name: tx_variacao_media
+        description: >-
+          `(qt_registros - qt_media_movel) / qt_media_movel`, em fração (1,03 é +103%). `NULL` com
+          menos de `base_minima_media_movel` entregas na base.
+      - name: qt_dias_desde_entrega_anterior
+        description: "Dias de calendário desde a entrega anterior do provedor. Maior que 1 é dia sem entrega. `NULL` na primeira."
+      - name: qt_registros_repetidos
+        description: "Linhas cujo texto idêntico já tinha chegado antes."
+        data_tests:
+          - not_null
+      - name: qt_registros_atrasados
+        description: "Linhas atualizadas na fonte antes do dia da entrega."
+        data_tests:
+          - not_null
+      - name: qt_linhas_ilegiveis
+        description: "Linhas que o leitor não separou em colunas."
+        data_tests:
+          - not_null
+      - name: situacao_volume
+        description: >-
+          `normal`, `acima` ou `abaixo` da média móvel pelo limiar, ou `sem_base` quando há menos
+          entregas na base que o mínimo.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [normal, acima, abaixo, sem_base]
+      - name: situacao_cabecalho
+        description: >-
+          `igual` ou `mudou` contra o cabeçalho da entrega anterior. `NULL` na primeira entrega e no
+          JSON Lines, que não tem cabeçalho.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [igual, mudou]
+      - name: dt_referencia
+        description: "Data da entrega, tirada do nome do arquivo."
+        data_tests:
+          - not_null
+      - name: desc_arquivos
+        description: "Arquivos do dia, separados por ` | `."
+        data_tests:
+          - not_null

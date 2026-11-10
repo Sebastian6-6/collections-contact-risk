@@ -38,7 +38,7 @@ Base no enunciado:
 | D1 | Python 3.14 e `uv` | Instalados em 2026-11-09 com o `winget` (o Python do sistema não tem `pip`): `uv` 0.13.7 e `gh` 2.103.3; `uv python install 3.14` trouxe o CPython 3.14.10 | Mantém a decisão da etapa 2 e não mexe no Python do sistema |
 | D2 | Onde fica o ambiente virtual | `.venv` padrão dentro do repositório, criado com `uv venv`, ignorado pelo git. O README avisa que, no Windows, o clone deve ficar numa pasta com menos de ~100 caracteres | Testado em 2026-11-09: com o `uv`, o dbt-core 1.12.6 e o dbt-duckdb 1.11.1 instalam dentro deste repositório, e o maior caminho fica com 215 dos 260 caracteres, sem ligar o suporte a caminho longo. A falha da etapa 2 era do `pip` numa pasta temporária mais funda |
 | D3 | Formato da configuração da ingestão | YAML (`ingestion/fontes.yml`), lido com o PyYAML, declarado no `requirements.in` como dependência direta | Escolha do dono: é o formato que o dbt usa no projeto inteiro. O PyYAML já vem com o dbt-core, então o ambiente não ganha pacote novo |
-| D4 | Nome do repositório, do projeto dbt e do banco | Repositório `collections-contact-risk`; projeto dbt `collections_contact_risk`; banco em `banco/collections_contact_risk.duckdb`, ignorado pelo git | Um nome só para tudo, em inglês, dizendo o que o projeto resolve (risco de contato na cobrança) sem revelar a origem do case. O banco é recriado a cada execução e não é versionado |
+| D4 | Nome do repositório, do projeto dbt e do banco | Repositório `collections-contact-risk`; projeto dbt `collections_contact_risk`; banco em `database/collections_contact_risk.duckdb`, ignorado pelo git | Um nome só para tudo, em inglês, dizendo o que o projeto resolve (risco de contato na cobrança) sem revelar a origem do case. O banco é recriado a cada execução e não é versionado |
 | D5 | Usuário do GitHub no `CODEOWNERS` | `@Sebastian6-6` (público, confirmado pelo dono) | O `CODEOWNERS` dá ao dono a aprovação obrigatória dos PRs de terceiros |
 | D6 | Fim de linha dos dados | `.gitattributes` com `contact_data/** -text` (bytes intactos) e `* text=auto eol=lf` no resto (confirmado) | O hash de cada arquivo entra na rastreabilidade; se o git converter CRLF, o hash muda entre Windows e Linux e a reprodutibilidade quebra |
 
@@ -94,7 +94,7 @@ Base no enunciado:
 - **Pronto quando:**
   - `pip check` limpo;
   - `dbt --version` mostra 1.12.x com duckdb 1.11.x;
-  - `ruff check .` e `ruff format --check .` limpos;
+  - `ruff check .` limpo (o projeto não usa `ruff format`: o estilo pessoal permite alinhamento vertical);
   - os 24 testes das skills passam com `python -m pytest -q`.
 - **Se falhar:**
   - se alguma dependência não tiver wheel para 3.14, registrar qual é e aplicar o plano B de D1;
@@ -110,7 +110,7 @@ Base no enunciado:
   - skill `using-dbt-for-analytics-engineering`.
 - **Fazer:**
   1. `dbt_project.yml`: projeto `collections_contact_risk`; bronze e silver como `view`, gold como `table`.
-  2. `profiles.yml` na raiz, apontando para `banco/collections_contact_risk.duckdb` por caminho relativo.
+  2. `profiles.yml` na raiz, apontando para `database/collections_contact_risk.duckdb` por caminho relativo.
   3. Macros `generate_schema_name` e `generate_alias_name`. O schema sai da pasta (`bronze/alfa` → `bronze_alfa`;
      `gold/...` → `gold`) e o nome da tabela sai do arquivo sem o prefixo de camada e fonte.
   4. Pastas `models/bronze`, `models/silver`, `models/gold`, `macros/` e `tests/`.
@@ -183,7 +183,7 @@ Base no enunciado:
 - **Quem:** `engenheiro-python` (Sonnet 5.5 · medium).
 - **Fazer:**
   1. `.github/workflows/ci.yml`, em push e pull request para `develop` e `main`, Ubuntu e Python 3.14. Passos:
-     instalar pelo `requirements.txt`, `ruff check`, `ruff format --check`,
+     instalar pelo `requirements.txt`, `ruff check`, SQLFluff (templater do dbt),
      `.claude/skills/qualidade-sql/scripts/verificar_convencoes.py`,
      `.claude/skills/qualidade-python/scripts/verificar_reprodutibilidade.py`, `pytest` e `dbt parse --use-v2-parser`.
   2. `.github/CODEOWNERS` (D5).
@@ -206,6 +206,13 @@ Base no enunciado:
   3. `/c save` deste tópico.
   4. Escrever o capítulo 1 do storytelling.
   5. Apagar o ambiente descartável usado no desenho.
+
+### Commits extras autorizados pelo dono durante a execução
+- `fix: context-manager não segue caminhos fora de .context nem links simbólicos` — a revisão automática de segurança
+  apontou dois riscos no código do context-manager, e o dono autorizou a correção em 2026-11-09.
+- `chore: estilo pessoal de Python e SQL reunido numa skill` — direção do dono depois dos testes das skills (skills
+  agnósticas, estilo pessoal numa skill só), em 2026-11-09.
+- As correções da revisão do passo 1.8 (plano mestre, seção 5).
 
 ## 5. Ganhos a medir
 

@@ -1,0 +1,614 @@
+version: 2
+
+models:
+  - name: devedores_registros
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. A versão atual de cada documento das
+      três fontes, empilhada no mesmo formato: uma linha por provedor e documento. Traz o nome para
+      comparar (`nome_chave`, macro `nome_comparavel`) e `nascimento_confiavel`, que separa a data
+      que pode votar (fora a sentinela 1900-01-01 e a data posterior à entrega). Alimenta
+      `devedores_documentos` e `dim_devedor`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_documentos
+    description: >
+      Etapa efêmera (não vira tabela) que liga cada documento recebido ao devedor (G3a'). Uma linha
+      por documento distinto (`documento_tipo`, `documento`). `cpf` é o CPF do devedor e
+      `situacao_documento` diz por que o documento pertence a ele: `cpf_valido`, `cpf_corrigido`
+      (CPF inválido a um dígito de um único CPF válido com mesmo nome e nascimento),
+      `rg_por_nome_nascimento` (RG do beta com mesmo nome e nascimento de um único CPF válido),
+      `cpf_invalido` (CPF inválido sem ligação, devedor próprio) ou `sem_documento` (RG sem
+      ligação, que não é devedor e tem `cpf` NULL). Empate de correspondências nunca se resolve. As
+      tabelas de contatos, endereços e vínculos usam esta ligação para chegar ao `sk_devedor`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_conflitos_versao
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Um documento por provedor cuja versão
+      mais recente empata com outra versão diferente na data de atualização, na data de entrega e
+      no arquivo (ponto 4); na `devedores` da silver só `_linha DESC` desempata. Alimenta a marca
+      `versao` de `dim_devedor.tipo_conflito_cadastral`.
+    config:
+      materialized: ephemeral
+
+  - name: dim_devedor
+    description: >
+      Uma linha por pessoa identificada por um CPF (G3a'). Os documentos ruidosos se ligam ao
+      devedor quando a evidência é forte (ver `devedores_documentos`); o CPF inválido sem ligação
+      tem linha própria com `situacao_cpf` `invalido`; RG sem ligação e documento vazio não são
+      devedores. Os atributos seguem a G3b: um voto por provedor (a versão atual mais recente do
+      provedor entre os documentos do devedor); nome pela maioria depois de resolver abreviações,
+      empate pela forma mais recente e, entre grafias que só diferem no acento, a acentuada;
+      nascimento pela maioria entre as datas confiáveis, com empate `NULL`; perfil só da gama.
+      Sem rastreabilidade (ponto 8): a linha junta até três provedores, e a origem de cada atributo
+      se acha nas tabelas filhas e na silver.
+    columns:
+      - name: sk_devedor
+        description: >-
+          Chave substituta: a posição do CPF em ordem crescente. Determinística porque o banco é
+          recriado a cada execução, e não carrega o CPF (G6).
+        data_tests:
+          - unique
+          - not_null
+      - name: cpf
+        description: >-
+          CPF do devedor, só dígitos. Chave natural. Para `situacao_cpf` `invalido` é o CPF inválido
+          como foi recebido.
+        data_tests:
+          - unique
+          - not_null
+      - name: situacao_cpf
+        description: "`valido` quando o dígito verificador confere; `invalido` quando não confere e o documento não se ligou a outro."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [valido, invalido]
+      - name: tipo_conflito_cadastral
+        description: >-
+          `identidade` quando o primeiro ou o último nome difere entre os provedores (G3c);
+          `versao` quando algum documento do devedor tem duas versões diferentes no topo, com as
+          mesmas datas e o mesmo arquivo (ponto 4); `identidade_e_versao` quando os dois ocorrem;
+          `nenhum` caso contrário. Sinal para a régua; não muda os atributos.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [nenhum, identidade, versao, identidade_e_versao]
+      - name: estado_civil
+        description: "Estado civil, como a gama o mandou. `NULL` quando a gama não manda ou não informou."
+      - name: escolaridade
+        description: "Escolaridade, como a gama a mandou. `NULL` quando a gama não manda ou não informou."
+      - name: fonte_score
+        description: "Fonte do score externo, como a gama a mandou. `NULL` quando a gama não manda ou não informou."
+      - name: nome_devedor
+        description: >-
+          Nome escolhido pela G3b. Texto em maiúscula, com acento quando algum provedor o mandou.
+        data_tests:
+          - not_null
+      - name: qt_dependentes
+        description: "Quantidade de dependentes, da versão atual da gama. `NULL` quando a gama não manda ou não informou."
+      - name: score_externo
+        description: "Score externo, da versão atual da gama. `NULL` quando a gama não manda ou não informou."
+      - name: qt_provedores
+        description: "Quantos provedores (de 1 a 3) têm algum documento ligado a este devedor."
+        data_tests:
+          - not_null
+      - name: qt_documentos_vinculados
+        description: "Quantos documentos distintos foram ligados a este devedor por correção de dígito ou por RG."
+        data_tests:
+          - not_null
+      - name: flag_possui_imovel
+        description: >-
+          Atributo recebido da gama, e não sinal da régua. `NULL` quando a gama não manda ou não
+          informou.
+      - name: dt_nascimento
+        description: >-
+          Data de nascimento pela maioria dos provedores, só entre datas confiáveis. `NULL` quando
+          não há data confiável ou quando há empate, inclusive dia e mês trocados (ponto 9/b2: é a
+          falta de um valor confiável, e não uma data recebida trocada). Tipo `DATE`: rejeita data
+          inválida e filtra por período sem converter texto (0,004 s contra 0,076 s em 5 milhões
+          de linhas).
+
+  - name: devedores_versao_vigente
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Uma linha por devedor (`cpf`): a versão
+      atual, entre as dos provedores e de todos os documentos ligados, com a data de atualização
+      mais recente como veio (inclusive 2025-09-01); empate pela entrega mais recente, pelo
+      documento do próprio CPF e pelo nome do provedor. Dela saem o endereço e o vínculo `atual`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_enderecos_registros
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Os pares documento × endereço
+      padronizado das três fontes, empilhados no mesmo formato. Alimenta `dim_endereco`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_enderecos_vigentes
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Os endereços que estão na versão
+      vigente do devedor (no beta, os marcados `atual`), com o `hash_endereco` recalculado como na
+      silver. Alimenta a `situacao_endereco` de `dim_endereco`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_vinculos_versoes
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. O conteúdo de vínculo de cada versão
+      da histórica das três fontes, no mesmo formato; o salário 0,00 do alfa vira `vl_renda` NULL
+      (ponto 6). Alimenta `ft_vinculo_empresa`.
+    config:
+      materialized: ephemeral
+
+  - name: dim_endereco
+    description: >
+      Um devedor × um endereço padronizado distinto (G2c), de todas as versões e das três
+      fontes. Endereço sem devedor (documento vazio ou RG sem ligação) mantém a linha com
+      `sk_devedor` NULL. Dois endereços iguais em tudo menos no complemento se juntam quando um
+      dos complementos é NULL e há um só complemento preenchido (ponto 5). `situacao_endereco`
+      `atual` vem da versão vigente do devedor; os demais são `anterior`.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [sk_devedor, logradouro, numero_endereco, complemento, bairro, cidade, uf, cep, endereco]
+    columns:
+      - name: sk_endereco
+        description: "Chave substituta: a posição do endereço na ordem de devedor e das partes. Determinística (G6). `INTEGER` de 4 bytes: junta mais rápido que o `md5` da chave natural
+          (0,204 s contra 0,279 s) e não é reversível a um documento."
+        data_tests:
+          - unique
+          - not_null
+      - name: sk_devedor
+        description: "Devedor do endereço. `NULL` quando o documento é vazio ou é um RG sem ligação."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_devedor')
+                field: sk_devedor
+      - name: tipo_endereco
+        description: "Tipo do endereço como o beta o mandou. `NULL` para quem só vem de alfa ou gama."
+      - name: situacao_endereco
+        description: "`atual` quando o endereço está na versão vigente do devedor; `anterior` nos demais."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [atual, anterior]
+      - name: endereco
+        description: "Texto original do endereço em maiúscula. `NULL` quando só o beta o mandou."
+      - name: logradouro
+        description: "Logradouro padronizado. `NULL` quando a origem não permitiu separar."
+      - name: numero_endereco
+        description: "Número do endereço, como texto. `NULL` quando não veio."
+      - name: complemento
+        description: "Complemento. `NULL` quando não veio ou quando só houve variantes com complemento preenchido (ponto 5 mantém o preenchido)."
+      - name: bairro
+        description: "Bairro padronizado. `NULL` quando não veio."
+      - name: cidade
+        description: "Cidade padronizada. `NULL` quando não veio."
+      - name: uf
+        description: "UF de duas letras. `NULL` quando não é uma UF válida."
+      - name: cep
+        description: "CEP de 8 dígitos. `NULL` quando não veio."
+      - name: qt_provedores
+        description: "Quantos provedores mandaram o endereço para o devedor."
+        data_tests:
+          - not_null
+      - name: dt_primeira_entrega
+        description: "Menor primeira entrega entre as versões que têm o endereço."
+      - name: dt_ultima_entrega
+        description: "Maior última entrega entre as versões que têm o endereço."
+      - name: _arquivo
+        description: "Arquivo da aparição mais recente do endereço, preferindo a do endereço preenchido."
+      - name: _linha
+        description: "Linha do arquivo da mesma aparição."
+      - name: _hash_arquivo
+        description: "Hash do arquivo da mesma aparição."
+
+  - name: empregadores_cnpjs
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Um CNPJ recebido de empregador, de
+      todas as versões das três fontes, com a rastreabilidade da aparição mais recente. Alimenta
+      `dim_empregador`.
+    config:
+      materialized: ephemeral
+
+  - name: dim_empregador
+    description: >
+      Um CNPJ recebido de empregador, de todas as versões das três fontes, como a silver o
+      padronizou, com os atributos da Receita (dados abertos de 2026-10) por `LEFT JOIN` pelo CNPJ
+      de 14 caracteres. O CNPJ sem estabelecimento na Receita fica `nao_encontrado` e com os
+      atributos `NULL`; nenhum empregador some nem ganha linha fictícia. A situação cadastral e o
+      porte vêm do estabelecimento e da empresa que a Receita guarda; os três CNPJs alfanuméricos
+      recebidos não estão na base de 2026-10.
+    columns:
+      - name: sk_empregador
+        description: "Chave substituta: a posição do CNPJ em ordem crescente (G6)."
+        data_tests:
+          - unique
+          - not_null
+      - name: cnpj
+        description: "CNPJ de 14 caracteres como a silver o padronizou, inclusive o de dígito verificador inválido. Chave natural."
+        data_tests:
+          - unique
+          - not_null
+      - name: situacao_receita
+        description: "`encontrado` quando a Receita tem o estabelecimento do CNPJ; `nao_encontrado` quando não tem (os atributos abaixo ficam `NULL`)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [encontrado, nao_encontrado]
+      - name: natureza_juridica
+        description: "Código da natureza jurídica da empresa na Receita. `NULL` quando `nao_encontrado`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_naturezas')
+                field: codigo
+      - name: desc_natureza_juridica
+        description: "Descrição da natureza jurídica, da tabela de domínio da Receita."
+      - name: porte
+        description: "Código do porte da empresa (`00` não informado, `01` micro empresa, `03` pequeno porte, `05` demais). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['00', '01', '03', '05']
+      - name: desc_porte
+        description: "Descrição do porte, do layout oficial da Receita."
+      - name: situacao_cadastral
+        description: "Código da situação cadastral do estabelecimento (`01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['01', '02', '03', '04', '08']
+      - name: desc_situacao_cadastral
+        description: "Descrição da situação cadastral, do layout oficial da Receita."
+      - name: motivo_situacao_cadastral
+        description: "Código do motivo da situação cadastral (`00` sem motivo). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_motivos')
+                field: codigo
+      - name: desc_motivo_situacao_cadastral
+        description: "Descrição do motivo da situação cadastral, da tabela de domínio da Receita."
+      - name: cnae
+        description: "CNAE fiscal principal do estabelecimento (7 dígitos). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_cnaes')
+                field: codigo
+      - name: desc_cnae
+        description: "Descrição do CNAE principal, da tabela de domínio da Receita."
+      - name: uf
+        description: "UF do estabelecimento. `NULL` quando `nao_encontrado`."
+      - name: municipio
+        description: "Código do município na Receita (não é o código do IBGE). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_municipios')
+                field: codigo
+      - name: desc_municipio
+        description: "Nome do município, da tabela de domínio da Receita."
+      - name: nome_razao_social
+        description: "Razão social ou nome empresarial, como a Receita guarda. `NULL` quando `nao_encontrado`."
+      - name: flag_optante_simples
+        description: "`TRUE` quando a empresa optou pelo Simples Nacional, `FALSE` quando não. `NULL` quando `nao_encontrado` e quando a Receita não tem registro do Simples da empresa."
+      - name: flag_optante_mei
+        description: "`TRUE` quando a empresa optou pelo MEI, `FALSE` quando não. `NULL` quando `nao_encontrado` e quando a Receita não tem registro do Simples da empresa."
+      - name: dt_situacao_cadastral
+        description: "Data da situação cadastral. `NULL` quando `nao_encontrado` ou quando a Receita manda `00000000`."
+      - name: dt_inicio_atividade
+        description: "Data de início da atividade do estabelecimento. `NULL` quando `nao_encontrado`."
+      - name: _arquivo
+        description: "Arquivo da aparição mais recente do CNPJ nos provedores (não é o arquivo da Receita)."
+      - name: _linha
+        description: "Linha do arquivo da mesma aparição."
+      - name: _hash_arquivo
+        description: "Hash do arquivo da mesma aparição."
+
+  - name: ft_vinculo_empresa
+    description: >
+      Um período contínuo do mesmo conteúdo de vínculo (CNPJ, cargo, renda e mês de início), por
+      documento e provedor (ponto 3). Um vínculo que volta depois de outro abre um período novo;
+      conteúdo todo vazio não vira linha mas separa períodos. Sem data de fim. `situacao_vinculo`
+      `atual` é o período que contém a versão vigente do devedor.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [_arquivo, _linha]
+    columns:
+      - name: sk_devedor
+        description: "Devedor do documento. `NULL` quando o documento é um RG sem ligação."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_devedor')
+                field: sk_devedor
+      - name: sk_empregador
+        description: "Empregador do período. `NULL` quando o período não traz CNPJ."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_empregador')
+                field: sk_empregador
+      - name: provedor
+        description: "Provedor que mandou o vínculo (`alfa`, `beta` ou `gama`)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [alfa, beta, gama]
+      - name: situacao_vinculo
+        description: "`atual` quando o período contém a versão vigente do devedor; `anterior` nos demais."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [atual, anterior]
+      - name: cargo
+        description: "Cargo em maiúscula. `NULL` para beta e gama, que não mandam, e quando o alfa não informou."
+      - name: vl_renda
+        description: "Renda ou salário informado. `NULL` quando não informado, inclusive o 0,00 do alfa (ponto 6)."
+      - name: dt_inicio_vinculo
+        description: "Mês de início do vínculo (dia 01 por convenção), só do beta. `NULL` para alfa e gama."
+      - name: dt_atualizacao
+        description: "Maior data de atualização das versões do período, como veio."
+      - name: dt_primeira_entrega
+        description: "Menor primeira entrega das versões do período."
+      - name: dt_ultima_entrega
+        description: "Maior última entrega das versões do período."
+      - name: _arquivo
+        description: "Arquivo da última versão do período."
+      - name: _linha
+        description: "Linha do arquivo da última versão do período."
+      - name: _hash_arquivo
+        description: "Hash do arquivo da última versão do período."
+
+  - name: devedores_contatos_registros
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Os pares documento × contato das três
+      fontes, de todas as versões, no mesmo formato, com a última entrega de cada provedor.
+      Alimenta `devedores_contatos_pares`.
+    config:
+      materialized: ephemeral
+
+  - name: devedores_contatos_pares
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Um contato normalizado de um devedor
+      (`cpf`), juntando os documentos ligados a ele; o contato de documento vazio ou de RG sem
+      ligação fica numa linha por documento, com `cpf` NULL. Traz o melhor documento pelo qual o
+      contato chegou, a presença nas entregas e a rastreabilidade da aparição mais recente.
+      Alimenta `dim_contato` e a ligação das tentativas.
+    config:
+      materialized: ephemeral
+
+  - name: cobranca_tentativas
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. As tentativas da Cobrança com o
+      devedor do `cpf_alvo`, a classe do desfecho (macro `tipo_desfecho`) e a ligação ao par:
+      primeiro o par (CPF, contato), depois o contato sem devedor de mesmo valor, senão sem
+      ligação. Alimenta a régua (`dim_contato`) e `ft_tentativa_contato`.
+    config:
+      materialized: ephemeral
+
+  - name: dim_contato
+    description: >
+      Um contato normalizado de um devedor, com a régua de risco aplicada ao par (G4, G5). O
+      contato de documento vazio ou de RG sem ligação fica numa linha com `sk_devedor` NULL e
+      sempre bloqueado. Os sinais saem de `regua_sinais_do_par` e o nível e o motivo, de
+      `regua_de_risco` (sem data de corte: a régua de operação). A lista de não-contatar é esta
+      tabela com `nivel_risco = 'bloqueado'`.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [cpf, documento_original, tipo_contato, contato]
+    columns:
+      - name: sk_contato
+        description: "Chave substituta: a posição do par em ordem de CPF, documento, tipo e contato (G6). `INTEGER`, pelo mesmo motivo de `sk_endereco`."
+        data_tests:
+          - unique
+          - not_null
+      - name: sk_devedor
+        description: "Devedor do contato. `NULL` quando o documento é vazio ou é um RG sem ligação."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_devedor')
+                field: sk_devedor
+      - name: cpf
+        description: "CPF do devedor, só dígitos. `NULL` quando o contato não tem devedor."
+      - name: tipo_contato
+        description: "`telefone` ou `email`."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [telefone, email]
+      - name: contato
+        description: "Telefone (DDD + número) ou e-mail em minúsculas, como a silver o normalizou."
+        data_tests:
+          - not_null
+      - name: nivel_risco
+        description: >-
+          `liberado` (mensagem de cobrança), `atencao` (contato sem expor a dívida) ou `bloqueado`
+          (sem contato; lista de não-contatar).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [liberado, atencao, bloqueado]
+      - name: desc_motivo_risco
+        description: >-
+          Motivo principal do nível pela prioridade falecido > opt_out > disse não ser o devedor >
+          contato migrado > contato sem devedor > compartilhado > conflito de identidade >
+          documento ligado > CPF inválido. Os demais motivos ficam visíveis nas colunas de sinal.
+        data_tests:
+          - not_null
+      - name: situacao_documento
+        description: "Por qual documento o contato chegou ao devedor, o melhor entre os que o trouxeram."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [cpf_valido, cpf_corrigido, rg_por_nome_nascimento, cpf_invalido, sem_documento]
+      - name: documento_original
+        description: >-
+          Documento como foi recebido, quando não é `cpf_valido` (CPF corrigido, RG ou CPF
+          inválido). `NULL` quando o documento é o CPF válido do devedor ou está vazio.
+      - name: situacao_compartilhamento
+        description: >-
+          `compartilhado` quando mais de um CPF tem o contato; `migrado` quando um CPF passou a
+          tê-lo só depois da última entrega de outro; `exclusivo` nos demais. Vale para todos os
+          pares do contato.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [exclusivo, compartilhado, migrado]
+      - name: tipo_alerta_historico
+        description: >-
+          Alerta das tentativas, pela prioridade falecido > opt_out > nao_e_o_devedor: `falecido`
+          em qualquer contato do devedor, `opt_out` em qualquer tentativa ao contato,
+          `nao_e_o_devedor` (`numero_errado` ou `nao_conhece_devedor`) no par; `nenhum` sem alerta.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [nenhum, falecido, opt_out, nao_e_o_devedor]
+      - name: situacao_entrega
+        description: >-
+          `presente` quando algum provedor mandou o par na última entrega dele; `ausente` nos
+          demais (ponto 7, só na régua de operação). Uma versão atual da gama com a lista cortada
+          também aparece como `ausente`.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [presente, ausente]
+      - name: qt_provedores
+        description: "Quantos provedores mandaram o par. `qt_provedores = 1` é o provedor único."
+        data_tests:
+          - not_null
+      - name: qt_devedores_mesmo_contato
+        description: "Quantos CPFs têm o mesmo contato. 0 no contato sem devedor que nenhum CPF tem."
+        data_tests:
+          - not_null
+      - name: qt_tentativas
+        description: "Tentativas da Cobrança ligadas ao par."
+        data_tests:
+          - not_null
+      - name: qt_tentativas_terceiro
+        description: "Tentativas ligadas ao par com resultado `numero_errado` ou `nao_conhece_devedor`."
+        data_tests:
+          - not_null
+      - name: dt_primeira_entrega
+        description: "Menor primeira entrega entre os provedores e documentos do par."
+      - name: dt_ultima_entrega
+        description: "Maior última entrega entre os provedores e documentos do par."
+      - name: dt_situacao_compartilhamento
+        description: >-
+          Quando o contato passou a `migrado` (primeira entrega do CPF que o recebeu) ou a
+          `compartilhado` (primeira entrega do segundo CPF). `NULL` quando exclusivo. Informativa:
+          a validação recalcula os sinais pela data de corte.
+      - name: dt_alerta_historico
+        description: >-
+          Data da primeira tentativa do alerta escolhido. `NULL` quando `tipo_alerta_historico` é
+          `nenhum`. Informativa.
+      - name: _arquivo
+        description: "Arquivo da aparição mais recente do par."
+      - name: _linha
+        description: "Linha do arquivo da mesma aparição."
+      - name: _hash_arquivo
+        description: "Hash do arquivo da mesma aparição."
+
+  - name: ft_tentativa_contato
+    description: >
+      Uma tentativa de contato (`contato_id`), as mesmas linhas da Cobrança. Liga-se ao par
+      (CPF, contato) da `dim_contato`; sem o par, ao contato sem devedor de mesmo valor; sem nenhum
+      dos dois, `sk_contato` fica NULL. `sk_devedor` vem do CPF da tentativa, com ou sem par.
+      `tipo_desfecho` é a classe do resultado (G2b) e `situacao_horario` compara o horário com a
+      janela única da G7.
+    columns:
+      - name: sk_devedor
+        description: "Devedor dono do CPF da tentativa, mesmo quando o contato dela não foi entregue por nenhum provedor. `NULL` só quando o alvo não é devedor da gold."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_devedor')
+                field: sk_devedor
+      - name: sk_contato
+        description: "Par ou contato sem devedor a que a tentativa se liga. `NULL` quando nenhum existe nas entregas."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_contato')
+                field: sk_contato
+      - name: contato_id
+        description: "Identificador da tentativa na Cobrança. Chave."
+        data_tests:
+          - unique
+          - not_null
+      - name: canal
+        description: "Canal da tentativa."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [sms, email, whatsapp, ligacao]
+      - name: resultado
+        description: "Resultado como a Cobrança o registrou. Um valor fora da lista reprova o teste."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - pagamento
+                  - promessa_pagamento
+                  - reclamacao
+                  - numero_errado
+                  - nao_conhece_devedor
+                  - opt_out
+                  - falecido
+                  - entregue
+                  - lido
+                  - sem_resposta
+      - name: tipo_desfecho
+        description: >-
+          Classe do resultado (G2b): `contato_confirmado`, `terceiro`, `opt_out`, `falecido` ou
+          `sem_confirmacao`.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [contato_confirmado, terceiro, opt_out, falecido, sem_confirmacao]
+      - name: situacao_horario
+        description: >-
+          Janela única da G7: `permitido` (segunda a sexta 8h-20h, sábado 9h-14h),
+          `fora_do_horario`, `domingo`, `feriado` (nacional) ou `nao_se_aplica` (e-mail).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [permitido, fora_do_horario, domingo, feriado, nao_se_aplica]
+      - name: dt_tentativa
+        description: "Data da tentativa, em horário de Brasília."
+        data_tests:
+          - not_null
+      - name: hr_tentativa
+        description: "Hora da tentativa, em horário de Brasília."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "Arquivo da Cobrança de onde veio a tentativa."
+      - name: _linha
+        description: "Linha do arquivo."
+      - name: _hash_arquivo
+        description: "Hash do arquivo."

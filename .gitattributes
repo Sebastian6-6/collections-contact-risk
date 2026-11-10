@@ -5,3 +5,7 @@
 # entra na rastreabilidade, e uma conversão de fim de linha mudaria o hash entre Windows e
 # Linux. Esta regra vem depois da anterior de propósito: no .gitattributes, vale a última.
 contact_data/** -text
+
+# O extrato da Receita também fica byte a byte (ISO-8859-1, sem normalização): o sha256 de
+# cada arquivo está no ORIGEM.md e a bronze grava o hash do arquivo lido.
+external_data/receita/**/*.csv -text

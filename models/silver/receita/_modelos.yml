@@ -1,0 +1,497 @@
+version: 2
+
+models:
+  - name: silver_receita_estabelecimentos_padronizados
+    description: >
+      Etapa efêmera (não vira tabela) da silver dos estabelecimentos. Uma linha por linha legível da bronze,
+      com toda a padronização já aplicada e sem deduplicar. Alimenta `estabelecimentos` e
+      `estabelecimentos_cnaes_secundarios`, para os dois padronizarem do mesmo jeito.
+    config:
+      materialized: ephemeral
+
+  - name: silver_receita_empresas
+    description: >
+      Empresas dos CNPJs de empregador recebidos, uma linha por `cnpj_basico`. Textos sem espaços nas pontas e vazio como `NULL`;
+      o capital social vira número. Os códigos ficam como vieram, para ligar com os domínios (`naturezas`, `qualificacoes`).
+      Fora ficam, e continuam na bronze, a linha ilegível e a sem `cnpj_basico` (aviso `receita_linhas_sem_chave`).
+    columns:
+      - name: cnpj_basico
+        description: "Base do CNPJ (8 caracteres) que identifica a empresa. Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+      - name: razao_social_nome_empresarial
+        description: "Razão social da empresa, sem espaços nas pontas."
+      - name: natureza_juridica
+        description: "Código da natureza jurídica; a descrição está em `silver_receita.naturezas`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_naturezas')
+                field: codigo
+      - name: qualificacao_do_responsavel
+        description: "Código da qualificação do responsável pela empresa; a descrição está em `silver_receita.qualificacoes`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_qualificacoes')
+                field: codigo
+      - name: capital_social_da_empresa
+        description: "Capital social em reais, `NUMERIC(18, 2)`. `NULL` quando vazio ou fora do formato; `0.00` é o zero informado pela Receita."
+      - name: porte_da_empresa
+        description: "Porte: `00` não informado, `01` micro empresa, `03` empresa de pequeno porte, `05` demais."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['00', '01', '03', '05']
+      - name: ente_federativo_responsavel
+        description: "Ente federativo responsável, só para natureza jurídica do grupo 1XXX. `NULL` nas demais."
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_estabelecimentos
+    description: >
+      Estabelecimentos (matriz e filiais) das empresas do extrato, uma linha por CNPJ completo. Datas AAAAMMDD viram `DATE`;
+      `00000000` vira `NULL`. A lista de CNAEs secundários está em `estabelecimentos_cnaes_secundarios`. Fora ficam, e
+      continuam na bronze, a linha ilegível e a sem CNPJ (aviso `receita_linhas_sem_chave`).
+    columns:
+      - name: cnpj
+        description: "CNPJ completo (14 caracteres: base, ordem e dígitos verificadores; no CNPJ alfanumérico a letra está na ordem). Chave da tabela. Os dígitos verificadores são conferidos pelo teste `receita_cnpj_com_digito_verificador_invalido`."
+        data_tests:
+          - unique
+          - not_null
+      - name: cnpj_basico
+        description: "Base do CNPJ (8 caracteres); liga o estabelecimento à empresa."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_receita_empresas')
+                field: cnpj_basico
+      - name: cnpj_ordem
+        description: "Ordem do CNPJ (4 caracteres)."
+        data_tests:
+          - not_null
+      - name: cnpj_dv
+        description: "Dígitos verificadores (2 dígitos)."
+        data_tests:
+          - not_null
+      - name: identificador_matriz_filial
+        description: "`1` matriz, `2` filial."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['1', '2']
+      - name: nome_fantasia
+        description: "Nome fantasia, sem espaços nas pontas."
+      - name: situacao_cadastral
+        description: "Situação cadastral: `01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['01', '02', '03', '04', '08']
+      - name: data_situacao_cadastral
+        description: "Data da situação cadastral. `NULL` quando a origem manda `00000000`, vazio ou data inexistente."
+      - name: motivo_situacao_cadastral
+        description: "Código do motivo da situação cadastral; a descrição está em `silver_receita.motivos`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_motivos')
+                field: codigo
+      - name: nome_da_cidade_no_exterior
+        description: "Nome da cidade no exterior, para estabelecimento fora do país."
+      - name: pais
+        description: "Código do país, preenchido só para estabelecimento no exterior; a descrição está em `silver_receita.paises`. Em 2026-10 um estabelecimento traz o código 367, que a tabela de países não tem (aviso, não erro: é inconsistência da origem)."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_paises')
+                field: codigo
+              config:
+                severity: warn
+      - name: data_de_inicio_atividade
+        description: "Data de início da atividade."
+      - name: cnae_fiscal_principal
+        description: "Código do CNAE fiscal principal (7 dígitos); a descrição está em `silver_receita.cnaes`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_cnaes')
+                field: codigo
+      - name: tipo_de_logradouro
+        description: "Tipo de logradouro."
+      - name: logradouro
+        description: "Logradouro."
+      - name: numero
+        description: "Número do endereço."
+      - name: complemento
+        description: "Complemento do endereço, sem espaços nas pontas."
+      - name: bairro
+        description: "Bairro."
+      - name: cep
+        description: "CEP, como veio (texto)."
+      - name: uf
+        description: "Sigla da UF; `EX` para o exterior."
+      - name: municipio
+        description: "Código do município na Receita (não é o do IBGE); a descrição está em `silver_receita.municipios`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_municipios')
+                field: codigo
+      - name: ddd_1
+        description: "DDD do telefone 1."
+      - name: telefone_1
+        description: "Telefone 1."
+      - name: ddd_2
+        description: "DDD do telefone 2."
+      - name: telefone_2
+        description: "Telefone 2."
+      - name: ddd_do_fax
+        description: "DDD do fax."
+      - name: fax
+        description: "Número do fax."
+      - name: correio_eletronico
+        description: "Correio eletrônico como veio; a Receita mascara os que ocultou (`********@*********.***.**`)."
+      - name: situacao_especial
+        description: "Situação especial."
+      - name: data_da_situacao_especial
+        description: "Data da situação especial. `NULL` quando vazia."
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_estabelecimentos_cnaes_secundarios
+    description: >
+      CNAEs fiscais secundários de cada estabelecimento, uma linha por (`cnpj`, `cnae_fiscal_secundaria`), abertos do campo da origem
+      que os guarda separados por vírgula. É o padrão de tabela ponte: o número de CNAEs não muda o esquema.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [cnpj, cnae_fiscal_secundaria]
+    columns:
+      - name: cnpj
+        description: "CNPJ do estabelecimento, como em `silver_receita.estabelecimentos`."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_receita_estabelecimentos')
+                field: cnpj
+      - name: cnae_fiscal_secundaria
+        description: "Código de um CNAE secundário do estabelecimento (um elemento do campo da origem)."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_receita_cnaes')
+                field: codigo
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_simples
+    description: >
+      Opção pelo Simples Nacional e pelo MEI, uma linha por empresa (`cnpj_basico`). Datas AAAAMMDD viram `DATE`; `00000000`
+      (sem data) vira `NULL`. Só há linha para a empresa que a Receita registra no Simples.
+    columns:
+      - name: cnpj_basico
+        description: "Base do CNPJ (8 caracteres). Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_receita_empresas')
+                field: cnpj_basico
+      - name: opcao_pelo_simples
+        description: "`S` optante pelo Simples Nacional, `N` não; `NULL` quando vazio (outros)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['S', 'N']
+      - name: data_de_opcao_pelo_simples
+        description: "Data de opção pelo Simples. `NULL` quando a origem manda `00000000`."
+      - name: data_de_exclusao_do_simples
+        description: "Data de exclusão do Simples. `NULL` quando a origem manda `00000000`."
+      - name: opcao_pelo_mei
+        description: "`S` optante pelo MEI, `N` não; `NULL` quando vazio (outros)."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['S', 'N']
+      - name: data_de_opcao_pelo_mei
+        description: "Data de opção pelo MEI. `NULL` quando a origem manda `00000000`."
+      - name: data_de_exclusao_do_mei
+        description: "Data de exclusão do MEI. `NULL` quando a origem manda `00000000`."
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_socios
+    description: >
+      Sócios das empresas do extrato. A origem não traz identificador do sócio e o CPF vem mascarado; a chave é a combinação de
+      `cnpj_basico`, `identificador_de_socio`, nome, `cnpj_cpf_do_socio` e `data_de_entrada_sociedade`, com `NULL` valendo como valor.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [cnpj_basico, identificador_de_socio, nome_do_socio_no_caso_pf_ou_razao_social_no_caso_pj, cnpj_cpf_do_socio, data_de_entrada_sociedade]
+    columns:
+      - name: cnpj_basico
+        description: "Base do CNPJ (8 caracteres) da empresa."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_receita_empresas')
+                field: cnpj_basico
+      - name: identificador_de_socio
+        description: "`1` pessoa jurídica, `2` pessoa física, `3` estrangeiro."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['1', '2', '3']
+      - name: nome_do_socio_no_caso_pf_ou_razao_social_no_caso_pj
+        description: "Nome do sócio (pessoa física) ou razão social (pessoa jurídica)."
+      - name: cnpj_cpf_do_socio
+        description: "CPF mascarado (`***240659**`) ou, para pessoa jurídica, a base do CNPJ (8 dígitos em 2026-10)."
+      - name: qualificacao_do_socio
+        description: "Código da qualificação do sócio; a descrição está em `silver_receita.qualificacoes`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_qualificacoes')
+                field: codigo
+      - name: data_de_entrada_sociedade
+        description: "Data de entrada na sociedade. `NULL` quando vazia."
+      - name: pais
+        description: "Código do país do sócio estrangeiro; a descrição está em `silver_receita.paises`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_paises')
+                field: codigo
+      - name: representante_legal
+        description: "CPF mascarado do representante legal."
+      - name: nome_do_representante
+        description: "Nome do representante legal."
+      - name: qualificacao_do_representante_legal
+        description: "Código da qualificação do representante legal."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_qualificacoes')
+                field: codigo
+      - name: faixa_etaria
+        description: "Faixa etária do sócio: `1` até 12 anos, `2` 13 a 20, `3` 21 a 30, `4` 31 a 40, `5` 41 a 50, `6` 51 a 60, `7` 61 a 70, `8` 71 a 80, `9` mais de 80, `0` não se aplica."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_cnaes
+    description: >
+      CNAEs (classificação nacional de atividades econômicas). Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+    columns:
+      - name: codigo
+        description: "Código do CNAE (7 dígitos), como texto. Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+      - name: descricao
+        description: "Descrição, sem espaços nas pontas."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_motivos
+    description: >
+      Motivos de situação cadastral. Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+    columns:
+      - name: codigo
+        description: "Código do motivo (2 dígitos), como texto. Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+      - name: descricao
+        description: "Descrição, sem espaços nas pontas."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_municipios
+    description: >
+      Municípios, com o código da Receita (não é o do IBGE). Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+    columns:
+      - name: codigo
+        description: "Código do município na Receita, como texto. Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+      - name: descricao
+        description: "Descrição, sem espaços nas pontas."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_naturezas
+    description: >
+      Naturezas jurídicas. Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+    columns:
+      - name: codigo
+        description: "Código da natureza jurídica (4 dígitos), como texto. Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+      - name: descricao
+        description: "Descrição, sem espaços nas pontas."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_paises
+    description: >
+      Países. Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+    columns:
+      - name: codigo
+        description: "Código do país, como texto. Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+      - name: descricao
+        description: "Descrição, sem espaços nas pontas."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_receita_qualificacoes
+    description: >
+      Qualificações de sócios e responsáveis. Tabela de domínio, uma linha por `codigo`. Os zeros à esquerda fazem parte do código.
+    columns:
+      - name: codigo
+        description: "Código da qualificação (2 dígitos), como texto. Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+      - name: descricao
+        description: "Descrição, sem espaços nas pontas."
+        data_tests:
+          - not_null
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null

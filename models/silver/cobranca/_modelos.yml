@@ -1,0 +1,96 @@
+version: 2
+
+models:
+  - name: silver_cobranca_contatos_realizados_padronizados
+    description: >
+      Etapa efêmera (não vira tabela) da silver da cobrança. Uma linha por linha lida da bronze que
+      tem `contato_id`, com toda a padronização já aplicada e sem deduplicar. Alimenta
+      `contatos_realizados` e `contatos_realizados_provedores`, para os dois padronizarem do mesmo jeito.
+    config:
+      materialized: ephemeral
+
+  - name: silver_cobranca_contatos_realizados
+    description: >
+      Tentativas de contato do time de Cobranças, uma linha por `contato_id`. O CPF e o destino saem
+      normalizados (o destino conforme o canal: telefone para `ligacao`, `sms` e `whatsapp`, e-mail
+      para `email`), e o texto original do destino fica em `destino_original`. Os provedores de
+      origem não estão aqui: são uma lista e ficam em `contatos_realizados_provedores`. Fora ficam, e
+      continuam na bronze, a linha ilegível e a sem `contato_id` (S9, avisado por teste `warn`).
+    columns:
+      - name: contato_id
+        description: "Identificador do contato na origem, sem espaços nas pontas. Chave da tabela."
+        data_tests:
+          - unique
+          - not_null
+      - name: cpf_alvo
+        description: "CPF do devedor contatado, só com dígitos e com os zeros à esquerda repostos até 11 posições. `NULL` quando vazio."
+      - name: canal
+        description: "Canal do contato, em minúsculas."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [email, ligacao, sms, whatsapp]
+      - name: destino_original
+        description: "Telefone ou e-mail como veio da origem, sem nenhum tratamento."
+      - name: destino
+        description: >-
+          Destino normalizado conforme o canal: telefone só com dígitos, DDD + número, sem o código do
+          país, ou e-mail em minúsculas. `NULL` quando vazio ou quando o canal não é conhecido.
+      - name: data_hora
+        description: "Instante do contato (sem fuso, como o provedor informa). `NULL` quando o texto não é um instante válido."
+        data_tests:
+          - not_null
+      - name: resultado
+        description: "Resultado do contato, como veio (sem espaços nas pontas)."
+      - name: _arquivo
+        description: "{{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "{{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "{{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null
+
+  - name: silver_cobranca_contatos_realizados_provedores
+    description: >
+      Provedores de origem de cada tentativa de contato, uma linha por (`contato_id`,
+      `provedor_origem`), abertos do texto `alfa|beta|gama`. Um contato que veio de mais de um provedor tem mais de uma
+      linha. É o padrão de tabela ponte: não há uma coluna booleana por provedor, para que um
+      provedor novo não mude o esquema.
+    data_tests:
+      - combinacao_unica:
+          arguments:
+            colunas: [contato_id, provedor_origem]
+    columns:
+      - name: contato_id
+        description: "Contato, como em `silver_cobranca.contatos_realizados`."
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_cobranca_contatos_realizados')
+                field: contato_id
+      - name: provedor_origem
+        description: "Provedor que informou o contato (um elemento do `provedor_origem` da origem), em minúsculas."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [alfa, beta, gama]
+      - name: _arquivo
+        description: "Da linha do contato realizado que originou o par (contato, provedor_origem). {{ doc('bronze_arquivo') }}"
+        data_tests:
+          - not_null
+      - name: _linha
+        description: "Da linha do contato realizado que originou o par (contato, provedor_origem). {{ doc('bronze_linha') }}"
+        data_tests:
+          - not_null
+      - name: _hash_arquivo
+        description: "Da linha do contato realizado que originou o par (contato, provedor_origem). {{ doc('bronze_hash_arquivo') }}"
+        data_tests:
+          - not_null

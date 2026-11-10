@@ -24,3 +24,8 @@ __pycache__/
 target/
 logs/
 dbt_packages/
+dbt_internal_packages/
+.user.yml
+
+# Cache dos zips da Receita (7,8 GB por mês), baixados por python -m ingestion.main --baixar
+.cache/

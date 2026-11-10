@@ -5,6 +5,7 @@ description: Preparing our atomic building blocks.
 displayText: Preparing our atomic building blocks.
 hoverSnippet: Preparing our atomic building blocks.
 ---
+<!-- Source: https://docs.getdbt.com/best-practices/how-we-structure/2-staging . Version: "current" docs (the page shows no version number). Accessed 2026-11-10: the passage used by this project ("Materialized as views" and its reasons) matches the live page that day. License: Apache 2.0 (see ../_licencas/docs-getdbt-Apache-2.0.md). Header added later; content unchanged. -->
 
 The staging layer is where our journey begins. This is the foundation of our project, where we bring all the individual components we're going to use to build our more complex and useful models into the project.
 

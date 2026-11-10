@@ -2,9 +2,9 @@
 id: referencias-sqlfluff-regras-usadas-4-5-0
 source: raw/referencias/sqlfluff/regras-usadas-4.5.0.md
 origin: https://github.com/sqlfluff/sqlfluff/tree/4.5.0/src/sqlfluff (rules + core/default_config.cfg) · acesso 2026-11-09
-sha256: a8a543220a8e4f50981bf1146fa8a43a3eb20f5c7f25224a8fe0ab77a840ad78
+sha256: 10560862d66390c5ce0763299c4b0e2240e0c52fe085d808f72c6fcfe23e8e65
 converter: plain
-converted: 2026-11-09 07:43
+converted: 2026-11-10 09:10
 pages: 0
 kind: document
 ---

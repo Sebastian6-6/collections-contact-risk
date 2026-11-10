@@ -1,0 +1,9 @@
+# O dbt procura este arquivo no diretório atual, então os comandos rodam da raiz do repositório.
+collections_contact_risk:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Caminho relativo à raiz; o arquivo .duckdb é ignorado pelo git e recriado a cada execução.
+      path: database/collections_contact_risk.duckdb
+      threads: 4
