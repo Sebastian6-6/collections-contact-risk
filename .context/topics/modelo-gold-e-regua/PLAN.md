@@ -1,5 +1,8 @@
 # Plano — modelo gold, régua de risco e enriquecimento por CNPJ
 
+> **Rascunho não aprovado — não executar.** Escrito em 2026-11-09 por um agente que perdeu o contexto, junto com os demais planos e sem aprovação. Será refeito na sessão própria das etapas 6 (gold e régua) e 7 (enriquecimento por CNPJ), decisão por decisão. Partes já superadas pelo plano refeito da ingestão (`ingestao-e-padronizacao/PLAN.md`): a pasta de pouso `landing/`, o manifesto da ingestão, o schema `analises` e qualquer decisão que contradiga as decisões C1–C3, I1–I6 e S1–S10.
+
+
 ## 1. Objetivo e base no enunciado
 
 Unir as três fontes numa base cadastral única e confiável, num star schema. A base cobre:

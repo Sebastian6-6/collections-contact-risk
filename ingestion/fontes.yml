@@ -1,0 +1,53 @@
+# Fontes e entidades da ingestão. Cada entidade vira a tabela bronze_<fonte>.<entidade>,
+# com uma linha por linha recebida, e cada fonte ganha o registro bronze_<fonte>.arquivos.
+# Tudo o que é específico de um provedor fica aqui, e nada além disto muda para uma entidade
+# nova num formato conhecido.
+#
+# Campos de cada entidade:
+#   origem     conector registrado em ingestion/conectores.py (pasta)
+#   formato    leitor registrado em ingestion/leitores.py (csv, jsonl)
+#   arquivos   lista de locais; cada um tem caminho (a partir da raiz do repositório) e padrao
+#              (nome ou glob, sem descer em subpastas). Todos vão para a mesma tabela, e um
+#              arquivo que case com duas entradas é erro, para nunca ser carregado duas vezes.
+#   encoding, separador   opcionais (padrão: utf-8 e vírgula)
+
+# Cada provedor é uma fonte: a carga histórica até 31/08/2026 e as entregas diárias de
+# setembro/2026 (com reenvios e dias sem arquivo) formam uma tabela só (p. 1 do enunciado).
+alfa:
+  devedores:
+    origem: pasta
+    formato: csv
+    arquivos:
+      - caminho: contact_data
+        padrao: provedor_alfa.csv
+      - caminho: contact_data/entregas_diarias/alfa
+        padrao: provedor_alfa_*.csv
+
+beta:
+  devedores:
+    origem: pasta
+    formato: jsonl
+    arquivos:
+      - caminho: contact_data
+        padrao: provedor_beta.jsonl
+      - caminho: contact_data/entregas_diarias/beta
+        padrao: provedor_beta_*.jsonl
+
+gama:
+  devedores:
+    origem: pasta
+    formato: csv
+    arquivos:
+      - caminho: contact_data
+        padrao: provedor_gama.csv
+      - caminho: contact_data/entregas_diarias/gama
+        padrao: provedor_gama_*.csv
+
+# O histórico de tentativas de contato é gerado pelo time de Cobranças, não por um provedor.
+cobranca:
+  contatos_realizados:
+    origem: pasta
+    formato: csv
+    arquivos:
+      - caminho: contact_data
+        padrao: contatos_realizados.csv

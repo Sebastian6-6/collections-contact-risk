@@ -8,17 +8,29 @@ macro-paths: ["macros"]
 test-paths: ["tests"]
 analysis-paths: ["analyses"]
 
+vars:
+  # Data de entrega do arquivo histórico, que não traz data no nome. O enunciado fixa a carga
+  # histórica "até 31/08/2026" (p. 1); as entregas diárias de setembro/2026 vêm depois dela.
+  data_carga_historica: "2026-08-31"
+  # Arquivo histórico de cada fonte, pelo caminho exato que a bronze guarda em `_arquivo`. Só ele
+  # recebe `data_carga_historica`; um arquivo diário sem data válida no nome fica com a data nula
+  # e reprova o teste `entrega_diaria_sem_data_valida`.
+  arquivo_historico:
+    alfa: "contact_data/provedor_alfa.csv"
+    beta: "contact_data/provedor_beta.jsonl"
+    gama: "contact_data/provedor_gama.csv"
+
 clean-targets:
   - target
   - dbt_packages
 
 models:
   collections_contact_risk:
-    # Bronze e silver são views: não duplicam dados e o banco é recriado a cada execução.
-    bronze:
-      +materialized: view
+    # As três camadas são tabelas (AGENTS.md, Stack). A bronze é gravada como tabela pela ingestão
+    # e `models/bronze/` só declara as fontes, por isso não aparece aqui. Os modelos efêmeros
+    # (`*_padronizados`) continuam efêmeros: são etapas internas no grão da linha recebida, não
+    # tabelas da camada, e cada um declara isso no próprio arquivo.
     silver:
-      +materialized: view
-    # A gold é o que se consulta, então vira tabela física.
+      +materialized: table
     gold:
       +materialized: table

@@ -32,12 +32,12 @@ Answer the brief's data-analysis items with reproducible data: ingestion anomaly
 
 ## Pending
 <!-- Unconfirmed questions: "- [?] question (where it came up, date)". Never treat them as a standard until the user answers. -->
-- [?] D1 ft_entrega_diaria grain = provider x reference date that received a daily file (same-day files summed, historical load excluded), with repeated and late records — awaiting the single approval after the plan review (2026-11-09)
-- [?] D2 gap detection with ROW_NUMBER self-join (no LAG) — awaiting the single approval after the plan review (2026-11-09)
-- [?] D3 7-delivery moving average with CAST(SUM AS NUMERIC)/SUM(1); weekday baseline only if measured false alarms — awaiting the single approval after the plan review (2026-11-09)
-- [?] D4 alert flags + dbt singular test with severity warn — awaiting the single approval after the plan review (2026-11-09)
-- [?] D5 analysis datasets as views in schema analises + dbt analyses/ for one-off queries; profile regenerated from silver — awaiting the single approval after the plan review (2026-11-09)
-- [?] D6 outcome classes — awaiting the single approval after the plan review (2026-11-09)
+- [?] D1 ft_entrega_diaria grain = provider x reference date that received a daily file (same-day files summed, historical load excluded), with repeated and late records — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
+- [?] D2 gap detection with ROW_NUMBER self-join (no LAG) — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
+- [?] D3 7-delivery moving average with CAST(SUM AS NUMERIC)/SUM(1); weekday baseline only if measured false alarms — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
+- [?] D4 alert flags + dbt singular test with severity warn — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
+- [?] D5 analysis datasets as views in schema analises + dbt analyses/ for one-off queries; profile regenerated from silver — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
+- [?] D6 outcome classes — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
 
 - [?] docs/perfil-das-fontes.md says the gama 09-15 resend has 309 lines; the file has 311 CSV records without the header (found by a skill-eval agent, recounted 2026-11-09). Fix it when the profile is regenerated from silver in step 4.5.
 

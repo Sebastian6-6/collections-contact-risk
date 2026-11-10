@@ -1,8 +1,9 @@
 ---
 topic: fundacao-do-repositorio
-status: active
+status: completed
 created: 2026-11-09
-updated: 2026-11-09 08:30
+updated: 2026-11-09 10:54
+completed: 2026-11-09
 scope:
   - .gitattributes
   - .gitignore
@@ -26,14 +27,6 @@ Prepare the repository for building the pipeline safely: git with main/develop a
 
 ## Plan
 <!-- "- [ ]" todo · "- [x]" done · "- [~]" dropped (add " — reason"). Done and dropped items move to HISTORY.md on save. -->
-- [x] 1.1 Repository, private hook and starting point (2 commits on main) (PLAN.md §4)
-- [x] 1.2 Python environment (asks before installing uv + Python 3.14) (PLAN.md §4)
-- [x] 1.3 Dependencies and quality tools (PLAN.md §4)
-- [x] 1.4 dbt skeleton with schema per layer and source (PLAN.md §4)
-- [x] 1.5 Project agents (PLAN.md §4)
-- [x] 1.6 Skill comparison tests (pause for the viewer) (PLAN.md §4)
-- [x] 1.7 CI on GitHub Actions (PLAN.md §4)
-- [x] 1.8 Review, verification and merge into develop (PLAN.md §4)
 
 ## Where we stopped
 - Topic complete 2026-11-09 and merged into develop with --no-ff (chore: integra fundacao-do-repositorio na develop). main holds the 3 starting commits; develop holds the foundation.

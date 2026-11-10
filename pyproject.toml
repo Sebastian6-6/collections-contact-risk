@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
+pythonpath = ["."]
 testpaths = [
   ".claude/skills/qualidade-python/scripts",
   ".claude/skills/qualidade-sql/scripts",

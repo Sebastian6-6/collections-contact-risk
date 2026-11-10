@@ -45,6 +45,9 @@ jobs:
       - name: Testes (pytest)
         run: python -m pytest -q
 
+      - name: Pipeline completa duas vezes, com resultado idêntico
+        run: python scripts/verificar_execucoes_identicas.py
+
       - name: Parse do dbt
         run: dbt parse
 

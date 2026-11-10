@@ -27,6 +27,7 @@ As skills de qualidade (`.claude/skills/qualidade-sql` e `.claude/skills/qualida
 | `WHERE 1 = 1` e um `AND` por linha | projeto (estilo do dono) | SQLFluff com `implicit_indents = allow` |
 | Identificadores em snake_case minúsculo; CTEs no padrão `tNomeCte` | projeto | SQLFluff CP02 com `ignore_words_regex = ^t[A-Z][A-Za-z0-9]*$`. O case pede só um nome descritivo para a CTE; o padrão `tNomeCte` não conflita com ele, e o PostgreSQL aceita o nome sem aspas (guarda em minúsculas) |
 | Macros do projeto visíveis no lint | projeto | SQLFluff com o templater do dbt, que compila o modelo como o dbt |
+| Estilo do SQL dos testes genéricos (`tests/generic/`) | projeto | **Lacuna.** O SQLFluff com o templater do dbt pula os arquivos `{% test %}` ("Skipped file ... because it is a macro", medido em 2026-11-09 com `sqlfluff lint tests/generic`), e o CI só passa `models` ao linter (`sqlfluff lint models`). Cobertura que existe: `verificar_convencoes.py` lê `models`, `macros` e `tests` (janelas, `ROWS BETWEEN`, `SELECT *` por camada, zero como ausência), mas não o estilo (caixa, vírgulas, indentação, ordem das colunas). Os testes singulares de `tests/` e as macros passam no `sqlfluff lint tests macros` rodado à mão, que o CI não roda. Os três testes genéricos têm revisão manual |
 
 ## Python
 

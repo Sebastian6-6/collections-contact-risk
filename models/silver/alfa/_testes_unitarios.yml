@@ -1,0 +1,187 @@
+version: 2
+
+unit_tests:
+  - name: silver_alfa_padronizacao_documento_data_e_endereco
+    description: >
+      O documento vem de `cpf` ou de `documento` e perde a máscara; o zero perdido é reposto;
+      a data de entrega sai do nome do arquivo e, no histórico, da variável do projeto; o endereço
+      só é separado quando casa com o padrão estrito; a linha ilegível fica fora.
+    model: silver_alfa_devedores_padronizados
+    given:
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {cpf: "103.123.916-20", documento: null, nome_completo: " ANA ", email: " ANA@X.COM ", telefone: "+55 11 90040-5285", endereco: "RUA A, 10, APTO 3 - CENTRO - SANTOS", cep: "7359422", uf: " sp ", salario_informado: "R$ 1.400,00", data_atualizacao: "2026-07-20", _arquivo: "contact_data/provedor_alfa.csv", _linha: 2, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: null, documento: "1006543201", nome_completo: "BIA", email: "", telefone: "(21)960476196", endereco: "RUA ANA-MARIA, 10 - CENTRO - SANTOS", cep: "21897318", uf: "XX", salario_informado: "0,00", data_atualizacao: "2026-09-02", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_2026-09-05.csv", _linha: 7, _hash_arquivo: "h2", _motivo_ilegivel: null}
+          - {cpf: "999", documento: null, nome_completo: "ILEGIVEL", email: "", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "", _arquivo: "contact_data/provedor_alfa.csv", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
+    expect:
+      rows:
+        - {documento: "10312391620", nome_completo: "ANA", email: "ana@x.com", telefone: "11900405285", logradouro: "RUA A", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", endereco: "RUA A, 10, APTO 3 - CENTRO - SANTOS", cep: "07359422", uf: "SP", salario_informado: 1400.00, data_atualizacao: "2026-07-20", data_entrega: "2026-08-31", _linha: 2}
+        - {documento: "01006543201", nome_completo: "BIA", email: null, telefone: "21960476196", logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, endereco: "RUA ANA-MARIA, 10 - CENTRO - SANTOS", cep: "21897318", uf: null, salario_informado: 0.00, data_atualizacao: "2026-09-02", data_entrega: "2026-09-05", _linha: 7}
+
+  - name: silver_alfa_texto_livre_em_maiuscula_unifica_o_endereco
+    description: >
+      Nome, cargo, endereço e as partes do endereço saem em maiúscula (H4): o mesmo endereço
+      escrito em caixas diferentes vira o mesmo texto e as mesmas partes, e por isso o mesmo par
+      na `devedores_enderecos`. A UF, o e-mail e o telefone seguem as próprias regras.
+    model: silver_alfa_devedores_padronizados
+    given:
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {cpf: "103.123.916-20", documento: null, nome_completo: "Ana Souza", cargo: "analista", email: "A@X.COM", telefone: "", endereco: "Rua Açaí, 10, Apto 3 - Centro - Santos", cep: "11010000", uf: "sp", salario_informado: "", data_atualizacao: "2026-07-20", _arquivo: "contact_data/provedor_alfa.csv", _linha: 2, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "103.123.916-20", documento: null, nome_completo: "ANA SOUZA", cargo: "Analista", email: "a@x.com", telefone: "", endereco: "RUA AÇAÍ, 10, APTO 3 - CENTRO - SANTOS", cep: "11010000", uf: "SP", salario_informado: "", data_atualizacao: "2026-07-20", _arquivo: "contact_data/provedor_alfa.csv", _linha: 3, _hash_arquivo: "h1", _motivo_ilegivel: null}
+    expect:
+      rows:
+        - {nome_completo: "ANA SOUZA", cargo: "ANALISTA", email: "a@x.com", endereco: "RUA AÇAÍ, 10, APTO 3 - CENTRO - SANTOS", logradouro: "RUA AÇAÍ", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", _linha: 2}
+        - {nome_completo: "ANA SOUZA", cargo: "ANALISTA", email: "a@x.com", endereco: "RUA AÇAÍ, 10, APTO 3 - CENTRO - SANTOS", logradouro: "RUA AÇAÍ", numero: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", _linha: 3}
+
+  - name: silver_alfa_documento_vazio_ou_zerado_vira_nulo
+    description: >
+      Documento vazio, `0` ou `000.000.000-00` não identifica ninguém: `documento` vira `NULL` e a
+      linha continua na etapa padronizada, com os contatos dela, para `devedores_contatos`
+      guardá-los sem documento. A linha ilegível fica fora.
+    model: silver_alfa_devedores_padronizados
+    given:
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {cpf: "", documento: null, nome_completo: "SEM CHAVE", email: "", telefone: "11900000000", endereco: "RUA B, 1 - X - Y", cep: "11111111", salario_informado: "", data_atualizacao: "2026-09-02", _arquivo: "contact_data/provedor_alfa.csv", _linha: 3, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "000.000.000-00", documento: null, nome_completo: "ZERADO", email: " ZERO@X.COM ", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "2026-09-02", _arquivo: "contact_data/provedor_alfa.csv", _linha: 5, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "0", documento: null, nome_completo: "ZERO SIMPLES", email: "", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "2026-09-02", _arquivo: "contact_data/provedor_alfa.csv", _linha: 6, _hash_arquivo: "h1", _motivo_ilegivel: null}
+          - {cpf: "999", documento: null, nome_completo: "ILEGIVEL", email: "", telefone: "", endereco: "", cep: "", salario_informado: "", data_atualizacao: "", _arquivo: "contact_data/provedor_alfa.csv", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
+    expect:
+      rows:
+        - {documento: null, nome_completo: "SEM CHAVE", telefone: "11900000000", email: null, _linha: 3}
+        - {documento: null, nome_completo: "ZERADO", telefone: null, email: "zero@x.com", _linha: 5}
+        - {documento: null, nome_completo: "ZERO SIMPLES", telefone: null, email: null, _linha: 6}
+
+  - name: silver_alfa_data_entrega_so_historico_recebe_data_da_carga
+    description: >
+      Só o arquivo histórico configurado (nome exato) recebe a data da carga histórica. Uma entrega
+      diária com a data no nome fica com ela; nome parecido com o de uma entrega mas sem data
+      válida (formato sem hífen, dia inexistente) fica com a data de entrega nula, que o teste
+      `entrega_diaria_sem_data_valida` reprova.
+    model: silver_alfa_devedores_padronizados
+    given:
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {cpf: "10312391620", _arquivo: "contact_data/provedor_alfa.csv", _linha: 1, _motivo_ilegivel: null}
+          - {cpf: "10312391621", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_2026-09-01.csv", _linha: 1, _motivo_ilegivel: null}
+          - {cpf: "10312391622", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_20260901.csv", _linha: 1, _motivo_ilegivel: null}
+          - {cpf: "10312391623", _arquivo: "contact_data/entregas_diarias/alfa/provedor_alfa_2026-09-31.csv", _linha: 1, _motivo_ilegivel: null}
+    expect:
+      rows:
+        - {documento: "10312391620", data_entrega: "2026-08-31"}
+        - {documento: "10312391621", data_entrega: "2026-09-01"}
+        - {documento: "10312391622", data_entrega: null}
+        - {documento: "10312391623", data_entrega: null}
+
+  - name: silver_alfa_devedores_versao_mais_recente
+    description: >
+      Uma linha por documento, tirada da histórica. Vale a maior data de atualização; no empate, a
+      maior data de entrega (a última da versão); no empate dos dois, a maior linha. Linha sem
+      documento (NULL) não é devedor e não forma grupo. `data_entrega` é a última entrega da versão.
+    model: silver_alfa_devedores
+    given:
+      - input: ref('silver_alfa_devedores_historico')
+        rows:
+          - {documento: "A", nome_completo: "NOME 1", data_atualizacao: "2026-07-01", data_ultima_entrega: "2026-08-31", hash_conteudo: "h_a1", _arquivo: "f1", _linha: 5}
+          - {documento: "A", nome_completo: "NOME 2", data_atualizacao: "2026-07-01", data_ultima_entrega: "2026-09-03", hash_conteudo: "h_a2", _arquivo: "f2", _linha: 1}
+          - {documento: "A", nome_completo: "NOME 0", data_atualizacao: "2026-06-01", data_ultima_entrega: "2026-09-10", hash_conteudo: "h_a0", _arquivo: "f3", _linha: 9}
+          - {documento: "B", nome_completo: "EMPATE 1", data_atualizacao: "2026-07-01", data_ultima_entrega: "2026-09-03", hash_conteudo: "h_b1", _arquivo: "f2", _linha: 4}
+          - {documento: "B", nome_completo: "EMPATE 2", data_atualizacao: "2026-07-01", data_ultima_entrega: "2026-09-03", hash_conteudo: "h_b2", _arquivo: "f2", _linha: 8}
+          - {documento: null, nome_completo: "SEM DOCUMENTO 1", data_atualizacao: "2026-09-20", data_ultima_entrega: "2026-09-20", hash_conteudo: "h_n1", _arquivo: "f5", _linha: 1}
+          - {documento: null, nome_completo: "SEM DOCUMENTO 2", data_atualizacao: "2026-09-21", data_ultima_entrega: "2026-09-21", hash_conteudo: "h_n2", _arquivo: "f5", _linha: 2}
+    expect:
+      rows:
+        - {documento: "A", nome_completo: "NOME 2", data_entrega: "2026-09-03", hash_conteudo: "h_a2", _linha: 1}
+        - {documento: "B", nome_completo: "EMPATE 2", data_entrega: "2026-09-03", hash_conteudo: "h_b2", _linha: 8}
+
+  - name: silver_alfa_contatos_aparicao_mais_recente
+    description: >
+      Os pares saem da histórica. O par (documento, tipo_contato, contato) em mais de uma versão soma
+      as datas de entrega (menor primeira, maior última) e traz o arquivo, a linha e o hash da versão
+      com a maior ordem (atualização, entrega, arquivo, linha); um telefone que sumiu da versão atual
+      continua registrado, e contato vazio não gera linha. Contato de versão sem documento (NULL)
+      entra com `documento` NULL, deduplicado só por (tipo_contato, contato) entre as versões sem
+      documento, e nunca se junta ao par de um documento válido com o mesmo telefone.
+    model: silver_alfa_devedores_contatos
+    given:
+      - input: ref('silver_alfa_devedores_historico')
+        rows:
+          - {documento: "A", telefone: "11900405285", email: "ana@x.com", data_atualizacao: "2026-08-31", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "a1", _linha: 4, _hash_arquivo: "h1"}
+          - {documento: "A", telefone: "11900405285", email: null, data_atualizacao: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
+          - {documento: "B", telefone: null, email: null, data_atualizacao: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 10, _hash_arquivo: "h2"}
+          - {documento: null, telefone: "11900405285", email: null, data_atualizacao: "2026-09-01", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-01", _arquivo: "a3", _linha: 2, _hash_arquivo: "h3"}
+          - {documento: null, telefone: "11900405285", email: "z@x.com", data_atualizacao: "2026-09-12", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
+    expect:
+      rows:
+        - {documento: "A", tipo_contato: "telefone", contato: "11900405285", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
+        - {documento: "A", tipo_contato: "email", contato: "ana@x.com", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "a1", _linha: 4, _hash_arquivo: "h1"}
+        - {documento: null, tipo_contato: "telefone", contato: "11900405285", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
+        - {documento: null, tipo_contato: "email", contato: "z@x.com", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
+
+  - name: silver_alfa_devedores_enderecos_pares_de_documento_e_endereco
+    description: >
+      Um endereço que aparece em duas versões do mesmo documento vira um par só, com a primeira
+      e a última entrega e a rastreabilidade da versão mais recente; o texto original não entra na
+      identidade (o mesmo endereço com texto diferente é o mesmo par); endereço diferente é outro
+      par; versão sem nenhum dado de endereço não gera linha; o endereço de uma versão sem
+      documento (NULL) é deduplicado só entre os sem documento e nunca se junta ao par de um
+      documento válido com o mesmo endereço.
+    model: silver_alfa_devedores_enderecos
+    given:
+      - input: ref('silver_alfa_devedores_historico')
+        rows:
+          - {documento: "A", endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_atualizacao: "2026-08-31", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "a1", _linha: 4, _hash_arquivo: "h1"}
+          - {documento: "A", endereco: "Rua X, 1, Centro, Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_atualizacao: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
+          - {documento: "A", endereco: "Rua Y, 2 - Gonzaga - Santos", logradouro: "Rua Y", numero: "2", complemento: null, bairro: "Gonzaga", cidade: "Santos", cep: "11055300", uf: "SP", data_atualizacao: "2026-09-11", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "a3", _linha: 1, _hash_arquivo: "h3"}
+          - {documento: "B", endereco: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, cep: null, uf: null, data_atualizacao: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 10, _hash_arquivo: "h2"}
+          - {documento: null, endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_atualizacao: "2026-09-01", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-01", _arquivo: "a4", _linha: 2, _hash_arquivo: "h4"}
+          - {documento: null, endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_atualizacao: "2026-09-12", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "a5", _linha: 7, _hash_arquivo: "h5"}
+    expect:
+      rows:
+        - {documento: "A", endereco: "Rua X, 1, Centro, Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
+        - {documento: "A", endereco: "Rua Y, 2 - Gonzaga - Santos", logradouro: "Rua Y", numero: "2", complemento: null, bairro: "Gonzaga", cidade: "Santos", cep: "11055300", uf: "SP", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "a3", _linha: 1, _hash_arquivo: "h3"}
+        - {documento: null, endereco: "Rua X, 1 - Centro - Santos", logradouro: "Rua X", numero: "1", complemento: null, bairro: "Centro", cidade: "Santos", cep: "11010000", uf: "SP", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "a5", _linha: 7, _hash_arquivo: "h5"}
+
+  - name: silver_alfa_devedores_historico_versoes
+    description: >
+      Uma linha por versão. A duplicata real (mesmo conteúdo, só `_arquivo`, `_linha`, `_hash_arquivo`
+      e `data_entrega` diferentes) colapsa e soma a primeira e a última entrega, com a rastreabilidade
+      da aparição mais recente; conteúdo diferente é versão nova, e a data de atualização também é
+      conteúdo; a linha sem documento vira versão; a linha que repete o cabeçalho do arquivo fica fora.
+    model: silver_alfa_devedores_historico
+    given:
+      - input: ref('silver_alfa_devedores_padronizados')
+        format: sql
+        rows: |
+          SELECT CAST('A' AS VARCHAR) AS documento, CAST('ANA' AS VARCHAR) AS nome_completo, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS VARCHAR) AS cargo, CAST(NULL AS DECIMAL(14, 2)) AS salario_informado, CAST('11900405285' AS VARCHAR) AS telefone, CAST(NULL AS VARCHAR) AS email, CAST(NULL AS VARCHAR) AS endereco, CAST(NULL AS VARCHAR) AS logradouro, CAST(NULL AS VARCHAR) AS numero, CAST(NULL AS VARCHAR) AS complemento, CAST(NULL AS VARCHAR) AS bairro, CAST(NULL AS VARCHAR) AS cidade, CAST(NULL AS VARCHAR) AS cep, CAST(NULL AS VARCHAR) AS uf, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, CAST('f1' AS VARCHAR) AS _arquivo, CAST(1 AS INTEGER) AS _linha, CAST('h1' AS VARCHAR) AS _hash_arquivo
+          UNION ALL
+          SELECT CAST('A' AS VARCHAR), CAST('ANA' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST('11900405285' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), CAST('f2' AS VARCHAR), CAST(3 AS INTEGER), CAST('h2' AS VARCHAR)
+          UNION ALL
+          SELECT CAST('A' AS VARCHAR), CAST('ANA MARIA' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST('11900405285' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-07-01' AS DATE), CAST('2026-09-10' AS DATE), CAST('f3' AS VARCHAR), CAST(2 AS INTEGER), CAST('h3' AS VARCHAR)
+          UNION ALL
+          SELECT CAST('A' AS VARCHAR), CAST('ANA' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST('11900405285' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-08-01' AS DATE), CAST('2026-09-11' AS DATE), CAST('f4' AS VARCHAR), CAST(1 AS INTEGER), CAST('h4' AS VARCHAR)
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), CAST('SEM CHAVE' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST('11900000000' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-07-01' AS DATE), CAST('2026-08-31' AS DATE), CAST('f1' AS VARCHAR), CAST(5 AS INTEGER), CAST('h1' AS VARCHAR)
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), CAST('nome_completo' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DATE), CAST('2026-08-31' AS DATE), CAST('f1' AS VARCHAR), CAST(9 AS INTEGER), CAST('h1' AS VARCHAR)
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {_arquivo: "f1", _linha: 1, _linha_original: "l1"}
+          - {_arquivo: "f2", _linha: 3, _linha_original: "l3"}
+          - {_arquivo: "f3", _linha: 2, _linha_original: "l2"}
+          - {_arquivo: "f4", _linha: 1, _linha_original: "l1b"}
+          - {_arquivo: "f1", _linha: 5, _linha_original: "l5"}
+          - {_arquivo: "f1", _linha: 9, _linha_original: "documento,nome_completo"}
+      - input: source('bronze_alfa', 'arquivos')
+        rows:
+          - {arquivo: "f1", cabecalho: "documento,nome_completo"}
+          - {arquivo: "f2", cabecalho: "documento,nome_completo"}
+          - {arquivo: "f3", cabecalho: "documento,nome_completo"}
+          - {arquivo: "f4", cabecalho: "documento,nome_completo"}
+    expect:
+      rows:
+        - {documento: "A", nome_completo: "ANA", data_atualizacao: "2026-07-01", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-03", _arquivo: "f2", _linha: 3, _hash_arquivo: "h2"}
+        - {documento: "A", nome_completo: "ANA MARIA", data_atualizacao: "2026-07-01", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "f3", _linha: 2, _hash_arquivo: "h3"}
+        - {documento: "A", nome_completo: "ANA", data_atualizacao: "2026-08-01", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "f4", _linha: 1, _hash_arquivo: "h4"}
+        - {documento: null, nome_completo: "SEM CHAVE", data_atualizacao: "2026-07-01", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "f1", _linha: 5, _hash_arquivo: "h1"}

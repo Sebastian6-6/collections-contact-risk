@@ -1,0 +1,82 @@
+version: 2
+
+sources:
+  - name: bronze_cobranca
+    description: >
+      Histórico de contatos realizados, gerado pelo time de Cobranças. Fiel à origem: nenhuma linha é descartada
+      nem interpretada na ingestão.
+    tables:
+      - name: contatos_realizados
+        description: >
+          Uma linha por linha recebida do histórico de contatos realizados. Colunas de dados em texto, como vieram.
+        data_tests:
+          - colunas_declaradas
+          - combinacao_unica:
+              arguments:
+                colunas: [_arquivo, _linha]
+          - linhas_iguais_ao_registro:
+              arguments:
+                registro: source('bronze_cobranca', 'arquivos')
+        columns:
+          - name: contato_id
+            description: "Identificador do contato na origem."
+          - name: cpf_alvo
+            description: "CPF do devedor contatado, como veio."
+          - name: canal
+            description: "Canal usado no contato."
+          - name: destino
+            description: "Telefone ou e-mail para o qual o contato foi feito."
+          - name: data_hora
+            description: "Data e hora do contato, em texto."
+          - name: resultado
+            description: "Resultado do contato."
+          - name: provedor_origem
+            description: >-
+              Provedores de origem do contato, em texto (um ou mais, separados por `|`).
+          - name: _arquivo
+            description: "{{ doc('bronze_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha
+            description: "{{ doc('bronze_linha') }}"
+            data_tests:
+              - not_null
+          - name: _hash_arquivo
+            description: "{{ doc('bronze_hash_arquivo') }}"
+            data_tests:
+              - not_null
+          - name: _linha_original
+            description: "{{ doc('bronze_linha_original') }}"
+            data_tests:
+              - not_null
+          - name: _motivo_ilegivel
+            description: "{{ doc('bronze_motivo_ilegivel') }}"
+
+      - name: arquivos
+        description: "{{ doc('bronze_arquivos_tabela') }}"
+        data_tests:
+        - colunas_declaradas
+        columns:
+          - name: arquivo
+            description: "{{ doc('bronze_arquivos_arquivo') }}"
+            data_tests:
+              - not_null
+              - unique
+          - name: entidade
+            description: "{{ doc('bronze_arquivos_entidade') }}"
+            data_tests:
+              - not_null
+          - name: hash_arquivo
+            description: "{{ doc('bronze_arquivos_hash') }}"
+            data_tests:
+              - not_null
+          - name: bytes
+            description: "{{ doc('bronze_arquivos_bytes') }}"
+            data_tests:
+              - not_null
+          - name: linhas
+            description: "{{ doc('bronze_arquivos_linhas') }}"
+            data_tests:
+              - not_null
+          - name: cabecalho
+            description: "{{ doc('bronze_arquivos_cabecalho') }}"

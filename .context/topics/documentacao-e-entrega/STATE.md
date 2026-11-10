@@ -31,8 +31,8 @@ Close the brief's deliverables (ERD, type justifications, README, AGENTS.md), ru
 
 ## Pending
 <!-- Unconfirmed questions: "- [?] question (where it came up, date)". Never treat them as a standard until the user answers. -->
-- [?] D1 dictionary generated from dbt manifest/catalog — awaiting the single approval after the plan review (2026-11-09)
-- [?] D2 ERD in Mermaid (gold star + per-layer view) — awaiting the single approval after the plan review (2026-11-09)
+- [?] D1 dictionary generated from dbt manifest/catalog — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
+- [?] D2 ERD in Mermaid (gold star + per-layer view) — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
 
 ## Decisions
 <!-- Local to this topic, append-only: "- YYYY-MM-DD decision". -->
