@@ -13,6 +13,12 @@
 -- depends_on: {{ ref('silver_beta_devedores_enderecos') }}
 -- depends_on: {{ ref('silver_gama_devedores') }}
 -- depends_on: {{ ref('silver_gama_devedores_contatos') }}
+-- depends_on: {{ ref('silver_alfa_devedores_historico') }}
+-- depends_on: {{ ref('silver_beta_devedores_historico') }}
+-- depends_on: {{ ref('silver_beta_devedores_historico_contatos') }}
+-- depends_on: {{ ref('silver_beta_devedores_historico_enderecos') }}
+-- depends_on: {{ ref('silver_gama_devedores_historico') }}
+-- depends_on: {{ ref('silver_gama_devedores_historico_contatos') }}
 -- depends_on: {{ ref('silver_cobranca_contatos_realizados') }}
 -- depends_on: {{ ref('silver_cobranca_contatos_realizados_provedores') }}
 {% set exigidas = [] %}

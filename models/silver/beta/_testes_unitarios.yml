@@ -43,59 +43,57 @@ unit_tests:
 
   - name: silver_beta_devedores_versao_mais_recente
     description: >
-      Uma linha por (tipo de documento, documento): CPF e RG de mesmo número são pessoas
-      diferentes. Vale a maior data de atualização; no empate, a maior data de entrega; no empate
-      dos dois, a maior linha. Uma entrega tardia que reenvia um registro mais antigo não vence.
-      Linha sem documento (NULL) não é devedor e não forma grupo.
+      Uma linha por (tipo de documento, documento), tirada da histórica: CPF e RG de mesmo número
+      são pessoas diferentes. Vale a maior data de atualização; no empate, a maior data de entrega
+      (a última da versão); no empate dos dois, a maior linha. Uma entrega tardia que reenvia um
+      registro mais antigo não vence. Linha sem documento (NULL) não é devedor e não forma grupo.
     model: silver_beta_devedores
     given:
-      - input: ref('silver_beta_devedores_padronizados')
-        format: sql
-        rows: |
-          SELECT 'CPF' AS documento_tipo, '123' AS documento, 'NOME 1' AS nome_completo, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS vinculo_empresa_cnpj, CAST(NULL AS DATE) AS vinculo_empresa_desde, CAST(NULL AS DECIMAL(14, 2)) AS renda_mensal, CAST('2026-07-01' AS DATE) AS atualizado_em, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
-          UNION ALL
-          SELECT 'CPF', '123', 'NOME 2', NULL, NULL, NULL, NULL, CAST('2026-09-17' AS DATE), CAST('2026-09-18' AS DATE), 'f2', 1, 'h'
-          UNION ALL
-          SELECT 'CPF', '123', 'REENVIO ATRASADO', NULL, NULL, NULL, NULL, CAST('2026-09-10' AS DATE), CAST('2026-09-19' AS DATE), 'f3', 9, 'h'
-          UNION ALL
-          SELECT 'RG', '123', 'OUTRA PESSOA', NULL, NULL, NULL, NULL, CAST('2026-01-01' AS DATE), CAST('2026-08-31' AS DATE), 'f1', 6, 'h'
-          UNION ALL
-          SELECT 'CPF', '456', 'EMPATE 1', NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 4, 'h'
-          UNION ALL
-          SELECT 'CPF', '456', 'EMPATE 2', NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 8, 'h'
-          UNION ALL
-          SELECT CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), 'SEM DOCUMENTO 1', NULL, NULL, NULL, NULL, CAST('2026-09-20' AS DATE), CAST('2026-09-20' AS DATE), 'f5', 1, 'h'
-          UNION ALL
-          SELECT CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), 'SEM DOCUMENTO 2', NULL, NULL, NULL, NULL, CAST('2026-09-21' AS DATE), CAST('2026-09-21' AS DATE), 'f5', 2, 'h'
+      - input: ref('silver_beta_devedores_historico')
+        rows:
+          - {documento_tipo: "CPF", documento: "123", nome_completo: "NOME 1", atualizado_em: "2026-07-01", data_ultima_entrega: "2026-08-31", hash_conteudo: "v1", _arquivo: "f1", _linha: 5}
+          - {documento_tipo: "CPF", documento: "123", nome_completo: "NOME 2", atualizado_em: "2026-09-17", data_ultima_entrega: "2026-09-18", hash_conteudo: "v2", _arquivo: "f2", _linha: 1}
+          - {documento_tipo: "CPF", documento: "123", nome_completo: "REENVIO ATRASADO", atualizado_em: "2026-09-10", data_ultima_entrega: "2026-09-19", hash_conteudo: "v3", _arquivo: "f3", _linha: 9}
+          - {documento_tipo: "RG", documento: "123", nome_completo: "OUTRA PESSOA", atualizado_em: "2026-01-01", data_ultima_entrega: "2026-08-31", hash_conteudo: "v4", _arquivo: "f1", _linha: 6}
+          - {documento_tipo: "CPF", documento: "456", nome_completo: "EMPATE 1", atualizado_em: "2026-07-01", data_ultima_entrega: "2026-09-03", hash_conteudo: "v5", _arquivo: "f2", _linha: 4}
+          - {documento_tipo: "CPF", documento: "456", nome_completo: "EMPATE 2", atualizado_em: "2026-07-01", data_ultima_entrega: "2026-09-03", hash_conteudo: "v6", _arquivo: "f2", _linha: 8}
+          - {documento_tipo: null, documento: null, nome_completo: "SEM DOCUMENTO 1", atualizado_em: "2026-09-20", data_ultima_entrega: "2026-09-20", hash_conteudo: "v7", _arquivo: "f5", _linha: 1}
+          - {documento_tipo: null, documento: null, nome_completo: "SEM DOCUMENTO 2", atualizado_em: "2026-09-21", data_ultima_entrega: "2026-09-21", hash_conteudo: "v8", _arquivo: "f5", _linha: 2}
     expect:
       rows:
-        - {documento_tipo: "CPF", documento: "123", nome_completo: "NOME 2", _linha: 1}
-        - {documento_tipo: "RG", documento: "123", nome_completo: "OUTRA PESSOA", _linha: 6}
-        - {documento_tipo: "CPF", documento: "456", nome_completo: "EMPATE 2", _linha: 8}
+        - {documento_tipo: "CPF", documento: "123", nome_completo: "NOME 2", data_entrega: "2026-09-18", hash_conteudo: "v2", _linha: 1}
+        - {documento_tipo: "RG", documento: "123", nome_completo: "OUTRA PESSOA", data_entrega: "2026-08-31", hash_conteudo: "v4", _linha: 6}
+        - {documento_tipo: "CPF", documento: "456", nome_completo: "EMPATE 2", data_entrega: "2026-09-03", hash_conteudo: "v6", _linha: 8}
 
   - name: silver_beta_devedores_contatos_historico_e_atributos
     description: >
-      Telefone como texto e como objeto (DDD + número) vira o mesmo contato normalizado, e a
-      primeira e a última data de entrega cobrem as duas aparições. O tipo e o `principal` vêm da
-      aparição mais recente (atualização mais nova), mesmo quando a mais antiga os trazia de outro
-      jeito, e a rastreabilidade (`_arquivo`, `_linha`, `_hash_arquivo`) é dessa aparição. Um telefone que saiu da versão atual continua registrado. E-mail vem da lista ou do
-      texto único e sem tipo de telefone. Contato de linha sem documento (NULL) entra com tipo de
-      documento e documento NULL, deduplicado só por (tipo_contato, contato) entre as linhas sem
+      Os pares saem da histórica e da filha de contatos. O telefone em duas versões soma a primeira e
+      a última data de entrega, e o tipo e o `principal` vêm da versão com a maior ordem
+      (atualização, entrega, arquivo, linha), mesmo quando a mais antiga os trazia de outro jeito;
+      a rastreabilidade (`_arquivo`, `_linha`, `_hash_arquivo`) é dessa aparição. Um telefone que
+      saiu da versão atual continua registrado. Contato de versão sem documento (NULL) entra com tipo
+      de documento e documento NULL, deduplicado só por (tipo_contato, contato) entre as versões sem
       documento, e nunca se junta ao par de um documento válido com o mesmo telefone.
     model: silver_beta_devedores_contatos
     given:
-      - input: ref('silver_beta_devedores_padronizados')
-        format: sql
-        rows: |
-          SELECT 'CPF' AS documento_tipo, '123' AS documento, CAST('2026-07-01' AS DATE) AS atualizado_em, CAST('2026-08-31' AS DATE) AS data_entrega, 1 AS _linha, 'b1' AS _arquivo, 'h1' AS _hash_arquivo, CAST('["+55 11 90040-5285", "2199998888"]' AS JSON) AS lista_telefones, CAST('["ANA@X.COM"]' AS JSON) AS lista_emails, CAST(NULL AS VARCHAR) AS email_unico
-          UNION ALL
-          SELECT 'CPF', '123', CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 2, 'b2', 'h2', CAST('[{"ddd": "11", "numero": "900405285", "tipo": "celular", "principal": true}]' AS JSON), CAST(NULL AS JSON), 'ana@x.com'
-          UNION ALL
-          SELECT 'RG', '123', CAST('2026-09-11' AS DATE), CAST('2026-09-11' AS DATE), 3, 'b3', 'h3', CAST('[{"ddd": "11", "numero": "900405285", "tipo": "fixo", "principal": false}]' AS JSON), CAST('[]' AS JSON), CAST(NULL AS VARCHAR)
-          UNION ALL
-          SELECT CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-09-01' AS DATE), CAST('2026-09-01' AS DATE), 4, 'b4', 'h4', CAST('["11900405285"]' AS JSON), CAST('[]' AS JSON), CAST(NULL AS VARCHAR)
-          UNION ALL
-          SELECT CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-09-12' AS DATE), CAST('2026-09-12' AS DATE), 6, 'b6', 'h6', CAST('[{"ddd": "11", "numero": "900405285", "tipo": "celular", "principal": true}]' AS JSON), CAST('[]' AS JSON), 'z@x.com'
+      - input: ref('silver_beta_devedores_historico')
+        rows:
+          - {documento_tipo: "CPF", documento: "123", atualizado_em: "2026-07-01", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", hash_conteudo: "v1"}
+          - {documento_tipo: "CPF", documento: "123", atualizado_em: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", hash_conteudo: "v2"}
+          - {documento_tipo: "RG", documento: "123", atualizado_em: "2026-09-11", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", hash_conteudo: "v3"}
+          - {documento_tipo: null, documento: null, atualizado_em: "2026-09-01", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-01", hash_conteudo: "v4"}
+          - {documento_tipo: null, documento: null, atualizado_em: "2026-09-12", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", hash_conteudo: "v5"}
+      - input: ref('silver_beta_devedores_historico_contatos')
+        rows:
+          - {hash_conteudo: "v1", tipo_contato: "telefone", contato: "11900405285", tipo: null, principal: null, posicao: 1, _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+          - {hash_conteudo: "v1", tipo_contato: "telefone", contato: "2199998888", tipo: null, principal: null, posicao: 2, _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+          - {hash_conteudo: "v1", tipo_contato: "email", contato: "ana@x.com", tipo: null, principal: null, posicao: 1, _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+          - {hash_conteudo: "v2", tipo_contato: "telefone", contato: "11900405285", tipo: "celular", principal: true, posicao: 1, _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
+          - {hash_conteudo: "v2", tipo_contato: "email", contato: "ana@x.com", tipo: null, principal: null, posicao: 1, _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
+          - {hash_conteudo: "v3", tipo_contato: "telefone", contato: "11900405285", tipo: "fixo", principal: false, posicao: 1, _arquivo: "b3", _linha: 3, _hash_arquivo: "h3"}
+          - {hash_conteudo: "v4", tipo_contato: "telefone", contato: "11900405285", tipo: null, principal: null, posicao: 1, _arquivo: "b4", _linha: 4, _hash_arquivo: "h4"}
+          - {hash_conteudo: "v5", tipo_contato: "telefone", contato: "11900405285", tipo: "celular", principal: true, posicao: 1, _arquivo: "b6", _linha: 6, _hash_arquivo: "h6"}
+          - {hash_conteudo: "v5", tipo_contato: "email", contato: "z@x.com", tipo: null, principal: null, posicao: 1, _arquivo: "b6", _linha: 6, _hash_arquivo: "h6"}
     expect:
       rows:
         - {documento_tipo: "CPF", documento: "123", tipo_contato: "telefone", contato: "11900405285", tipo: "celular", principal: true, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
@@ -129,3 +127,106 @@ unit_tests:
         - {documento_tipo: "CPF", documento: "123", posicao: 1, tipo: "residencial", logradouro: "Rua A", numero: "S/N", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: true, _arquivo: "f2", _linha: 1}
         - {documento_tipo: "CPF", documento: "123", posicao: 2, tipo: "comercial", logradouro: "Rua B", numero: "10", complemento: "sala 2", bairro: "Gonzaga", cidade: "Santos", uf: null, cep: "07359422", atual: false, _arquivo: "f2", _linha: 1}
         - {documento_tipo: "CPF", documento: "456", posicao: 1, tipo: "residencial", logradouro: "Rua C", numero: "5", complemento: null, bairro: "Boqueirao", cidade: "Santos", uf: "SP", cep: "11055300", atual: true, _arquivo: "f2", _linha: 2}
+
+  - name: silver_beta_contatos_abertos_da_linha
+    description: >
+      Telefone como texto e como objeto (DDD + número) vira o mesmo contato normalizado, com o `tipo`
+      e o `principal` do provedor só quando o elemento é objeto. E-mail vem da lista ou do texto
+      único (posição 1) e não tem tipo de telefone. Contato vazio não gera linha.
+    model: silver_beta_devedores_contatos_padronizados
+    given:
+      - input: ref('silver_beta_devedores_padronizados')
+        format: sql
+        rows: |
+          SELECT CAST('["+55 11 90040-5285", "2199998888"]' AS JSON) AS lista_telefones, CAST('["ANA@X.COM"]' AS JSON) AS lista_emails, CAST(NULL AS VARCHAR) AS email_unico, 'b1' AS _arquivo, 1 AS _linha, 'h1' AS _hash_arquivo
+          UNION ALL
+          SELECT CAST('[{"ddd": "11", "numero": "900405285", "tipo": "celular", "principal": true}]' AS JSON), CAST(NULL AS JSON), 'ana@x.com', 'b2', 2, 'h2'
+          UNION ALL
+          SELECT CAST('[{"ddd": "11", "numero": "900405285", "tipo": "fixo", "principal": false}]' AS JSON), CAST('[]' AS JSON), CAST(NULL AS VARCHAR), 'b3', 3, 'h3'
+          UNION ALL
+          SELECT CAST('[""]' AS JSON), CAST('[]' AS JSON), CAST(NULL AS VARCHAR), 'b4', 4, 'h4'
+    expect:
+      rows:
+        - {tipo_contato: "telefone", contato: "11900405285", tipo: null, principal: null, posicao: 1, _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+        - {tipo_contato: "telefone", contato: "2199998888", tipo: null, principal: null, posicao: 2, _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+        - {tipo_contato: "email", contato: "ana@x.com", tipo: null, principal: null, posicao: 1, _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+        - {tipo_contato: "telefone", contato: "11900405285", tipo: "celular", principal: true, posicao: 1, _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
+        - {tipo_contato: "email", contato: "ana@x.com", tipo: null, principal: null, posicao: 1, _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
+        - {tipo_contato: "telefone", contato: "11900405285", tipo: "fixo", principal: false, posicao: 1, _arquivo: "b3", _linha: 3, _hash_arquivo: "h3"}
+
+  - name: silver_beta_enderecos_abertos_da_linha
+    description: >
+      A lista de endereços ou o objeto único (posição 1) viram uma linha por endereço, com o `atual`
+      como veio, a UF fora das 27 virando NULL e o CEP de 7 dígitos ou com hífen virando 8 dígitos.
+    model: silver_beta_devedores_enderecos_padronizados
+    given:
+      - input: ref('silver_beta_devedores_padronizados')
+        format: sql
+        rows: |
+          SELECT CAST('[{"tipo": "residencial", "logradouro": " Rua A ", "numero": "S/N", "complemento": null, "bairro": "Centro", "cidade": "Santos", "uf": " sp ", "cep": "11010-000", "atual": true}, {"tipo": "comercial", "logradouro": "Rua B", "numero": "10", "complemento": "sala 2", "bairro": "Gonzaga", "cidade": "Santos", "uf": "XX", "cep": "7359422", "atual": false}]' AS JSON) AS lista_enderecos, CAST(NULL AS JSON) AS endereco_unico, 'f2' AS _arquivo, 1 AS _linha, 'h' AS _hash_arquivo
+          UNION ALL
+          SELECT CAST(NULL AS JSON), CAST('{"tipo": "residencial", "logradouro": "Rua C", "numero": "5", "complemento": "", "bairro": "Boqueirao", "cidade": "Santos", "uf": "SP", "cep": "11055300", "atual": true}' AS JSON), 'f2', 2, 'h'
+    expect:
+      rows:
+        - {posicao: 1, tipo: "residencial", logradouro: "Rua A", numero: "S/N", complemento: null, bairro: "Centro", cidade: "Santos", uf: "SP", cep: "11010000", atual: true, _arquivo: "f2", _linha: 1}
+        - {posicao: 2, tipo: "comercial", logradouro: "Rua B", numero: "10", complemento: "sala 2", bairro: "Gonzaga", cidade: "Santos", uf: null, cep: "07359422", atual: false, _arquivo: "f2", _linha: 1}
+        - {posicao: 1, tipo: "residencial", logradouro: "Rua C", numero: "5", complemento: null, bairro: "Boqueirao", cidade: "Santos", uf: "SP", cep: "11055300", atual: true, _arquivo: "f2", _linha: 2}
+
+  - name: silver_beta_devedores_historico_versoes
+    description: >
+      Uma linha por versão. A duplicata real (mesmo conteúdo, só `_arquivo`, `_linha`, `_hash_arquivo`
+      e `data_entrega` diferentes) colapsa e soma a primeira e a última entrega; a lista de contatos
+      e a de endereços em outra ordem são a mesma versão; contato ou endereço diferente é versão
+      nova; a linha sem documento vira versão.
+    model: silver_beta_devedores_historico
+    given:
+      - input: ref('silver_beta_devedores_padronizados')
+        format: sql
+        rows: |
+          SELECT CAST('CPF' AS VARCHAR) AS documento_tipo, CAST('123' AS VARCHAR) AS documento, CAST('ANA' AS VARCHAR) AS nome_completo, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS vinculo_empresa_cnpj, CAST(NULL AS DATE) AS vinculo_empresa_desde, CAST(1000 AS DECIMAL(14, 2)) AS renda_mensal, CAST('2026-07-01' AS DATE) AS atualizado_em, CAST('2026-08-31' AS DATE) AS data_entrega, CAST('b1' AS VARCHAR) AS _arquivo, CAST(1 AS INTEGER) AS _linha, CAST('h1' AS VARCHAR) AS _hash_arquivo
+          UNION ALL
+          SELECT CAST('CPF' AS VARCHAR), CAST('123' AS VARCHAR), CAST('ANA' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS DATE), CAST(1000 AS DECIMAL(14, 2)), CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), CAST('b2' AS VARCHAR), CAST(4 AS INTEGER), CAST('h2' AS VARCHAR)
+          UNION ALL
+          SELECT CAST('CPF' AS VARCHAR), CAST('123' AS VARCHAR), CAST('ANA' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS DATE), CAST(1000 AS DECIMAL(14, 2)), CAST('2026-07-01' AS DATE), CAST('2026-09-10' AS DATE), CAST('b3' AS VARCHAR), CAST(2 AS INTEGER), CAST('h3' AS VARCHAR)
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('SEM CHAVE' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS DECIMAL(14, 2)), CAST('2026-07-01' AS DATE), CAST('2026-08-31' AS DATE), CAST('b1' AS VARCHAR), CAST(5 AS INTEGER), CAST('h1' AS VARCHAR)
+      - input: ref('silver_beta_devedores_contatos_padronizados')
+        format: sql
+        rows: |
+          SELECT CAST('telefone' AS VARCHAR) AS tipo_contato, CAST('11900405285' AS VARCHAR) AS contato, CAST('celular' AS VARCHAR) AS tipo, CAST(true AS BOOLEAN) AS principal, CAST(1 AS INTEGER) AS posicao, CAST('b1' AS VARCHAR) AS _arquivo, CAST(1 AS INTEGER) AS _linha, CAST('h1' AS VARCHAR) AS _hash_arquivo
+          UNION ALL
+          SELECT CAST('email' AS VARCHAR), CAST('ana@x.com' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS BOOLEAN), CAST(2 AS INTEGER), CAST('b1' AS VARCHAR), CAST(1 AS INTEGER), CAST('h1' AS VARCHAR)
+          UNION ALL
+          SELECT CAST('email' AS VARCHAR), CAST('ana@x.com' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS BOOLEAN), CAST(1 AS INTEGER), CAST('b2' AS VARCHAR), CAST(4 AS INTEGER), CAST('h2' AS VARCHAR)
+          UNION ALL
+          SELECT CAST('telefone' AS VARCHAR), CAST('11900405285' AS VARCHAR), CAST('celular' AS VARCHAR), CAST(true AS BOOLEAN), CAST(2 AS INTEGER), CAST('b2' AS VARCHAR), CAST(4 AS INTEGER), CAST('h2' AS VARCHAR)
+          UNION ALL
+          SELECT CAST('telefone' AS VARCHAR), CAST('21999998888' AS VARCHAR), CAST('fixo' AS VARCHAR), CAST(false AS BOOLEAN), CAST(1 AS INTEGER), CAST('b3' AS VARCHAR), CAST(2 AS INTEGER), CAST('h3' AS VARCHAR)
+      - input: ref('silver_beta_devedores_enderecos_padronizados')
+        format: sql
+        rows: |
+          SELECT CAST(1 AS INTEGER) AS posicao, CAST('residencial' AS VARCHAR) AS tipo, CAST('RUA A' AS VARCHAR) AS logradouro, CAST('1' AS VARCHAR) AS numero, CAST(NULL AS VARCHAR) AS complemento, CAST(NULL AS VARCHAR) AS bairro, CAST('SANTOS' AS VARCHAR) AS cidade, CAST('SP' AS VARCHAR) AS uf, CAST('11010000' AS VARCHAR) AS cep, CAST(true AS BOOLEAN) AS atual, CAST('b1' AS VARCHAR) AS _arquivo, CAST(1 AS INTEGER) AS _linha, CAST('h1' AS VARCHAR) AS _hash_arquivo
+          UNION ALL
+          SELECT CAST(2 AS INTEGER), CAST('comercial' AS VARCHAR), CAST('RUA B' AS VARCHAR), CAST('2' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('SANTOS' AS VARCHAR), CAST('SP' AS VARCHAR), CAST('11010000' AS VARCHAR), CAST(false AS BOOLEAN), CAST('b1' AS VARCHAR), CAST(1 AS INTEGER), CAST('h1' AS VARCHAR)
+          UNION ALL
+          SELECT CAST(1 AS INTEGER), CAST('comercial' AS VARCHAR), CAST('RUA B' AS VARCHAR), CAST('2' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('SANTOS' AS VARCHAR), CAST('SP' AS VARCHAR), CAST('11010000' AS VARCHAR), CAST(false AS BOOLEAN), CAST('b2' AS VARCHAR), CAST(4 AS INTEGER), CAST('h2' AS VARCHAR)
+          UNION ALL
+          SELECT CAST(2 AS INTEGER), CAST('residencial' AS VARCHAR), CAST('RUA A' AS VARCHAR), CAST('1' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('SANTOS' AS VARCHAR), CAST('SP' AS VARCHAR), CAST('11010000' AS VARCHAR), CAST(true AS BOOLEAN), CAST('b2' AS VARCHAR), CAST(4 AS INTEGER), CAST('h2' AS VARCHAR)
+          UNION ALL
+          SELECT CAST(1 AS INTEGER), CAST('residencial' AS VARCHAR), CAST('RUA A' AS VARCHAR), CAST('1' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('SANTOS' AS VARCHAR), CAST('SP' AS VARCHAR), CAST('11010000' AS VARCHAR), CAST(true AS BOOLEAN), CAST('b3' AS VARCHAR), CAST(2 AS INTEGER), CAST('h3' AS VARCHAR)
+      - input: source('bronze_beta', 'devedores')
+        rows:
+          - {_arquivo: "b1", _linha: 1, _linha_original: "j1"}
+          - {_arquivo: "b2", _linha: 4, _linha_original: "j4"}
+          - {_arquivo: "b3", _linha: 2, _linha_original: "j2"}
+          - {_arquivo: "b1", _linha: 5, _linha_original: "j5"}
+      - input: source('bronze_beta', 'arquivos')
+        rows:
+          - {arquivo: "b1", cabecalho: null}
+          - {arquivo: "b2", cabecalho: null}
+          - {arquivo: "b3", cabecalho: null}
+    expect:
+      rows:
+        - {documento_tipo: "CPF", documento: "123", nome_completo: "ANA", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-03", _arquivo: "b2", _linha: 4, _hash_arquivo: "h2"}
+        - {documento_tipo: "CPF", documento: "123", nome_completo: "ANA", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "b3", _linha: 2, _hash_arquivo: "h3"}
+        - {documento_tipo: null, documento: null, nome_completo: "SEM CHAVE", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "b1", _linha: 5, _hash_arquivo: "h1"}

@@ -60,55 +60,88 @@ unit_tests:
 
   - name: silver_alfa_devedores_versao_mais_recente
     description: >
-      Uma linha por documento. Vale a maior data de atualização; no empate, a maior data de entrega;
-      no empate dos dois, a maior linha. Linha sem documento (NULL) não é devedor e não forma grupo.
+      Uma linha por documento, tirada da histórica. Vale a maior data de atualização; no empate, a
+      maior data de entrega (a última da versão); no empate dos dois, a maior linha. Linha sem
+      documento (NULL) não é devedor e não forma grupo. `data_entrega` é a última entrega da versão.
     model: silver_alfa_devedores
     given:
-      - input: ref('silver_alfa_devedores_padronizados')
-        format: sql
-        rows: |
-          SELECT 'A' AS documento, 'NOME 1' AS nome_completo, CAST('2000-01-01' AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS VARCHAR) AS cargo, CAST(NULL AS DECIMAL(14, 2)) AS salario_informado, CAST(NULL AS VARCHAR) AS telefone, CAST(NULL AS VARCHAR) AS email, CAST(NULL AS VARCHAR) AS endereco, CAST(NULL AS VARCHAR) AS logradouro, CAST(NULL AS VARCHAR) AS numero, CAST(NULL AS VARCHAR) AS complemento, CAST(NULL AS VARCHAR) AS bairro, CAST(NULL AS VARCHAR) AS cidade, CAST(NULL AS VARCHAR) AS cep, CAST(NULL AS VARCHAR) AS uf, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
-          UNION ALL
-          SELECT 'A', 'NOME 2', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 1, 'h'
-          UNION ALL
-          SELECT 'A', 'NOME 0', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-06-01' AS DATE), CAST('2026-09-10' AS DATE), 'f3', 9, 'h'
-          UNION ALL
-          SELECT 'B', 'EMPATE 1', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 4, 'h'
-          UNION ALL
-          SELECT 'B', 'EMPATE 2', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 8, 'h'
-          UNION ALL
-          SELECT CAST(NULL AS VARCHAR), 'SEM DOCUMENTO 1', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-09-20' AS DATE), CAST('2026-09-20' AS DATE), 'f5', 1, 'h'
-          UNION ALL
-          SELECT CAST(NULL AS VARCHAR), 'SEM DOCUMENTO 2', CAST('2000-01-01' AS DATE), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-09-21' AS DATE), CAST('2026-09-21' AS DATE), 'f5', 2, 'h'
+      - input: ref('silver_alfa_devedores_historico')
+        rows:
+          - {documento: "A", nome_completo: "NOME 1", data_atualizacao: "2026-07-01", data_ultima_entrega: "2026-08-31", hash_conteudo: "h_a1", _arquivo: "f1", _linha: 5}
+          - {documento: "A", nome_completo: "NOME 2", data_atualizacao: "2026-07-01", data_ultima_entrega: "2026-09-03", hash_conteudo: "h_a2", _arquivo: "f2", _linha: 1}
+          - {documento: "A", nome_completo: "NOME 0", data_atualizacao: "2026-06-01", data_ultima_entrega: "2026-09-10", hash_conteudo: "h_a0", _arquivo: "f3", _linha: 9}
+          - {documento: "B", nome_completo: "EMPATE 1", data_atualizacao: "2026-07-01", data_ultima_entrega: "2026-09-03", hash_conteudo: "h_b1", _arquivo: "f2", _linha: 4}
+          - {documento: "B", nome_completo: "EMPATE 2", data_atualizacao: "2026-07-01", data_ultima_entrega: "2026-09-03", hash_conteudo: "h_b2", _arquivo: "f2", _linha: 8}
+          - {documento: null, nome_completo: "SEM DOCUMENTO 1", data_atualizacao: "2026-09-20", data_ultima_entrega: "2026-09-20", hash_conteudo: "h_n1", _arquivo: "f5", _linha: 1}
+          - {documento: null, nome_completo: "SEM DOCUMENTO 2", data_atualizacao: "2026-09-21", data_ultima_entrega: "2026-09-21", hash_conteudo: "h_n2", _arquivo: "f5", _linha: 2}
     expect:
       rows:
-        - {documento: "A", nome_completo: "NOME 2", _linha: 1}
-        - {documento: "B", nome_completo: "EMPATE 2", _linha: 8}
+        - {documento: "A", nome_completo: "NOME 2", data_entrega: "2026-09-03", hash_conteudo: "h_a2", _linha: 1}
+        - {documento: "B", nome_completo: "EMPATE 2", data_entrega: "2026-09-03", hash_conteudo: "h_b2", _linha: 8}
 
   - name: silver_alfa_contatos_aparicao_mais_recente
     description: >
-      O par (documento, tipo_contato, contato) repetido soma as datas de entrega (primeira e última) e traz
-      o arquivo, a linha e o hash da aparição mais recente; um telefone que sumiu da versão atual
-      continua registrado, e contato vazio não gera linha. Contato de linha sem documento (NULL)
-      entra com `documento` NULL, deduplicado só por (tipo_contato, contato) entre as linhas sem
+      Os pares saem da histórica. O par (documento, tipo_contato, contato) em mais de uma versão soma
+      as datas de entrega (menor primeira, maior última) e traz o arquivo, a linha e o hash da versão
+      com a maior ordem (atualização, entrega, arquivo, linha); um telefone que sumiu da versão atual
+      continua registrado, e contato vazio não gera linha. Contato de versão sem documento (NULL)
+      entra com `documento` NULL, deduplicado só por (tipo_contato, contato) entre as versões sem
       documento, e nunca se junta ao par de um documento válido com o mesmo telefone.
     model: silver_alfa_devedores_contatos
     given:
-      - input: ref('silver_alfa_devedores_padronizados')
-        format: sql
-        rows: |
-          SELECT 'A' AS documento, '11900405285' AS telefone, 'ana@x.com' AS email, CAST('2026-08-31' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 'a1' AS _arquivo, 4 AS _linha, 'h1' AS _hash_arquivo
-          UNION ALL
-          SELECT 'A', '11900405285', CAST(NULL AS VARCHAR), CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 'a2', 9, 'h2'
-          UNION ALL
-          SELECT 'B', CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 'a2', 10, 'h2'
-          UNION ALL
-          SELECT CAST(NULL AS VARCHAR), '11900405285', CAST(NULL AS VARCHAR), CAST('2026-09-01' AS DATE), CAST('2026-09-01' AS DATE), 'a3', 2, 'h3'
-          UNION ALL
-          SELECT CAST(NULL AS VARCHAR), '11900405285', 'z@x.com', CAST('2026-09-12' AS DATE), CAST('2026-09-12' AS DATE), 'a4', 7, 'h4'
+      - input: ref('silver_alfa_devedores_historico')
+        rows:
+          - {documento: "A", telefone: "11900405285", email: "ana@x.com", data_atualizacao: "2026-08-31", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "a1", _linha: 4, _hash_arquivo: "h1"}
+          - {documento: "A", telefone: "11900405285", email: null, data_atualizacao: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
+          - {documento: "B", telefone: null, email: null, data_atualizacao: "2026-09-10", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 10, _hash_arquivo: "h2"}
+          - {documento: null, telefone: "11900405285", email: null, data_atualizacao: "2026-09-01", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-01", _arquivo: "a3", _linha: 2, _hash_arquivo: "h3"}
+          - {documento: null, telefone: "11900405285", email: "z@x.com", data_atualizacao: "2026-09-12", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
     expect:
       rows:
         - {documento: "A", tipo_contato: "telefone", contato: "11900405285", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "a2", _linha: 9, _hash_arquivo: "h2"}
         - {documento: "A", tipo_contato: "email", contato: "ana@x.com", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "a1", _linha: 4, _hash_arquivo: "h1"}
         - {documento: null, tipo_contato: "telefone", contato: "11900405285", data_primeira_entrega: "2026-09-01", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
         - {documento: null, tipo_contato: "email", contato: "z@x.com", data_primeira_entrega: "2026-09-12", data_ultima_entrega: "2026-09-12", _arquivo: "a4", _linha: 7, _hash_arquivo: "h4"}
+
+  - name: silver_alfa_devedores_historico_versoes
+    description: >
+      Uma linha por versão. A duplicata real (mesmo conteúdo, só `_arquivo`, `_linha`, `_hash_arquivo`
+      e `data_entrega` diferentes) colapsa e soma a primeira e a última entrega, com a rastreabilidade
+      da aparição mais recente; conteúdo diferente é versão nova, e a data de atualização também é
+      conteúdo; a linha sem documento vira versão; a linha que repete o cabeçalho do arquivo fica fora.
+    model: silver_alfa_devedores_historico
+    given:
+      - input: ref('silver_alfa_devedores_padronizados')
+        format: sql
+        rows: |
+          SELECT CAST('A' AS VARCHAR) AS documento, CAST('ANA' AS VARCHAR) AS nome_completo, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS VARCHAR) AS cargo, CAST(NULL AS DECIMAL(14, 2)) AS salario_informado, CAST('11900405285' AS VARCHAR) AS telefone, CAST(NULL AS VARCHAR) AS email, CAST(NULL AS VARCHAR) AS endereco, CAST(NULL AS VARCHAR) AS logradouro, CAST(NULL AS VARCHAR) AS numero, CAST(NULL AS VARCHAR) AS complemento, CAST(NULL AS VARCHAR) AS bairro, CAST(NULL AS VARCHAR) AS cidade, CAST(NULL AS VARCHAR) AS cep, CAST(NULL AS VARCHAR) AS uf, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, CAST('f1' AS VARCHAR) AS _arquivo, CAST(1 AS INTEGER) AS _linha, CAST('h1' AS VARCHAR) AS _hash_arquivo
+          UNION ALL
+          SELECT CAST('A' AS VARCHAR), CAST('ANA' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST('11900405285' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), CAST('f2' AS VARCHAR), CAST(3 AS INTEGER), CAST('h2' AS VARCHAR)
+          UNION ALL
+          SELECT CAST('A' AS VARCHAR), CAST('ANA MARIA' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST('11900405285' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-07-01' AS DATE), CAST('2026-09-10' AS DATE), CAST('f3' AS VARCHAR), CAST(2 AS INTEGER), CAST('h3' AS VARCHAR)
+          UNION ALL
+          SELECT CAST('A' AS VARCHAR), CAST('ANA' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST('11900405285' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-08-01' AS DATE), CAST('2026-09-11' AS DATE), CAST('f4' AS VARCHAR), CAST(1 AS INTEGER), CAST('h4' AS VARCHAR)
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), CAST('SEM CHAVE' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST('11900000000' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST('2026-07-01' AS DATE), CAST('2026-08-31' AS DATE), CAST('f1' AS VARCHAR), CAST(5 AS INTEGER), CAST('h1' AS VARCHAR)
+          UNION ALL
+          SELECT CAST(NULL AS VARCHAR), CAST('nome_completo' AS VARCHAR), CAST(NULL AS DATE), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DECIMAL(14, 2)), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS DATE), CAST('2026-08-31' AS DATE), CAST('f1' AS VARCHAR), CAST(9 AS INTEGER), CAST('h1' AS VARCHAR)
+      - input: source('bronze_alfa', 'devedores')
+        rows:
+          - {_arquivo: "f1", _linha: 1, _linha_original: "l1"}
+          - {_arquivo: "f2", _linha: 3, _linha_original: "l3"}
+          - {_arquivo: "f3", _linha: 2, _linha_original: "l2"}
+          - {_arquivo: "f4", _linha: 1, _linha_original: "l1b"}
+          - {_arquivo: "f1", _linha: 5, _linha_original: "l5"}
+          - {_arquivo: "f1", _linha: 9, _linha_original: "documento,nome_completo"}
+      - input: source('bronze_alfa', 'arquivos')
+        rows:
+          - {arquivo: "f1", cabecalho: "documento,nome_completo"}
+          - {arquivo: "f2", cabecalho: "documento,nome_completo"}
+          - {arquivo: "f3", cabecalho: "documento,nome_completo"}
+          - {arquivo: "f4", cabecalho: "documento,nome_completo"}
+    expect:
+      rows:
+        - {documento: "A", nome_completo: "ANA", data_atualizacao: "2026-07-01", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-03", _arquivo: "f2", _linha: 3, _hash_arquivo: "h2"}
+        - {documento: "A", nome_completo: "ANA MARIA", data_atualizacao: "2026-07-01", data_primeira_entrega: "2026-09-10", data_ultima_entrega: "2026-09-10", _arquivo: "f3", _linha: 2, _hash_arquivo: "h3"}
+        - {documento: "A", nome_completo: "ANA", data_atualizacao: "2026-08-01", data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "f4", _linha: 1, _hash_arquivo: "h4"}
+        - {documento: null, nome_completo: "SEM CHAVE", data_atualizacao: "2026-07-01", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "f1", _linha: 5, _hash_arquivo: "h1"}
