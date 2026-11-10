@@ -52,7 +52,7 @@ WITH tBase AS (
       , NULLIF(TRIM(registro_json ->> 'nome_devedor'), '')
     ) AS nome_completo
     , registro_json ->> 'data_nascimento' AS data_nascimento
-    , (registro_json -> 'vinculo_empresa') ->> 'cnpj' AS cnpj_empregador
+    , {{ cnpj_sem_mascara("(registro_json -> 'vinculo_empresa') ->> 'cnpj'") }} AS cnpj_empregador
     , NULLIF(TRIM((registro_json -> 'vinculo_empresa') ->> 'desde'), '') AS vinculo_desde
     , registro_json ->> 'renda_mensal' AS renda_mensal
     , registro_json ->> 'atualizado_em' AS atualizado_em

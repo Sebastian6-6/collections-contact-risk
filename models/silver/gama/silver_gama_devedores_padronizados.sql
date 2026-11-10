@@ -28,7 +28,7 @@ WITH tBase AS (
     {{ cpf_normalizado('documento') }} AS documento
     , NULLIF(TRIM(nome), '') AS nome
     , data_nascimento
-    , cnpj_empregador_raw
+    , {{ cnpj_sem_mascara('cnpj_empregador_raw') }} AS cnpj_empregador_raw
     , dt_ref
     , {{ json_ou_nulo('contatos') }} AS lista_contatos
     , {{ json_ou_nulo('endereco_json') }} AS endereco_json

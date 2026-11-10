@@ -35,8 +35,14 @@ models:
         description: "Data de nascimento. A data sentinela 1900-01-01 da origem fica como veio."
       - name: cnpj_empregador
         description: >-
-          CNPJ do empregador em maiúsculas e sem máscara, com zeros à esquerda repostos até 14
-          posições. `NULL` quando o provedor não informou.
+          CNPJ do empregador, padronizado para 14 caracteres alfanuméricos.
+          Regra (macro `cnpj_normalizado`): só letras e dígitos, em maiúsculas. Com 14
+          caracteres, fica como veio. Com menos, completa com zeros à esquerda se o resultado tiver
+          dígitos verificadores válidos; com 12 caracteres e sem essa possibilidade, calcula os dois
+          dígitos pela regra oficial da Receita. O que não encaixa fica como veio (limitação da
+          base, teste `cnpj_do_empregador_fora_da_regra`). Todo valor de 14 caracteres tem dígitos
+          verificadores válidos (teste `cnpj_do_empregador_com_digito_verificador_valido`).
+          `NULL` quando o provedor não informou.
       - name: cargo
         description: "Cargo do devedor; `NULL` quando vazio."
       - name: salario_informado

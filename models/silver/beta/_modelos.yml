@@ -66,8 +66,14 @@ models:
         description: "Data de nascimento (ISO ou dd/mm/aaaa na origem); `NULL` quando vazia ou inexistente no calendário."
       - name: cnpj_empregador
         description: >-
-          CNPJ do empregador (`vinculo_empresa.cnpj`) em maiúsculas e sem máscara, com zeros à
-          esquerda repostos até 14 posições. `NULL` quando o provedor não informou vínculo.
+          CNPJ do empregador (`vinculo_empresa.cnpj`), padronizado para 14 caracteres alfanuméricos.
+          Regra (macro `cnpj_normalizado`): só letras e dígitos, em maiúsculas. Com 14
+          caracteres, fica como veio. Com menos, completa com zeros à esquerda se o resultado tiver
+          dígitos verificadores válidos; com 12 caracteres e sem essa possibilidade, calcula os dois
+          dígitos pela regra oficial da Receita. O que não encaixa fica como veio (limitação da
+          base, teste `cnpj_do_empregador_fora_da_regra`). Todo valor de 14 caracteres tem dígitos
+          verificadores válidos (teste `cnpj_do_empregador_com_digito_verificador_valido`).
+          `NULL` quando o provedor não informou vínculo.
       - name: vinculo_desde
         description: >-
           Mês de início do vínculo com o empregador (`vinculo_empresa.desde`), em texto `AAAA-MM`

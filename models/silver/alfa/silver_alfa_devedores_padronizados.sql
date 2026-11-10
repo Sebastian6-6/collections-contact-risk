@@ -12,7 +12,6 @@ WITH tBase AS (
   SELECT
     nome_completo
     , data_nascimento
-    , cnpj_empregador
     , cargo
     , salario_informado
     , telefone
@@ -24,6 +23,7 @@ WITH tBase AS (
     , _arquivo
     , _linha
     , _hash_arquivo
+    , {{ cnpj_sem_mascara('cnpj_empregador') }} AS cnpj_empregador
     , COALESCE(NULLIF(TRIM(cpf), ''), NULLIF(TRIM(documento), '')) AS documento_origem
   FROM {{ source('bronze_alfa', 'devedores') }}
   WHERE 1 = 1
