@@ -1,8 +1,9 @@
 ---
 topic: enriquecimento-cnpj
-status: active
+status: completed
 created: 2026-11-10
-updated: 2026-11-10 04:42
+updated: 2026-11-10 09:50
+completed: 2026-11-10
 scope:
   - scripts/extrair_receita_cnpj.py
   - dados_externos/

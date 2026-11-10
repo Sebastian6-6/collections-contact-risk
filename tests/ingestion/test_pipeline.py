@@ -13,7 +13,7 @@ collections_contact_risk:
   outputs:
     dev:
       type: duckdb
-      path: banco/teste.duckdb
+      path: database/teste.duckdb
 """
 
 
@@ -34,7 +34,7 @@ def config(raiz):
 
 
 def test_o_caminho_do_banco_vem_do_profiles_yml(raiz):
-    assert pipeline.caminho_do_banco(raiz) == raiz / "banco" / "teste.duckdb"
+    assert pipeline.caminho_do_banco(raiz) == raiz / "database" / "teste.duckdb"
 
 
 def test_apaga_o_banco_e_o_arquivo_de_log_de_escrita(raiz):

@@ -7,7 +7,7 @@ Cruzar os empregadores recebidos com os dados abertos do CNPJ da Receita Federal
 
 ## 2. Decisões
 - **C1. A Receita é uma fonte, `receita`,** com o mesmo padrão das outras: `bronze_receita.<entidade>` → `silver_receita.<entidade>` → gold. Bronze e silver mantêm os nomes de coluna do layout oficial (`cnpj-metadados.pdf`, 02/12/2021) e os valores como vieram. Os nomes das colunas vêm do layout, porque os arquivos não têm cabeçalho: escritos em minúsculas, com `_` entre as palavras e sem acento, exatamente na ordem do layout. A regra de transcrição fica documentada.
-- **C2. O conector `receita`** (`@conector("receita")` em `ingestion/conectores.py`) usa o WebDAV público do compartilhamento oficial da Receita, com o mês 2026-10 fixado em `ingestion/fontes.yml`. Ele baixa os 37 arquivos (7,8 GB) para um cache local fora do git, calcula o sha256 de cada um (a Receita não publica checksum) e grava em `dados_externos/receita/2026-10/`, a pasta versionada:
+- **C2. O conector `receita`** (`@conector("receita")` em `ingestion/conectores.py`) usa o WebDAV público do compartilhamento oficial da Receita, com o mês 2026-10 fixado em `ingestion/fontes.yml`. Ele baixa os 37 arquivos (7,8 GB) para um cache local fora do git, calcula o sha256 de cada um (a Receita não publica checksum) e grava em `external_data/receita/2026-10/`, a pasta versionada:
   - as 6 tabelas de domínio inteiras: `cnaes`, `motivos`, `municipios`, `naturezas`, `paises`, `qualificacoes`;
   - das tabelas `empresas`, `estabelecimentos`, `simples` e `socios`, as linhas das empresas recebidas (raiz de 8 caracteres dos CNPJs da silver);
   - `ORIGEM.md`, com a URL, o mês, os bytes e o sha256 de cada arquivo baixado, a lista de raízes e o hash dela.

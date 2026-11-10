@@ -188,7 +188,7 @@ def _parametros(**trocas) -> ParametrosReceita:
 
 def _montar(tmp_path, cliente=None, parametros=None, raizes=("11111111", "33333333", "55555555")):
     cliente = cliente or ClienteFalso(_remotos())
-    destino = tmp_path / "dados_externos" / "receita" / "2026-10"
+    destino = tmp_path / "external_data" / "receita" / "2026-10"
     escritos = montar_extrato(
         cliente, parametros or _parametros(), raizes, destino, tmp_path / ".cache"
     )
@@ -289,7 +289,7 @@ def test_arquivo_fora_da_configuracao_e_erro_e_nao_grava_nada(tmp_path):
     with pytest.raises(ErroDeIngestao, match=r"Novidade0\.zip"):
         _montar(tmp_path, ClienteFalso(remotos))
 
-    assert not (tmp_path / "dados_externos").exists()
+    assert not (tmp_path / "external_data").exists()
 
 
 def test_entidade_configurada_sem_arquivo_na_origem_e_erro(tmp_path):
@@ -306,7 +306,7 @@ def test_falha_em_um_zip_nao_deixa_extrato_pela_metade(tmp_path):
     with pytest.raises(ErroDeIngestao, match=r"Socios0\.zip"):
         _montar(tmp_path, ClienteFalso(remotos))
 
-    assert not (tmp_path / "dados_externos").exists()
+    assert not (tmp_path / "external_data").exists()
 
 
 def test_sem_raizes_nao_baixa_nada(tmp_path):
@@ -397,7 +397,7 @@ def _projeto_para_baixar(tmp_path, url_webdav: str) -> Path:
 receita:
   _baixar:
     origem: receita
-    destino: dados_externos/receita/2026-10
+    destino: external_data/receita/2026-10
     parametros:
       mes: "2026-10"
       url_compartilhamento: https://exemplo.gov.br/s/TOKEN
@@ -429,7 +429,7 @@ def test_baixar_receita_pela_linha_de_comando_grava_o_extrato(tmp_path, monkeypa
             ]
         )  # fmt: skip
 
-    destino = tmp_path / "dados_externos" / "receita" / "2026-10"
+    destino = tmp_path / "external_data" / "receita" / "2026-10"
     assert codigo == 0
     assert (destino / "empresas.csv").read_bytes() == b'"11111111";"ALFA"\n"33333333";"GAMA"\n'
     assert "ORIGEM.md" in capsys.readouterr().out
