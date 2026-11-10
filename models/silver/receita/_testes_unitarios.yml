@@ -1,0 +1,59 @@
+version: 2
+
+unit_tests:
+  - name: silver_receita_estabelecimentos_padronizacao_cnpj_e_datas
+    description: >
+      O CNPJ completo junta base, ordem e dígitos verificadores (a letra do CNPJ alfanumérico fica
+      na ordem); datas AAAAMMDD viram `DATE`; `00000000`, vazio e data inexistente viram `NULL`; texto
+      sem espaços nas pontas e vazio como `NULL`; linha ilegível fica fora.
+    model: silver_receita_estabelecimentos_padronizados
+    given:
+      - input: source('bronze_receita', 'estabelecimentos')
+        rows:
+          - {cnpj_basico: "47960950", cnpj_ordem: "0001", cnpj_dv: "35", data_situacao_cadastral: "20240606", data_de_inicio_atividade: "00000000", data_da_situacao_especial: "", nome_fantasia: "", complemento: "      CONSORCIO P M 1443", cnae_fiscal_secundaria: "4693100,4711302", _arquivo: "f", _linha: 1, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {cnpj_basico: "00000000", cnpj_ordem: "E08G", cnpj_dv: "12", data_situacao_cadastral: "20260230", data_de_inicio_atividade: "20260731", data_da_situacao_especial: "", nome_fantasia: "BB", complemento: "", cnae_fiscal_secundaria: "", _arquivo: "f", _linha: 2, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {cnpj_basico: "", cnpj_ordem: "", cnpj_dv: "", data_situacao_cadastral: "", data_de_inicio_atividade: "", data_da_situacao_especial: "", nome_fantasia: "", complemento: "", cnae_fiscal_secundaria: "", _arquivo: "f", _linha: 3, _hash_arquivo: "h", _motivo_ilegivel: "linha truncada"}
+    expect:
+      rows:
+        - {cnpj: "47960950000135", cnpj_basico: "47960950", data_situacao_cadastral: "2024-06-06", data_de_inicio_atividade: null, data_da_situacao_especial: null, nome_fantasia: null, complemento: "CONSORCIO P M 1443", cnae_fiscal_secundaria: "4693100,4711302", _linha: 1}
+        - {cnpj: "00000000E08G12", cnpj_basico: "00000000", data_situacao_cadastral: null, data_de_inicio_atividade: "2026-07-31", data_da_situacao_especial: null, nome_fantasia: "BB", complemento: null, cnae_fiscal_secundaria: null, _linha: 2}
+
+  - name: silver_receita_empresas_repetida_vale_a_ultima_linha_e_capital_vira_numero
+    description: >
+      Uma base de CNPJ repetida fica com a linha de maior `_arquivo` e, no empate, de maior `_linha`;
+      o capital com vírgula decimal vira número, e `0,00` continua 0.00 (valor informado).
+    model: silver_receita_empresas
+    given:
+      - input: source('bronze_receita', 'empresas')
+        rows:
+          - {cnpj_basico: "47960950", razao_social_nome_empresarial: "ANTIGA", capital_social_da_empresa: "1,00", _arquivo: "f", _linha: 1, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {cnpj_basico: "47960950", razao_social_nome_empresarial: " MAGAZINE LUIZA S/A ", capital_social_da_empresa: "14202162483,70", _arquivo: "f", _linha: 7, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {cnpj_basico: "04182736", razao_social_nome_empresarial: "F DE A DE S COSTA", capital_social_da_empresa: "0,00", _arquivo: "f", _linha: 2, _hash_arquivo: "h", _motivo_ilegivel: null}
+          - {cnpj_basico: "", razao_social_nome_empresarial: "SEM CHAVE", capital_social_da_empresa: "5,00", _arquivo: "f", _linha: 3, _hash_arquivo: "h", _motivo_ilegivel: null}
+    expect:
+      rows:
+        - {cnpj_basico: "47960950", razao_social_nome_empresarial: "MAGAZINE LUIZA S/A", capital_social_da_empresa: 14202162483.70, _linha: 7}
+        - {cnpj_basico: "04182736", razao_social_nome_empresarial: "F DE A DE S COSTA", capital_social_da_empresa: 0.00, _linha: 2}
+
+  - name: silver_receita_estabelecimentos_cnaes_secundarios_um_cnae_por_linha
+    description: >
+      O campo de CNAEs secundários, separado por vírgula, vira uma linha por código do estabelecimento
+      escolhido; código repetido conta uma vez e campo vazio não gera linha.
+    model: silver_receita_estabelecimentos_cnaes_secundarios
+    given:
+      - input: ref('silver_receita_estabelecimentos')
+        format: sql
+        rows: |
+          SELECT '47960950000135' AS cnpj, 'f' AS _arquivo, 1 AS _linha, 'h' AS _hash_arquivo
+          UNION ALL
+          SELECT '60330500000299', 'f', 2, 'h'
+      - input: ref('silver_receita_estabelecimentos_padronizados')
+        format: sql
+        rows: |
+          SELECT '47960950000135' AS cnpj, '4693100,4711302,4693100, ' AS cnae_fiscal_secundaria, 'f' AS _arquivo, 1 AS _linha
+          UNION ALL
+          SELECT '60330500000299', CAST(NULL AS VARCHAR), 'f', 2
+    expect:
+      rows:
+        - {cnpj: "47960950000135", cnae_fiscal_secundaria: "4693100", _linha: 1}
+        - {cnpj: "47960950000135", cnae_fiscal_secundaria: "4711302", _linha: 1}

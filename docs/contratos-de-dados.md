@@ -182,3 +182,38 @@ Itens que dependem só do provedor, reunidos para a revisão do tópico e para o
 - Os significados de `0,00` no salário do alfa e das datas sentinela são suposições até o provedor confirmar. O horário de Brasília para datas e horas sem fuso é regra do projeto, e nenhum provedor a confirmou.
 - O CNPJ calculado pela regra da Receita supõe que o provedor mandou a base de 12 caracteres certa; nada confere que o empregador existe.
 - A afirmação anterior sobre o U+FFFD no beta não se reproduziu (seção 1). Se ela veio de uma leitura do terminal com outro encoding, isso não foi verificado.
+
+## 9. Receita Federal (dados abertos do CNPJ)
+
+Fonte `receita`, mês 2026-10: o extrato versionado em `dados_externos/receita/2026-10/`, gerado por `python -m ingestion.main --baixar receita` (origem, bytes e sha256 de cada zip no `ORIGEM.md` da pasta). A pipeline lê só essa pasta, sem rede. Não é um provedor de devedores: é a base pública que enriquece o empregador (p. 1, "Enriquecer vínculos empregatícios"). Layout: `cnpj-metadados.pdf` (02/12/2021).
+
+### 9.1 Bronze
+
+| Item | Recebido (medido em 2026-11-10) | Regra | Quem garante |
+|---|---|---|---|
+| Tabelas | 10: `empresas` (10 linhas), `estabelecimentos` (32.411), `simples` (4), `socios` (356) e os domínios `cnaes` (1.359), `motivos` (63), `municipios` (5.572), `naturezas` (92), `paises` (255), `qualificacoes` (68) | uma entidade por arquivo, em `ingestion/fontes.yml` | erro: `linhas_iguais_ao_registro` e `combinacao_unica` em (`_arquivo`, `_linha`) |
+| Formato | sem cabeçalho, separador `;`, campos entre aspas, ISO-8859-1 (`latin-1`) | a configuração declara `colunas`, `separador` e `encoding` | `test_leitores`; 0 linhas ilegíveis nas 10 tabelas |
+| Nomes das colunas | o layout oficial escreve em maiúsculas, com acento e pontuação | **regra de transcrição:** minúsculas, sem acento, cada sequência de caracteres fora de `a-z` e `0-9` vira um único `_`, sem `_` nas pontas, na ordem do layout (`RAZÃO SOCIAL / NOME EMPRESARIAL` vira `razao_social_nome_empresarial`; `CNPJ/CPF DO SÓCIO` vira `cnpj_cpf_do_socio`). Os domínios usam `codigo` e `descricao`. O nome original do layout está na descrição de cada coluna em `models/bronze/receita/_fontes.yml` | erro: `colunas_declaradas` |
+| Valores | datas `AAAAMMDD`, `00000000` como data ausente, capital social com vírgula decimal, campo vazio como `""` | a bronze guarda tudo em texto, como veio | a silver converte (seção 9.2) |
+| Quebra de linha dentro de campo | 0 nas linhas do extrato (a Receita tem algumas em Estabelecimentos; o leitor respeita as aspas) | `_linha` é a linha física onde o registro começa | `test_leitores` |
+| CNPJ alfanumérico | em 2026-10 a base tem um só (`00.000.000/E08G-12`); a letra fica em `cnpj_ordem`, e `cnpj_basico` segue numérico | os campos de CNPJ são texto em todas as camadas | pesquisa do tópico |
+| CNPJ de sócio pessoa jurídica | 8 dígitos em 2026-10 (era 14 em 2026-07), sem registro no layout de 2021 | o campo fica como veio | provedor (a Receita) |
+
+As decisões por trás da fonte (conector, leitor, silver e gold) estão em [decisoes-de-modelagem.md](decisoes-de-modelagem.md).
+
+### 9.2 Silver
+
+| Tabela | Grão (chave) | Linhas (medido em 2026-11-10) | Regras |
+|---|---|---|---|
+| `empresas` | `cnpj_basico` | 10 | capital social com vírgula decimal vira `NUMERIC(18, 2)` (macro `valor_decimal_virgula`); `0,00` fica 0.00, o zero que a Receita informou |
+| `estabelecimentos` | `cnpj` (14 caracteres: base, ordem e dígitos verificadores) | 32.411 | datas AAAAMMDD viram `DATE` (macro `data_compacta`); `00000000`, vazio e data inexistente viram `NULL`; os dígitos verificadores são conferidos pela regra oficial, que aceita letras (ASCII − 48), no teste `receita_cnpj_com_digito_verificador_invalido` (erro: 0 CNPJ inválido) |
+| `estabelecimentos_cnaes_secundarios` | `cnpj`, `cnae_fiscal_secundaria` | 17.434 | o campo da origem, com os códigos separados por vírgula, vira uma linha por código (AGENTS.md: lista aberta em tabela filha); tem `relationships` para `estabelecimentos` e para `cnaes` |
+| `simples` | `cnpj_basico` | 4 | datas como em `estabelecimentos`; `S`/`N` ficam como vieram e vazio vira `NULL` |
+| `socios` | `cnpj_basico`, `identificador_de_socio`, nome, `cnpj_cpf_do_socio`, `data_de_entrada_sociedade` | 356 | a origem não traz identificador do sócio e o CPF vem mascarado, então a chave é essa combinação, com `NULL` valendo como valor (`combinacao_unica`) |
+| `cnaes`, `motivos`, `municipios`, `naturezas`, `paises`, `qualificacoes` | `codigo` | 1.359, 63, 5.572, 92, 255 e 68 | domínios inteiros; o código fica texto, porque os zeros à esquerda fazem parte dele; uma única macro (`silver_receita_dominio`) gera os seis modelos |
+
+- **Nomes e valores:** os nomes de coluna são os da bronze (a origem). Texto sem espaços nas pontas e vazio como `NULL`; códigos (natureza jurídica, porte, situação cadastral, CNAE, município, país) ficam como vieram, para juntar com os domínios.
+- **Deduplicação:** pela chave de cada tabela, com `ROW_NUMBER()`: vale a linha de maior `_arquivo` e, no empate, de maior `_linha`. Hoje o extrato não repete nenhuma chave (as 11 chaves passam em `unique` ou `combinacao_unica`).
+- **Quem garante:** erro: `unique`, `not_null`, `relationships` entre as tabelas e para os domínios, `accepted_values` nos códigos fechados (porte, situação cadastral, matriz/filial, `S`/`N`, identificador e faixa etária de sócio), `receita_linhas_representadas` (toda chave legível da bronze está na silver). Aviso: `receita_linhas_sem_chave` (0 hoje) e o `relationships` de `estabelecimentos.pais` para `paises`: **1 estabelecimento traz o código de país 367, que a tabela de países de 2026-10 não tem**. É inconsistência da origem, e por isso é aviso, não erro.
+- **CNPJ de sócio pessoa jurídica** (8 dígitos em 2026-10) e **CPF mascarado** ficam como vieram. A silver não os liga a nenhuma outra tabela.
+- **Texto em maiúscula:** a Receita já publica em maiúscula; a silver não aplica `texto_maiusculo`.
