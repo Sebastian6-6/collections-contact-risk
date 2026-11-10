@@ -59,6 +59,12 @@ Branch `feat/monitoramento-e-analises` a partir da `develop`, depois do merge da
 ### 9.3 Verificação em bloco e merge
 - `verificador` APROVADO e `revisor` sem achado que bloqueie; cada achado vira um commit próprio. Depois, merge `--no-ff` com `chore: integra monitoramento-e-analises na develop`.
 
+### 8.3 Alerta por e-mail (opcional, só depois da publicação, se sobrar tempo)
+- **Quem:** `engenheiro-python` (Sonnet 5.5 · medium), branch `feat/alerta-por-email` a partir da `develop`.
+- **Fazer:** do jeito mais simples possível. `scripts/notificar_falha.py`, com `smtplib` da biblioteca padrão, é chamado pelo `pipeline.py` quando a ingestão ou o dbt falham ou quando um teste falha ou avisa. A configuração do SMTP vem só de variáveis de ambiente, nunca do repositório. Teste com pytest contra um servidor SMTP falso local, sem envio real. Documentado em `docs/monitoramento.md` e no README.
+- **Commit:** `feat: e-mail de alerta quando a pipeline falha`.
+- O envio real depende de credenciais do dono, que só ele configura.
+
 ## 4. Quando chamar o dono
 As mesmas condições do plano do `enriquecimento-cnpj`, seção 4. Um incidente conhecido que não aparece não é motivo para chamar: recalibre a janela ou o limiar e registre.
 
