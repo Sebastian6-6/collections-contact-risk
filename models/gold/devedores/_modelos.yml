@@ -206,10 +206,22 @@ models:
       - name: _hash_arquivo
         description: "Hash do arquivo da mesma aparição."
 
+  - name: empregadores_cnpjs
+    description: >
+      Etapa efêmera (não vira tabela) da gold de devedores. Um CNPJ recebido de empregador, de
+      todas as versões das três fontes, com a rastreabilidade da aparição mais recente. Alimenta
+      `dim_empregador`.
+    config:
+      materialized: ephemeral
+
   - name: dim_empregador
     description: >
       Um CNPJ recebido de empregador, de todas as versões das três fontes, como a silver o
-      padronizou. Os atributos da Receita entram na etapa 7.
+      padronizou, com os atributos da Receita (dados abertos de 2026-10) por `LEFT JOIN` pelo CNPJ
+      de 14 caracteres. O CNPJ sem estabelecimento na Receita fica `nao_encontrado` e com os
+      atributos `NULL`; nenhum empregador some nem ganha linha fictícia. A situação cadastral e o
+      porte vêm do estabelecimento e da empresa que a Receita guarda; os três CNPJs alfanuméricos
+      recebidos não estão na base de 2026-10.
     columns:
       - name: sk_empregador
         description: "Chave substituta: a posição do CNPJ em ordem crescente (G6)."
@@ -221,8 +233,79 @@ models:
         data_tests:
           - unique
           - not_null
+      - name: situacao_receita
+        description: "`encontrado` quando a Receita tem o estabelecimento do CNPJ; `nao_encontrado` quando não tem (os atributos abaixo ficam `NULL`)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [encontrado, nao_encontrado]
+      - name: cod_natureza_juridica
+        description: "Código da natureza jurídica da empresa na Receita. `NULL` quando `nao_encontrado`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_naturezas')
+                field: codigo
+      - name: desc_natureza_juridica
+        description: "Descrição da natureza jurídica, da tabela de domínio da Receita."
+      - name: cod_porte
+        description: "Código do porte da empresa (`00` não informado, `01` micro empresa, `03` pequeno porte, `05` demais). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['00', '01', '03', '05']
+      - name: desc_porte
+        description: "Descrição do porte, do layout oficial da Receita."
+      - name: cod_situacao_cadastral
+        description: "Código da situação cadastral do estabelecimento (`01` nula, `02` ativa, `03` suspensa, `04` inapta, `08` baixada). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['01', '02', '03', '04', '08']
+      - name: desc_situacao_cadastral
+        description: "Descrição da situação cadastral, do layout oficial da Receita."
+      - name: cod_motivo_situacao_cadastral
+        description: "Código do motivo da situação cadastral (`00` sem motivo). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_motivos')
+                field: codigo
+      - name: desc_motivo_situacao_cadastral
+        description: "Descrição do motivo da situação cadastral, da tabela de domínio da Receita."
+      - name: cod_cnae
+        description: "CNAE fiscal principal do estabelecimento (7 dígitos). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_cnaes')
+                field: codigo
+      - name: desc_cnae
+        description: "Descrição do CNAE principal, da tabela de domínio da Receita."
+      - name: sigla_uf
+        description: "UF do estabelecimento. `NULL` quando `nao_encontrado`."
+      - name: cod_municipio
+        description: "Código do município na Receita (não é o código do IBGE). `NULL` quando `nao_encontrado`."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_receita_municipios')
+                field: codigo
+      - name: desc_municipio
+        description: "Nome do município, da tabela de domínio da Receita."
+      - name: nome_razao_social
+        description: "Razão social ou nome empresarial, como a Receita guarda. `NULL` quando `nao_encontrado`."
+      - name: flag_optante_simples
+        description: "`TRUE` quando a empresa optou pelo Simples Nacional, `FALSE` quando não. `NULL` quando `nao_encontrado` e quando a Receita não tem registro do Simples da empresa."
+      - name: flag_optante_mei
+        description: "`TRUE` quando a empresa optou pelo MEI, `FALSE` quando não. `NULL` quando `nao_encontrado` e quando a Receita não tem registro do Simples da empresa."
+      - name: dt_situacao_cadastral
+        description: "Data da situação cadastral. `NULL` quando `nao_encontrado` ou quando a Receita manda `00000000`."
+      - name: dt_inicio_atividade
+        description: "Data de início da atividade do estabelecimento. `NULL` quando `nao_encontrado`."
       - name: _arquivo
-        description: "Arquivo da aparição mais recente do CNPJ."
+        description: "Arquivo da aparição mais recente do CNPJ nos provedores (não é o arquivo da Receita)."
       - name: _linha
         description: "Linha do arquivo da mesma aparição."
       - name: _hash_arquivo
