@@ -8,7 +8,7 @@
   `pct_do_erro` é a parte do erro que o valor concentra. `sem_par_no_corte` não entra: a régua não
   deu nível a essas tentativas. Rodar com `dbt show --select regua_validacao_erros`.
   Proposta de ajuste que sai daqui, para o loop 4.7b medir: o contato entregue por um só provedor
-  concentra 40 dos 74 pontos cegos e tem 6,44% de terceiro, contra 1,4% nas demais tentativas (ver
+  concentra 40 dos 73 pontos cegos e tem 6,33% de terceiro, contra 1,4% nas demais tentativas (ver
   `regua_validacao_peso_sinais`); `atencao` para ele é a hipótese a testar, contra o custo em
   `contato_confirmado` liberado.
 #}
