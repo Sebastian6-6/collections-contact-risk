@@ -2,6 +2,7 @@
 title: "Marts: Business-defined entities"
 id: "4-marts"
 ---
+<!-- Source: https://docs.getdbt.com/best-practices/how-we-structure/4-marts . Version: "current" docs (the page shows no version number). Accessed 2026-11-10: the passages used by this project ("storage is cheap and compute is expensive" and "Materialized as tables or incremental models") match the live page that day. License: Apache 2.0 (see ../_licencas/docs-getdbt-Apache-2.0.md). Header added later; content unchanged. -->
 
 :::info
 Our guidance here diverges if you use the <Constant name="semantic_layer" />. In a project without the <Constant name="semantic_layer" /> we recommend you denormalize heavily, per the best practices below. On the other hand, if you're using the <Constant name="semantic_layer" />, we want to stay as normalized as possible to allow MetricFlow the most flexibility. See [The dbt Semantic Layer and marts](#the-dbt-semantic-layer-and-marts) for more information.

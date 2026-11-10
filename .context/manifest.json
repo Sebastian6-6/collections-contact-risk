@@ -205,17 +205,6 @@
       "origin": "https://github.com/sqlfluff/sqlfluff/blob/4.5.0/LICENSE.md · acesso 2026-11-09"
     },
     "referencias-dbt-how-we-structure-2-staging": {
-      "source": "raw/referencias/dbt/how-we-structure-2-staging.md",
-      "sha256": "7f1059072d0a48ad3ba1d5ff910486859aeda1c87229d8950e8513b3d941480f",
-      "size": 14036,
-      "kind": "document",
-      "converted_at": "2026-11-09 07:43",
-      "converted": "converted/referencias-dbt-how-we-structure-2-staging.md",
-      "status": "ok",
-      "error": null,
-      "pages": 0,
-      "converter": "plain",
-      "summary": "dbt structure guide, staging layer: one model per source table, subfolder per source system, renaming/typing only, views; maps to this project's bronze/silver per source.",
       "tags": [
         "reference",
         "dbt",
@@ -223,20 +212,20 @@
         "staging",
         "stage-3"
       ],
-      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/2-staging.md · acesso 2026-11-09"
-    },
-    "referencias-dbt-how-we-structure-4-marts": {
-      "source": "raw/referencias/dbt/how-we-structure-4-marts.md",
-      "sha256": "26e67c3bcde1c863c44406e99a4c4af2fbbdf4aa392d2f0e200cb30de3b10f3d",
-      "size": 12118,
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/2-staging.md · acesso 2026-11-09",
+      "source": "raw/referencias/dbt/how-we-structure-2-staging.md",
+      "sha256": "cb5b94b9b68d86f1b492e752a5ba03441fd99784a10803cadf7d537e8e05cd48",
+      "size": 14414,
       "kind": "document",
-      "converted_at": "2026-11-09 07:43",
-      "converted": "converted/referencias-dbt-how-we-structure-4-marts.md",
+      "converted_at": "2026-11-10 03:20",
+      "converted": "converted/referencias-dbt-how-we-structure-2-staging.md",
       "status": "ok",
       "error": null,
       "pages": 0,
       "converter": "plain",
-      "summary": "dbt structure guide, marts layer: business-conformed entities, materialized as tables, wide denormalized marts preferred over a classic star unless needed; basis for the gold star schema plus analysis datasets.",
+      "summary": "dbt structure guide, staging layer: one model per source table, subfolder per source system, renaming/typing only, views; maps to this project's bronze/silver per source."
+    },
+    "referencias-dbt-how-we-structure-4-marts": {
       "tags": [
         "reference",
         "dbt",
@@ -245,7 +234,18 @@
         "gold",
         "stage-6"
       ],
-      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/4-marts.md · acesso 2026-11-09"
+      "origin": "https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/4-marts.md · acesso 2026-11-09",
+      "source": "raw/referencias/dbt/how-we-structure-4-marts.md",
+      "sha256": "bc4616159de4a03b614e61acf02e77292461df8466f75347a54f617253ca1e5c",
+      "size": 12548,
+      "kind": "document",
+      "converted_at": "2026-11-10 03:20",
+      "converted": "converted/referencias-dbt-how-we-structure-4-marts.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "dbt structure guide, marts layer: business-conformed entities, materialized as tables, wide denormalized marts preferred over a classic star unless needed; basis for the gold star schema plus analysis datasets."
     },
     "referencias-dbt-how-we-structure-6-mapping-folders-to-warehouse": {
       "source": "raw/referencias/dbt/how-we-structure-6-mapping-folders-to-warehouse.md",

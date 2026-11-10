@@ -2,12 +2,14 @@
 id: referencias-dbt-how-we-structure-4-marts
 source: raw/referencias/dbt/how-we-structure-4-marts.md
 origin: https://github.com/dbt-labs/docs.getdbt.com/blob/current/website/docs/best-practices/how-we-structure/4-marts.md · acesso 2026-11-09
-sha256: 26e67c3bcde1c863c44406e99a4c4af2fbbdf4aa392d2f0e200cb30de3b10f3d
+sha256: bc4616159de4a03b614e61acf02e77292461df8466f75347a54f617253ca1e5c
 converter: plain
-converted: 2026-11-09 07:43
+converted: 2026-11-10 03:20
 pages: 0
 kind: document
 ---
+<!-- Source: https://docs.getdbt.com/best-practices/how-we-structure/4-marts . Version: "current" docs (the page shows no version number). Accessed 2026-11-10: the passages used by this project ("storage is cheap and compute is expensive" and "Materialized as tables or incremental models") match the live page that day. License: Apache 2.0 (see ../_licencas/docs-getdbt-Apache-2.0.md). Header added later; content unchanged. -->
+
 :::info
 Our guidance here diverges if you use the <Constant name="semantic_layer" />. In a project without the <Constant name="semantic_layer" /> we recommend you denormalize heavily, per the best practices below. On the other hand, if you're using the <Constant name="semantic_layer" />, we want to stay as normalized as possible to allow MetricFlow the most flexibility. See [The dbt Semantic Layer and marts](#the-dbt-semantic-layer-and-marts) for more information.
 :::

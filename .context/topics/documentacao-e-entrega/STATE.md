@@ -33,6 +33,7 @@ Close the brief's deliverables (ERD, type justifications, README, AGENTS.md), ru
 <!-- Unconfirmed questions: "- [?] question (where it came up, date)". Never treat them as a standard until the user answers. -->
 - [?] D1 dictionary generated from dbt manifest/catalog — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
 - [?] D2 ERD in Mermaid (gold star + per-layer view) — to close one by one with the owner in an arquitetura-solucao session before this topic runs (2026-11-09)
+- [?] To verify or declare in README "limites" (handed over by ingestao-e-padronizacao, 2026-11-10): (a) PostgreSQL `default__` versions of the dispatched macros (json_*, data_iso_ou_nulo, timestamp_ou_nulo, cnpj_*, uf_normalizada, mes_como_data) and `upper` with accents were never executed (no PG instance); hash_conteudo/hash_endereco text is not portable across engines (CAST text may differ) while the dedup result should be — run on a PG 16+ instance or declare; (b) CI never ran on GitHub Actions (local only; clean-runner needs like `dbt deps` unverified) — check on the first push; (c) upper case removed 5 beta history versions (17,866 -> 17,861) and the exact cause was not isolated — isolate or declare.
 
 ## Decisions
 <!-- Local to this topic, append-only: "- YYYY-MM-DD decision". -->
