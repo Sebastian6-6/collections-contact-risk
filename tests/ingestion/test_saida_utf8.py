@@ -17,7 +17,7 @@ collections_contact_risk:
   outputs:
     dev:
       type: duckdb
-      path: banco/teste.duckdb
+      path: database/teste.duckdb
 """
 
 # Roda pipeline.py como `__main__` apontando a ingestão para uma raiz temporária sem fontes.yml.
@@ -58,7 +58,7 @@ def test_a_ingestao_escreve_ilegivel_em_utf8(tmp_path):
             "-m", "ingestion.main",
             "--config", str(config),
             "--raiz", str(tmp_path),
-            "--banco", str(tmp_path / "banco" / "teste.duckdb"),
+            "--banco", str(tmp_path / "database" / "teste.duckdb"),
         ]
     )  # fmt: skip
 

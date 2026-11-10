@@ -67,7 +67,7 @@ cobranca:
 receita:
   _baixar:
     origem: receita
-    destino: dados_externos/receita/2026-10
+    destino: external_data/receita/2026-10
     parametros:
       mes: "2026-10"
       url_compartilhamento: https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9
@@ -99,7 +99,7 @@ receita:
       - porte_da_empresa
       - ente_federativo_responsavel
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: empresas.csv
   estabelecimentos:
     origem: pasta
@@ -138,7 +138,7 @@ receita:
       - situacao_especial
       - data_da_situacao_especial
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: estabelecimentos.csv
   simples:
     origem: pasta
@@ -154,7 +154,7 @@ receita:
       - data_de_opcao_pelo_mei
       - data_de_exclusao_do_mei
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: simples.csv
   socios:
     origem: pasta
@@ -174,7 +174,7 @@ receita:
       - qualificacao_do_representante_legal
       - faixa_etaria
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: socios.csv
   cnaes:
     origem: pasta
@@ -185,7 +185,7 @@ receita:
       - codigo
       - descricao
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: cnaes.csv
   motivos:
     origem: pasta
@@ -196,7 +196,7 @@ receita:
       - codigo
       - descricao
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: motivos.csv
   municipios:
     origem: pasta
@@ -207,7 +207,7 @@ receita:
       - codigo
       - descricao
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: municipios.csv
   naturezas:
     origem: pasta
@@ -218,7 +218,7 @@ receita:
       - codigo
       - descricao
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: naturezas.csv
   paises:
     origem: pasta
@@ -229,7 +229,7 @@ receita:
       - codigo
       - descricao
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: paises.csv
   qualificacoes:
     origem: pasta
@@ -240,5 +240,5 @@ receita:
       - codigo
       - descricao
     arquivos:
-      - caminho: dados_externos/receita/2026-10
+      - caminho: external_data/receita/2026-10
         padrao: qualificacoes.csv

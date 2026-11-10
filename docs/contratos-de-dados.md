@@ -185,7 +185,7 @@ Itens que dependem só do provedor, reunidos para a revisão do tópico e para o
 
 ## 9. Receita Federal (dados abertos do CNPJ)
 
-Fonte `receita`, mês 2026-10: o extrato versionado em `dados_externos/receita/2026-10/`, gerado por `python -m ingestion.main --baixar receita` (origem, bytes e sha256 de cada zip no `ORIGEM.md` da pasta). A pipeline lê só essa pasta, sem rede. Não é um provedor de devedores: é a base pública que enriquece o empregador (p. 1, "Enriquecer vínculos empregatícios"). Layout: `cnpj-metadados.pdf` (02/12/2021).
+Fonte `receita`, mês 2026-10: o extrato versionado em `external_data/receita/2026-10/`, gerado por `python -m ingestion.main --baixar receita` (origem, bytes e sha256 de cada zip no `ORIGEM.md` da pasta). A pipeline lê só essa pasta, sem rede. Não é um provedor de devedores: é a base pública que enriquece o empregador (p. 1, "Enriquecer vínculos empregatícios"). Layout: `cnpj-metadados.pdf` (02/12/2021).
 
 ### 9.1 Bronze
 

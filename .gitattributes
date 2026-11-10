@@ -8,4 +8,4 @@ contact_data/** -text
 
 # O extrato da Receita também fica byte a byte (ISO-8859-1, sem normalização): o sha256 de
 # cada arquivo está no ORIGEM.md e a bronze grava o hash do arquivo lido.
-dados_externos/receita/**/*.csv -text
+external_data/receita/**/*.csv -text
