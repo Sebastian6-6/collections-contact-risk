@@ -7,7 +7,7 @@
   `nome_chave` é o nome para comparar entre provedores (`nome_comparavel`). `nascimento_confiavel`
   separa a data que pode votar: a sentinela 1900-01-01 e a data posterior à entrega da própria
   linha (nasceu depois de ser entregue) não votam, mas continuam na coluna `dt_nascimento`, como
-  vieram. É efêmero: existe para `devedores_documentos` (liga os documentos) e `dim_devedor`
+  vieram. `hash_conteudo` é o da versão atual na silver (liga à histórica). É efêmero: existe para `devedores_documentos` (liga os documentos) e `dim_devedor`
   (escolhe os atributos) partirem das mesmas linhas.
 #}
 {{ config(materialized='ephemeral') }}
@@ -21,6 +21,7 @@ WITH tAlfa AS (
     , data_nascimento AS dt_nascimento
     , data_atualizacao AS dt_atualizacao
     , data_entrega AS dt_entrega
+    , hash_conteudo
     , CAST(NULL AS VARCHAR) AS estado_civil
     , CAST(NULL AS VARCHAR) AS escolaridade
     , CAST(NULL AS VARCHAR) AS fonte_score
@@ -39,6 +40,7 @@ WITH tAlfa AS (
     , data_nascimento AS dt_nascimento
     , atualizado_em AS dt_atualizacao
     , data_entrega AS dt_entrega
+    , hash_conteudo
     , CAST(NULL AS VARCHAR) AS estado_civil
     , CAST(NULL AS VARCHAR) AS escolaridade
     , CAST(NULL AS VARCHAR) AS fonte_score
@@ -57,6 +59,7 @@ WITH tAlfa AS (
     , data_nascimento AS dt_nascimento
     , dt_ref AS dt_atualizacao
     , data_entrega AS dt_entrega
+    , hash_conteudo
     , atributos_extra_estado_civil AS estado_civil
     , atributos_extra_escolaridade AS escolaridade
     , atributos_extra_fonte_score AS fonte_score
@@ -75,6 +78,7 @@ WITH tAlfa AS (
     , dt_nascimento
     , dt_atualizacao
     , dt_entrega
+    , hash_conteudo
     , estado_civil
     , escolaridade
     , fonte_score
@@ -93,6 +97,7 @@ WITH tAlfa AS (
     , dt_nascimento
     , dt_atualizacao
     , dt_entrega
+    , hash_conteudo
     , estado_civil
     , escolaridade
     , fonte_score
@@ -111,6 +116,7 @@ WITH tAlfa AS (
     , dt_nascimento
     , dt_atualizacao
     , dt_entrega
+    , hash_conteudo
     , estado_civil
     , escolaridade
     , fonte_score
@@ -133,6 +139,7 @@ SELECT
   ) AS nascimento_confiavel
   , dt_atualizacao
   , dt_entrega
+  , hash_conteudo
   , estado_civil
   , escolaridade
   , fonte_score

@@ -128,3 +128,171 @@ unit_tests:
         - {sk_devedor: 4, cpf: "52998224725", situacao_cpf: "valido", tipo_conflito_cadastral: "nenhum", estado_civil: "CASADO", escolaridade: "SUPERIOR", fonte_score: "SERASA", nome_devedor: "ANA CRISTINA SOUZA", qt_dependentes: 2, score_externo: 700, qt_provedores: 2, qt_documentos_vinculados: 0, flag_possui_imovel: true, dt_nascimento: "1990-01-01"}
         - {sk_devedor: 5, cpf: "52998224736", situacao_cpf: "invalido", tipo_conflito_cadastral: "nenhum", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "LUIZ SILVA", qt_dependentes: null, score_externo: null, qt_provedores: 1, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: "1960-06-06"}
         - {sk_devedor: 6, cpf: "70000000007", situacao_cpf: "valido", tipo_conflito_cadastral: "versao", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "ROSA PINTO", qt_dependentes: null, score_externo: null, qt_provedores: 1, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: "1955-07-07"}
+
+  - name: ft_vinculo_empresa_abre_periodos_por_ilhas_e_marca_o_vigente
+    description: >
+      Ponto 3. Versões seguidas com o mesmo conteúdo formam um período (documento 3: duas versões,
+      um período, com a menor primeira entrega e a maior última entrega); um vínculo que volta
+      depois de outro abre um período novo (A, B, A dá três linhas); conteúdo todo vazio não vira
+      linha e separa os períodos (A, vazio, A dá duas). `atual` é o período que contém a versão
+      vigente do devedor; o documento 2 tem a versão vigente vazia e por isso nenhum período atual.
+    model: ft_vinculo_empresa
+    given:
+      - input: ref('devedores_vinculos_versoes')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(hash_conteudo AS VARCHAR) AS hash_conteudo
+            , CAST(cnpj AS VARCHAR) AS cnpj
+            , CAST(cargo AS VARCHAR) AS cargo
+            , CAST(vl_renda AS NUMERIC(14, 2)) AS vl_renda
+            , CAST(dt_inicio_vinculo AS DATE) AS dt_inicio_vinculo
+            , CAST(dt_atualizacao AS DATE) AS dt_atualizacao
+            , CAST(data_primeira_entrega AS DATE) AS data_primeira_entrega
+            , CAST(data_ultima_entrega AS DATE) AS data_ultima_entrega
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            ('alfa', 'CPF', '1', 'h11', 'A', 'X', 100, NULL, DATE '2026-01-01', DATE '2026-01-05', DATE '2026-01-10', 'a11', 1, 'ha')
+            , ('alfa', 'CPF', '1', 'h12', 'B', 'X', 100, NULL, DATE '2026-02-01', DATE '2026-02-05', DATE '2026-02-10', 'a12', 2, 'ha')
+            , ('alfa', 'CPF', '1', 'h13', 'A', 'X', 100, NULL, DATE '2026-03-01', DATE '2026-03-05', DATE '2026-03-10', 'a13', 3, 'ha')
+            , ('gama', 'CPF', '2', 'h21', 'A', NULL, NULL, NULL, DATE '2026-01-01', DATE '2026-01-05', DATE '2026-01-10', 'a21', 1, 'hg')
+            , ('gama', 'CPF', '2', 'h22', NULL, NULL, NULL, NULL, DATE '2026-02-01', DATE '2026-02-05', DATE '2026-02-10', 'a22', 2, 'hg')
+            , ('gama', 'CPF', '2', 'h23', 'A', NULL, NULL, NULL, DATE '2026-03-01', DATE '2026-03-05', DATE '2026-03-10', 'a23', 3, 'hg')
+            , ('alfa', 'CPF', '3', 'h31', 'A', 'X', 100, NULL, DATE '2026-01-01', DATE '2026-01-05', DATE '2026-01-10', 'a31', 1, 'hb')
+            , ('alfa', 'CPF', '3', 'h32', 'A', 'X', 100, NULL, DATE '2026-02-01', DATE '2026-02-05', DATE '2026-02-10', 'a32', 2, 'hb')
+          ) AS tLinhas (provedor, documento_tipo, documento, hash_conteudo, cnpj, cargo, vl_renda, dt_inicio_vinculo, dt_atualizacao, data_primeira_entrega, data_ultima_entrega, _arquivo, _linha, _hash_arquivo)
+      - input: ref('devedores_versao_vigente')
+        format: sql
+        rows: |
+          SELECT
+            CAST(cpf AS VARCHAR) AS cpf
+            , CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(hash_conteudo AS VARCHAR) AS hash_conteudo
+          FROM (
+            VALUES
+            ('c1', 'alfa', 'CPF', '1', 'h13')
+            , ('c2', 'gama', 'CPF', '2', 'h22')
+            , ('c3', 'alfa', 'CPF', '3', 'h32')
+          ) AS tLinhas (cpf, provedor, documento_tipo, documento, hash_conteudo)
+      - input: ref('devedores_documentos')
+        format: sql
+        rows: |
+          SELECT
+            CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(situacao_documento AS VARCHAR) AS situacao_documento
+          FROM (
+            VALUES
+            ('CPF', '1', 'c1', 'cpf_valido')
+            , ('CPF', '2', 'c2', 'cpf_valido')
+            , ('CPF', '3', 'c3', 'cpf_valido')
+          ) AS tLinhas (documento_tipo, documento, cpf, situacao_documento)
+      - input: ref('dim_devedor')
+        rows:
+        - {cpf: "c1", sk_devedor: 1}
+        - {cpf: "c2", sk_devedor: 2}
+        - {cpf: "c3", sk_devedor: 3}
+      - input: ref('dim_empregador')
+        rows:
+        - {cnpj: "A", sk_empregador: 10}
+        - {cnpj: "B", sk_empregador: 20}
+    expect:
+      rows:
+        - {sk_devedor: 1, sk_empregador: 10, provedor: "alfa", situacao_vinculo: "anterior", cargo: "X", vl_renda: 100, dt_inicio_vinculo: null, dt_atualizacao: "2026-01-01", dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "a11", _linha: 1, _hash_arquivo: "ha"}
+        - {sk_devedor: 1, sk_empregador: 20, provedor: "alfa", situacao_vinculo: "anterior", cargo: "X", vl_renda: 100, dt_inicio_vinculo: null, dt_atualizacao: "2026-02-01", dt_primeira_entrega: "2026-02-05", dt_ultima_entrega: "2026-02-10", _arquivo: "a12", _linha: 2, _hash_arquivo: "ha"}
+        - {sk_devedor: 1, sk_empregador: 10, provedor: "alfa", situacao_vinculo: "atual", cargo: "X", vl_renda: 100, dt_inicio_vinculo: null, dt_atualizacao: "2026-03-01", dt_primeira_entrega: "2026-03-05", dt_ultima_entrega: "2026-03-10", _arquivo: "a13", _linha: 3, _hash_arquivo: "ha"}
+        - {sk_devedor: 2, sk_empregador: 10, provedor: "gama", situacao_vinculo: "anterior", cargo: null, vl_renda: null, dt_inicio_vinculo: null, dt_atualizacao: "2026-01-01", dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "a21", _linha: 1, _hash_arquivo: "hg"}
+        - {sk_devedor: 2, sk_empregador: 10, provedor: "gama", situacao_vinculo: "anterior", cargo: null, vl_renda: null, dt_inicio_vinculo: null, dt_atualizacao: "2026-03-01", dt_primeira_entrega: "2026-03-05", dt_ultima_entrega: "2026-03-10", _arquivo: "a23", _linha: 3, _hash_arquivo: "hg"}
+        - {sk_devedor: 3, sk_empregador: 10, provedor: "alfa", situacao_vinculo: "atual", cargo: "X", vl_renda: 100, dt_inicio_vinculo: null, dt_atualizacao: "2026-02-01", dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-02-10", _arquivo: "a32", _linha: 2, _hash_arquivo: "hb"}
+
+  - name: dim_endereco_junta_complemento_nulo_e_marca_o_endereco_vigente
+    description: >
+      Ponto 5 e G3b. Dois endereços do mesmo devedor iguais em tudo menos no complemento se
+      juntam quando um é NULL e há um só complemento preenchido (devedor 1: fica "APTO 3", com
+      dois provedores, a menor primeira e a maior última entrega, e o texto de quem tem o
+      complemento). Com dois complementos preenchidos diferentes (devedor 2), nada se junta e o
+      NULL continua separado. `atual` vem dos endereços da versão vigente, mesmo quando o
+      endereço vigente foi o que se juntou ao preenchido. Endereço sem devedor mantém a linha com
+      `sk_devedor` NULL.
+    model: dim_endereco
+    given:
+      - input: ref('devedores_enderecos_registros')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(hash_endereco AS VARCHAR) AS hash_endereco
+            , CAST(tipo_endereco AS VARCHAR) AS tipo_endereco
+            , CAST(endereco AS VARCHAR) AS endereco
+            , CAST(logradouro AS VARCHAR) AS logradouro
+            , CAST(numero_endereco AS VARCHAR) AS numero_endereco
+            , CAST(complemento AS VARCHAR) AS complemento
+            , CAST(bairro AS VARCHAR) AS bairro
+            , CAST(cidade AS VARCHAR) AS cidade
+            , CAST(uf AS VARCHAR) AS uf
+            , CAST(cep AS VARCHAR) AS cep
+            , CAST(data_primeira_entrega AS DATE) AS data_primeira_entrega
+            , CAST(data_ultima_entrega AS DATE) AS data_ultima_entrega
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            ('alfa', 'CPF', '1', 'h1', NULL, 'RUA A, 10', 'RUA A', '10', NULL, 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-02-10', 'e1', 1, 'hx')
+            , ('gama', 'CPF', '1', 'h2', NULL, 'RUA A, 10, APTO 3', 'RUA A', '10', 'APTO 3', 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-10', DATE '2026-03-10', 'e2', 2, 'hx')
+            , ('beta', 'CPF', '2', 'h3', 'RESIDENCIAL', NULL, 'RUA A', '20', 'APTO 1', 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e3', 3, 'hx')
+            , ('beta', 'CPF', '2', 'h4', 'COMERCIAL', NULL, 'RUA A', '20', 'APTO 2', 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e4', 4, 'hx')
+            , ('alfa', 'CPF', '2', 'h5', NULL, 'RUA A, 20', 'RUA A', '20', NULL, 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e5', 5, 'hx')
+            , ('alfa', 'CPF', '3', 'h6', NULL, 'RUA A, 30', 'RUA A', '30', NULL, 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e6', 6, 'hx')
+            , ('alfa', 'CPF', NULL, 'h7', NULL, 'RUA A, 40', 'RUA A', '40', NULL, 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e7', 7, 'hx')
+          ) AS tLinhas (provedor, documento_tipo, documento, hash_endereco, tipo_endereco, endereco, logradouro, numero_endereco, complemento, bairro, cidade, uf, cep, data_primeira_entrega, data_ultima_entrega, _arquivo, _linha, _hash_arquivo)
+      - input: ref('devedores_enderecos_vigentes')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(hash_endereco AS VARCHAR) AS hash_endereco
+          FROM (
+            VALUES
+            ('alfa', '1', 'h1')
+            , ('alfa', '3', 'h6')
+          ) AS tLinhas (provedor, documento, hash_endereco)
+      - input: ref('devedores_documentos')
+        format: sql
+        rows: |
+          SELECT
+            CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(situacao_documento AS VARCHAR) AS situacao_documento
+          FROM (
+            VALUES
+            ('CPF', '1', 'c1', 'cpf_valido')
+            , ('CPF', '2', 'c2', 'cpf_valido')
+            , ('CPF', '3', 'c3', 'cpf_valido')
+          ) AS tLinhas (documento_tipo, documento, cpf, situacao_documento)
+      - input: ref('dim_devedor')
+        rows:
+        - {cpf: "c1", sk_devedor: 1}
+        - {cpf: "c2", sk_devedor: 2}
+        - {cpf: "c3", sk_devedor: 3}
+    expect:
+      rows:
+        - {sk_endereco: 1, sk_devedor: 1, tipo_endereco: null, situacao_endereco: "atual", endereco: "RUA A, 10, APTO 3", logradouro: "RUA A", numero_endereco: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 2, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-03-10", _arquivo: "e2", _linha: 2, _hash_arquivo: "hx"}
+        - {sk_endereco: 2, sk_devedor: 2, tipo_endereco: "RESIDENCIAL", situacao_endereco: "anterior", endereco: null, logradouro: "RUA A", numero_endereco: "20", complemento: "APTO 1", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e3", _linha: 3, _hash_arquivo: "hx"}
+        - {sk_endereco: 3, sk_devedor: 2, tipo_endereco: "COMERCIAL", situacao_endereco: "anterior", endereco: null, logradouro: "RUA A", numero_endereco: "20", complemento: "APTO 2", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e4", _linha: 4, _hash_arquivo: "hx"}
+        - {sk_endereco: 4, sk_devedor: 2, tipo_endereco: null, situacao_endereco: "anterior", endereco: "RUA A, 20", logradouro: "RUA A", numero_endereco: "20", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e5", _linha: 5, _hash_arquivo: "hx"}
+        - {sk_endereco: 5, sk_devedor: 3, tipo_endereco: null, situacao_endereco: "atual", endereco: "RUA A, 30", logradouro: "RUA A", numero_endereco: "30", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e6", _linha: 6, _hash_arquivo: "hx"}
+        - {sk_endereco: 6, sk_devedor: null, tipo_endereco: null, situacao_endereco: "anterior", endereco: "RUA A, 40", logradouro: "RUA A", numero_endereco: "40", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e7", _linha: 7, _hash_arquivo: "hx"}
