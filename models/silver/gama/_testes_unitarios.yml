@@ -21,10 +21,10 @@ unit_tests:
           - {documento: "999", nome: "ILEGIVEL", data_nascimento: "", cnpj_empregador_raw: "", dt_ref: "", contatos: "", endereco_json: "", atributos_extra: "", _arquivo: "contact_data/provedor_gama.csv", _linha: 8, _hash_arquivo: "h1", _motivo_ilegivel: "linha truncada"}
     expect:
       rows:
-        - {documento: "01567032893", nome: "Ana", cnpj_empregador: null, estado_civil: "solteiro", qtd_dependentes: 0, score_externo: 625, escolaridade: null, possui_imovel: true, fonte_score: "bureauX", endereco: "TRAVESSA Paulista, 764", logradouro: "TRAVESSA Paulista", numero: "764", complemento: null, bairro: null, cidade: "Rio", uf: "RJ", cep: "20638395", data_atualizacao: "2026-06-15", data_entrega: "2026-08-31", _linha: 2}
-        - {documento: "01006543201", nome: "Bia", cnpj_empregador: "51930487200150", estado_civil: "casado", qtd_dependentes: null, score_externo: null, escolaridade: null, possui_imovel: null, fonte_score: null, endereco: "TV. Santos Dumont, 744 - Centro", logradouro: "TV. Santos Dumont", numero: "744", complemento: null, bairro: "Centro", cidade: "Santo Andre", uf: "SP", cep: "09289625", data_atualizacao: "2026-09-10", data_entrega: "2026-09-11", _linha: 7}
-        - {documento: "22222222222", nome: "Caio", cnpj_empregador: null, estado_civil: null, qtd_dependentes: null, score_externo: null, escolaridade: null, possui_imovel: null, fonte_score: null, endereco: "RUA ANA-MARIA, 10", logradouro: null, numero: null, complemento: null, bairro: null, cidade: "Santos", uf: "SP", cep: "11015000", data_atualizacao: "2025-09-01", data_entrega: "2026-08-31", _linha: 3}
-        - {documento: "33333333333", nome: "Dora", cnpj_empregador: null, estado_civil: null, qtd_dependentes: null, score_externo: null, escolaridade: null, possui_imovel: null, fonte_score: null, endereco: null, logradouro: "RUA B", numero: "5", complemento: "AP 2", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11015000", data_atualizacao: "2026-01-01", data_entrega: "2026-08-31", _linha: 4}
+        - {documento: "01567032893", nome: "Ana", cnpj_empregador_raw: null, estado_civil: "solteiro", qtd_dependentes: 0, score_externo: 625, escolaridade: null, possui_imovel: true, fonte_score: "bureauX", endereco: "TRAVESSA Paulista, 764", logradouro: "TRAVESSA Paulista", numero: "764", complemento: null, bairro: null, cidade: "Rio", uf: "RJ", cep: "20638395", dt_ref: "2026-06-15", data_entrega: "2026-08-31", _linha: 2}
+        - {documento: "01006543201", nome: "Bia", cnpj_empregador_raw: "51930487200150", estado_civil: "casado", qtd_dependentes: null, score_externo: null, escolaridade: null, possui_imovel: null, fonte_score: null, endereco: "TV. Santos Dumont, 744 - Centro", logradouro: "TV. Santos Dumont", numero: "744", complemento: null, bairro: "Centro", cidade: "Santo Andre", uf: "SP", cep: "09289625", dt_ref: "2026-09-10", data_entrega: "2026-09-11", _linha: 7}
+        - {documento: "22222222222", nome: "Caio", cnpj_empregador_raw: null, estado_civil: null, qtd_dependentes: null, score_externo: null, escolaridade: null, possui_imovel: null, fonte_score: null, endereco: "RUA ANA-MARIA, 10", logradouro: null, numero: null, complemento: null, bairro: null, cidade: "Santos", uf: "SP", cep: "11015000", dt_ref: "2025-09-01", data_entrega: "2026-08-31", _linha: 3}
+        - {documento: "33333333333", nome: "Dora", cnpj_empregador_raw: null, estado_civil: null, qtd_dependentes: null, score_externo: null, escolaridade: null, possui_imovel: null, fonte_score: null, endereco: null, logradouro: "RUA B", numero: "5", complemento: "AP 2", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11015000", dt_ref: "2026-01-01", data_entrega: "2026-08-31", _linha: 4}
 
   - name: silver_gama_devedores_versao_mais_recente
     description: >
@@ -35,7 +35,7 @@ unit_tests:
       - input: ref('silver_gama_devedores_padronizados')
         format: sql
         rows: |
-          SELECT 'A' AS documento, 'NOME 1' AS nome, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS VARCHAR) AS estado_civil, CAST(NULL AS INTEGER) AS qtd_dependentes, CAST(NULL AS INTEGER) AS score_externo, CAST(NULL AS VARCHAR) AS escolaridade, CAST(NULL AS BOOLEAN) AS possui_imovel, CAST(NULL AS VARCHAR) AS fonte_score, CAST(NULL AS VARCHAR) AS endereco, CAST(NULL AS VARCHAR) AS logradouro, CAST(NULL AS VARCHAR) AS numero, CAST(NULL AS VARCHAR) AS complemento, CAST(NULL AS VARCHAR) AS bairro, CAST(NULL AS VARCHAR) AS cidade, CAST(NULL AS VARCHAR) AS uf, CAST(NULL AS VARCHAR) AS cep, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
+          SELECT 'A' AS documento, 'NOME 1' AS nome, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador_raw, CAST(NULL AS VARCHAR) AS estado_civil, CAST(NULL AS INTEGER) AS qtd_dependentes, CAST(NULL AS INTEGER) AS score_externo, CAST(NULL AS VARCHAR) AS escolaridade, CAST(NULL AS BOOLEAN) AS possui_imovel, CAST(NULL AS VARCHAR) AS fonte_score, CAST(NULL AS VARCHAR) AS endereco, CAST(NULL AS VARCHAR) AS logradouro, CAST(NULL AS VARCHAR) AS numero, CAST(NULL AS VARCHAR) AS complemento, CAST(NULL AS VARCHAR) AS bairro, CAST(NULL AS VARCHAR) AS cidade, CAST(NULL AS VARCHAR) AS uf, CAST(NULL AS VARCHAR) AS cep, CAST('2026-07-01' AS DATE) AS dt_ref, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
           UNION ALL
           SELECT 'A', 'NOME 2', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, CAST('2026-07-01' AS DATE), CAST('2026-09-03' AS DATE), 'f2', 1, 'h'
           UNION ALL
@@ -65,7 +65,7 @@ unit_tests:
       - input: ref('silver_gama_devedores_padronizados')
         format: sql
         rows: |
-          SELECT 'A' AS documento, CAST('[{"tipo": "celular", "valor": "(21) 94780-1773"}, {"tipo": "email", "valor": " ANA@X.COM "}, {"tipo": "fax", "valor": "123"}, {"tipo": "fixo", "valor": ""}]' AS JSON) AS lista_contatos, CAST('2026-06-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 3 AS _linha, 'g1' AS _arquivo, 'h1' AS _hash_arquivo
+          SELECT 'A' AS documento, CAST('[{"tipo": "celular", "valor": "(21) 94780-1773"}, {"tipo": "email", "valor": " ANA@X.COM "}, {"tipo": "fax", "valor": "123"}, {"tipo": "fixo", "valor": ""}]' AS JSON) AS lista_contatos, CAST('2026-06-01' AS DATE) AS dt_ref, CAST('2026-08-31' AS DATE) AS data_entrega, 3 AS _linha, 'g1' AS _arquivo, 'h1' AS _hash_arquivo
           UNION ALL
           SELECT 'A', CAST('[{"tipo": "fixo", "valor": "21947801773"}]' AS JSON), CAST('2026-09-10' AS DATE), CAST('2026-09-11' AS DATE), 7, 'g2', 'h2'
           UNION ALL
@@ -76,6 +76,6 @@ unit_tests:
           SELECT 'D', CAST('[{"tipo": "email", "valor": "d@x.com"}]' AS JSON), CAST('2026-09-15' AS DATE), CAST('2026-09-15' AS DATE), 5, 'g3_reenvio', 'h4'
     expect:
       rows:
-        - {documento: "A", tipo: "telefone", contato: "21947801773", tipo_telefone: "fixo", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-11", _arquivo: "g2", _linha: 7, _hash_arquivo: "h2"}
-        - {documento: "A", tipo: "email", contato: "ana@x.com", tipo_telefone: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "g1", _linha: 3, _hash_arquivo: "h1"}
-        - {documento: "D", tipo: "email", contato: "d@x.com", tipo_telefone: null, data_primeira_entrega: "2026-09-15", data_ultima_entrega: "2026-09-15", _arquivo: "g3_reenvio", _linha: 5, _hash_arquivo: "h4"}
+        - {documento: "A", tipo_contato: "telefone", contato: "21947801773", tipo: "fixo", data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-11", _arquivo: "g2", _linha: 7, _hash_arquivo: "h2"}
+        - {documento: "A", tipo_contato: "email", contato: "ana@x.com", tipo: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "g1", _linha: 3, _hash_arquivo: "h1"}
+        - {documento: "D", tipo_contato: "email", contato: "d@x.com", tipo: null, data_primeira_entrega: "2026-09-15", data_ultima_entrega: "2026-09-15", _arquivo: "g3_reenvio", _linha: 5, _hash_arquivo: "h4"}

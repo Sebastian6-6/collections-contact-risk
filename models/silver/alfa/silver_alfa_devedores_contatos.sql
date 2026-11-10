@@ -1,6 +1,6 @@
 {#
-  Grão: uma linha por (documento, tipo, contato normalizado), com a primeira e a última data de
-  entrega em que o par apareceu. Considera todas as linhas da bronze com documento, não só a
+  Grão: uma linha por (documento, tipo_contato, contato normalizado), com a primeira e a
+  última data de entrega em que o par apareceu. Considera todas as linhas da bronze com documento, não só a
   versão atual do devedor (S4): um número que saiu da versão mais recente continua registrado.
   Só existe linha para contato que veio preenchido. `_arquivo`, `_linha` e `_hash_arquivo` são da
   aparição mais recente do par (mesma ordem da versão do devedor), porque a data de entrega não
@@ -9,7 +9,7 @@
 WITH tContatos AS (
   SELECT
     documento
-    , 'telefone' AS tipo
+    , 'telefone' AS tipo_contato
     , telefone AS contato
     , data_atualizacao
     , data_entrega
@@ -24,7 +24,7 @@ WITH tContatos AS (
 
   SELECT
     documento
-    , 'email' AS tipo
+    , 'email' AS tipo_contato
     , email AS contato
     , data_atualizacao
     , data_entrega
@@ -39,27 +39,27 @@ WITH tContatos AS (
 , tEntregas AS (
   SELECT
     documento
-    , tipo
+    , tipo_contato
     , contato
     , MIN(data_entrega) AS data_primeira_entrega
     , MAX(data_entrega) AS data_ultima_entrega
   FROM tContatos
   GROUP BY
     documento
-    , tipo
+    , tipo_contato
     , contato
 )
 
 , tOrdenadas AS (
   SELECT
     documento
-    , tipo
+    , tipo_contato
     , contato
     , _arquivo
     , _linha
     , _hash_arquivo
     , ROW_NUMBER() OVER (
-      PARTITION BY documento, tipo, contato
+      PARTITION BY documento, tipo_contato, contato
       ORDER BY
         data_atualizacao DESC NULLS LAST
         , data_entrega DESC NULLS LAST
@@ -73,7 +73,7 @@ WITH tContatos AS (
 , tMaisRecentes AS (
   SELECT
     documento
-    , tipo
+    , tipo_contato
     , contato
     , _arquivo
     , _linha
@@ -85,7 +85,7 @@ WITH tContatos AS (
 
 SELECT
   e.documento
-  , e.tipo
+  , e.tipo_contato
   , e.contato
   , e.data_primeira_entrega
   , e.data_ultima_entrega
@@ -95,5 +95,5 @@ SELECT
 FROM tEntregas AS e
 INNER JOIN tMaisRecentes AS r
   ON e.documento = r.documento
-    AND e.tipo = r.tipo
+    AND e.tipo_contato = r.tipo_contato
     AND e.contato = r.contato

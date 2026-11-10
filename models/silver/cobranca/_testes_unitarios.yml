@@ -63,8 +63,8 @@ unit_tests:
           SELECT 'C3', 'gama', 'f1', 4
     expect:
       rows:
-        - {contato_id: "C1", provedor: "alfa", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
-        - {contato_id: "C1", provedor: "beta", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
-        - {contato_id: "C1", provedor: "gama", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
-        - {contato_id: "C2", provedor: "beta", _arquivo: "f1", _linha: 3, _hash_arquivo: "h1"}
-        - {contato_id: "C3", provedor: "gama", _arquivo: "f1", _linha: 4, _hash_arquivo: "h1"}
+        - {contato_id: "C1", provedor_origem: "alfa", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
+        - {contato_id: "C1", provedor_origem: "beta", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
+        - {contato_id: "C1", provedor_origem: "gama", _arquivo: "f1", _linha: 2, _hash_arquivo: "h1"}
+        - {contato_id: "C2", provedor_origem: "beta", _arquivo: "f1", _linha: 3, _hash_arquivo: "h1"}
+        - {contato_id: "C3", provedor_origem: "gama", _arquivo: "f1", _linha: 4, _hash_arquivo: "h1"}

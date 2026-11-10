@@ -1,25 +1,26 @@
 {#
-  Grão: uma linha por (tipo de documento, documento, tipo, contato normalizado), com a primeira e
-  a última data de entrega em que o par apareceu. Considera todas as linhas da bronze com
+  Grão: uma linha por (tipo de documento, documento, tipo_contato, contato normalizado), com a
+  primeira e a última data de entrega em que o par apareceu. Considera todas as linhas da bronze com
   documento, não só a versão atual do devedor (S4): um número que saiu da versão mais recente
   continua registrado. Só existe linha para contato que veio preenchido.
 
   Os contatos vêm de três lugares do JSON (S6): a lista de telefones (cada elemento é um texto
-  ou um objeto {ddd, numero, tipo, principal}), a lista `emails` e o texto `email`. O tipo do
+  ou um objeto {ddd, numero, tipo, principal}), a lista `emails` e o texto `email`. O `tipo` do
   telefone (celular ou fixo) e o `principal` são do provedor e vêm da aparição mais recente do
   contato (mesma ordem da versão do devedor, S3); ficam `NULL` quando essa aparição não os traz
-  (telefone escrito como texto, e-mail).
+  (telefone escrito como texto, e-mail). `tipo_contato` (`telefone` ou `email`) é criado aqui; `tipo`
+  é o campo do provedor.
 #}
 WITH tTelefones AS (
   SELECT
     p.tipo_documento
     , p.documento
-    , 'telefone' AS tipo
+    , 'telefone' AS tipo_contato
     , {{ telefone_de_elemento_json('t.valor') }} AS contato
-    , CAST(t.valor ->> 'tipo' AS VARCHAR) AS tipo_telefone
+    , CAST(t.valor ->> 'tipo' AS VARCHAR) AS tipo
     , CAST(t.valor ->> 'principal' AS BOOLEAN) AS principal
     , CAST(t.posicao AS INTEGER) AS posicao
-    , p.data_atualizacao
+    , p.atualizado_em
     , p.data_entrega
     , p._arquivo
     , p._linha
@@ -32,12 +33,12 @@ WITH tTelefones AS (
   SELECT
     p.tipo_documento
     , p.documento
-    , 'email' AS tipo
+    , 'email' AS tipo_contato
     , {{ email_normalizado(json_texto('e.valor')) }} AS contato
-    , CAST(NULL AS VARCHAR) AS tipo_telefone
+    , CAST(NULL AS VARCHAR) AS tipo
     , CAST(NULL AS BOOLEAN) AS principal
     , CAST(e.posicao AS INTEGER) AS posicao
-    , p.data_atualizacao
+    , p.atualizado_em
     , p.data_entrega
     , p._arquivo
     , p._linha
@@ -50,12 +51,12 @@ WITH tTelefones AS (
   SELECT
     tipo_documento
     , documento
-    , 'email' AS tipo
+    , 'email' AS tipo_contato
     , email_unico AS contato
-    , CAST(NULL AS VARCHAR) AS tipo_telefone
+    , CAST(NULL AS VARCHAR) AS tipo
     , CAST(NULL AS BOOLEAN) AS principal
     , CAST(1 AS INTEGER) AS posicao
-    , data_atualizacao
+    , atualizado_em
     , data_entrega
     , _arquivo
     , _linha
@@ -69,12 +70,12 @@ WITH tTelefones AS (
   SELECT
     tipo_documento
     , documento
-    , tipo
+    , tipo_contato
     , contato
-    , tipo_telefone
+    , tipo
     , principal
     , posicao
-    , data_atualizacao
+    , atualizado_em
     , data_entrega
     , _arquivo
     , _linha
@@ -88,12 +89,12 @@ WITH tTelefones AS (
   SELECT
     tipo_documento
     , documento
-    , tipo
+    , tipo_contato
     , contato
-    , tipo_telefone
+    , tipo
     , principal
     , posicao
-    , data_atualizacao
+    , atualizado_em
     , data_entrega
     , _arquivo
     , _linha
@@ -107,12 +108,12 @@ WITH tTelefones AS (
   SELECT
     tipo_documento
     , documento
-    , tipo
+    , tipo_contato
     , contato
-    , tipo_telefone
+    , tipo
     , principal
     , posicao
-    , data_atualizacao
+    , atualizado_em
     , data_entrega
     , _arquivo
     , _linha
@@ -124,7 +125,7 @@ WITH tTelefones AS (
   SELECT
     tipo_documento
     , documento
-    , tipo
+    , tipo_contato
     , contato
     , MIN(data_entrega) AS data_primeira_entrega
     , MAX(data_entrega) AS data_ultima_entrega
@@ -132,7 +133,7 @@ WITH tTelefones AS (
   GROUP BY
     tipo_documento
     , documento
-    , tipo
+    , tipo_contato
     , contato
 )
 
@@ -140,17 +141,17 @@ WITH tTelefones AS (
   SELECT
     tipo_documento
     , documento
-    , tipo
+    , tipo_contato
     , contato
-    , tipo_telefone
+    , tipo
     , principal
     , _arquivo
     , _linha
     , _hash_arquivo
     , ROW_NUMBER() OVER (
-      PARTITION BY tipo_documento, documento, tipo, contato
+      PARTITION BY tipo_documento, documento, tipo_contato, contato
       ORDER BY
-        data_atualizacao DESC NULLS LAST
+        atualizado_em DESC NULLS LAST
         , data_entrega DESC NULLS LAST
         , _arquivo DESC
         , _linha DESC
@@ -164,9 +165,9 @@ WITH tTelefones AS (
   SELECT
     tipo_documento
     , documento
-    , tipo
+    , tipo_contato
     , contato
-    , tipo_telefone
+    , tipo
     , principal
     , _arquivo
     , _linha
@@ -179,9 +180,9 @@ WITH tTelefones AS (
 SELECT
   e.tipo_documento
   , e.documento
-  , e.tipo
+  , e.tipo_contato
   , e.contato
-  , r.tipo_telefone
+  , r.tipo
   , r.principal
   , e.data_primeira_entrega
   , e.data_ultima_entrega
@@ -192,5 +193,5 @@ FROM tEntregas AS e
 INNER JOIN tMaisRecentes AS r
   ON e.tipo_documento = r.tipo_documento
     AND e.documento = r.documento
-    AND e.tipo = r.tipo
+    AND e.tipo_contato = r.tipo_contato
     AND e.contato = r.contato

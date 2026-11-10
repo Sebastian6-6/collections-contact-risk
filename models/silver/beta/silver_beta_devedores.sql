@@ -13,7 +13,7 @@ WITH tVersoes AS (
     , cnpj_empregador
     , vinculo_desde
     , renda_mensal
-    , data_atualizacao
+    , atualizado_em
     , data_entrega
     , _arquivo
     , _linha
@@ -21,7 +21,7 @@ WITH tVersoes AS (
     , ROW_NUMBER() OVER (
       PARTITION BY tipo_documento, documento
       ORDER BY
-        data_atualizacao DESC NULLS LAST
+        atualizado_em DESC NULLS LAST
         , data_entrega DESC NULLS LAST
         , _arquivo DESC
         , _linha DESC
@@ -38,7 +38,7 @@ SELECT
   , cnpj_empregador
   , vinculo_desde
   , renda_mensal
-  , data_atualizacao
+  , atualizado_em
   , data_entrega
   , _arquivo
   , _linha

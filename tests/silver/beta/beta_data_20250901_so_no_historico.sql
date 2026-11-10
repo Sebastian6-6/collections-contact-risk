@@ -9,8 +9,8 @@
 SELECT
   _arquivo
   , _linha
-  , data_atualizacao
+  , atualizado_em
 FROM {{ ref('silver_beta_devedores_padronizados') }}
 WHERE 1 = 1
-  AND data_atualizacao = CAST('2025-09-01' AS DATE)
+  AND atualizado_em = CAST('2025-09-01' AS DATE)
   AND _arquivo LIKE '%entregas_diarias%'

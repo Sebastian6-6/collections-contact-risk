@@ -58,14 +58,14 @@ models:
 
   - name: silver_cobranca_contatos_realizados_provedores
     description: >
-      Provedores de origem de cada tentativa de contato, uma linha por (`contato_id`, provedor),
-      abertos do texto `alfa|beta|gama`. Um contato que veio de mais de um provedor tem mais de uma
+      Provedores de origem de cada tentativa de contato, uma linha por (`contato_id`,
+      `provedor_origem`), abertos do texto `alfa|beta|gama`. Um contato que veio de mais de um provedor tem mais de uma
       linha. É o padrão de tabela ponte: não há uma coluna booleana por provedor, para que um
       provedor novo não mude o esquema.
     data_tests:
       - combinacao_unica:
           arguments:
-            colunas: [contato_id, provedor]
+            colunas: [contato_id, provedor_origem]
     columns:
       - name: contato_id
         description: "Contato, como em `silver_cobranca.contatos_realizados`."
@@ -75,22 +75,22 @@ models:
               arguments:
                 to: ref('silver_cobranca_contatos_realizados')
                 field: contato_id
-      - name: provedor
-        description: "Provedor que informou o contato, em minúsculas."
+      - name: provedor_origem
+        description: "Provedor que informou o contato (um elemento do `provedor_origem` da origem), em minúsculas."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [alfa, beta, gama]
       - name: _arquivo
-        description: "Da linha do contato realizado que originou o par (contato, provedor). {{ doc('bronze_arquivo') }}"
+        description: "Da linha do contato realizado que originou o par (contato, provedor_origem). {{ doc('bronze_arquivo') }}"
         data_tests:
           - not_null
       - name: _linha
-        description: "Da linha do contato realizado que originou o par (contato, provedor). {{ doc('bronze_linha') }}"
+        description: "Da linha do contato realizado que originou o par (contato, provedor_origem). {{ doc('bronze_linha') }}"
         data_tests:
           - not_null
       - name: _hash_arquivo
-        description: "Da linha do contato realizado que originou o par (contato, provedor). {{ doc('bronze_hash_arquivo') }}"
+        description: "Da linha do contato realizado que originou o par (contato, provedor_origem). {{ doc('bronze_hash_arquivo') }}"
         data_tests:
           - not_null

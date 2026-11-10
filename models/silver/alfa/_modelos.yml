@@ -82,28 +82,28 @@ models:
 
   - name: silver_alfa_devedores_contatos
     description: >
-      Histórico de contatos do provedor alfa, uma linha por (documento, tipo, contato
-      normalizado). Considera todas as linhas da bronze com documento, não só a versão atual do
+      Histórico de contatos do provedor alfa, uma linha por (documento, tipo_contato,
+      contato normalizado). Considera todas as linhas da bronze com documento, não só a versão atual do
       devedor: um telefone ou e-mail que saiu da versão mais recente continua registrado, com a
       última data de entrega em que apareceu. Só existe linha para contato que veio preenchido.
     data_tests:
       - combinacao_unica:
           arguments:
-            colunas: [documento, tipo, contato]
+            colunas: [documento, tipo_contato, contato]
     columns:
       - name: documento
         description: "Documento do devedor, como em `silver_alfa.devedores`."
         data_tests:
           - not_null
-      - name: tipo
-        description: "Tipo do contato: `telefone` ou `email`."
+      - name: tipo_contato
+        description: "Tipo do contato, criado na silver: `telefone` ou `email`."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [telefone, email]
       - name: contato
-        description: "Telefone (só dígitos, DDD + número) ou e-mail (minúsculas), conforme `tipo`."
+        description: "Telefone (só dígitos, DDD + número) ou e-mail (minúsculas), conforme `tipo_contato`."
         data_tests:
           - not_null
       - name: data_primeira_entrega
@@ -115,14 +115,14 @@ models:
         data_tests:
           - not_null
       - name: _arquivo
-        description: "Da aparição mais recente do par (documento, tipo, contato). {{ doc('bronze_arquivo') }}"
+        description: "Da aparição mais recente do par (documento, tipo_contato, contato). {{ doc('bronze_arquivo') }}"
         data_tests:
           - not_null
       - name: _linha
-        description: "Da aparição mais recente do par (documento, tipo, contato). {{ doc('bronze_linha') }}"
+        description: "Da aparição mais recente do par (documento, tipo_contato, contato). {{ doc('bronze_linha') }}"
         data_tests:
           - not_null
       - name: _hash_arquivo
-        description: "Da aparição mais recente do par (documento, tipo, contato). {{ doc('bronze_hash_arquivo') }}"
+        description: "Da aparição mais recente do par (documento, tipo_contato, contato). {{ doc('bronze_hash_arquivo') }}"
         data_tests:
           - not_null

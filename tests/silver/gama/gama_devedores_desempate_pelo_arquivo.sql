@@ -12,7 +12,7 @@ SELECT
 FROM {{ ref('silver_gama_devedores') }} AS v
 INNER JOIN {{ ref('silver_gama_devedores_padronizados') }} AS p
   ON v.documento = p.documento
-    AND v.data_atualizacao IS NOT DISTINCT FROM p.data_atualizacao
+    AND v.dt_ref IS NOT DISTINCT FROM p.dt_ref
     AND v.data_entrega IS NOT DISTINCT FROM p.data_entrega
     AND v._linha = p._linha
 GROUP BY

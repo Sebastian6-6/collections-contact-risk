@@ -18,7 +18,7 @@ WITH tOrigem AS (
 , tContatos AS (
   SELECT DISTINCT
     documento
-    , 'telefone' AS tipo
+    , 'telefone' AS tipo_contato
     , telefone AS contato
   FROM tOrigem
   WHERE 1 = 1
@@ -28,7 +28,7 @@ WITH tOrigem AS (
 
   SELECT DISTINCT
     documento
-    , 'email' AS tipo
+    , 'email' AS tipo_contato
     , email AS contato
   FROM tOrigem
   WHERE 1 = 1
@@ -38,7 +38,7 @@ WITH tOrigem AS (
 , tDocumentosPerdidos AS (
   SELECT DISTINCT
     o.documento
-    , CAST(NULL AS VARCHAR) AS tipo
+    , CAST(NULL AS VARCHAR) AS tipo_contato
     , CAST(NULL AS VARCHAR) AS contato
   FROM tOrigem AS o
   LEFT JOIN {{ ref('silver_alfa_devedores') }} AS d
@@ -51,12 +51,12 @@ WITH tOrigem AS (
 , tContatosPerdidos AS (
   SELECT
     b.documento
-    , b.tipo
+    , b.tipo_contato
     , b.contato
   FROM tContatos AS b
   LEFT JOIN {{ ref('silver_alfa_devedores_contatos') }} AS s
     ON b.documento = s.documento
-      AND b.tipo = s.tipo
+      AND b.tipo_contato = s.tipo_contato
       AND b.contato = s.contato
   WHERE 1 = 1
     AND b.documento IS NOT NULL
@@ -65,7 +65,7 @@ WITH tOrigem AS (
 
 SELECT
   documento
-  , tipo
+  , tipo_contato
   , contato
 FROM tDocumentosPerdidos
 
@@ -73,6 +73,6 @@ UNION ALL
 
 SELECT
   documento
-  , tipo
+  , tipo_contato
   , contato
 FROM tContatosPerdidos

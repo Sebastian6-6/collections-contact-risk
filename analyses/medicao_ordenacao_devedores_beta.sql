@@ -14,14 +14,14 @@ WITH tBase AS (
   SELECT
     tipo_documento
     , documento
-    , data_atualizacao
+    , atualizado_em
     , data_entrega
     , _arquivo
     , _linha
     , CASE
-      WHEN data_atualizacao = CAST('2025-09-01' AS DATE) THEN CAST(NULL AS DATE)
-      ELSE data_atualizacao
-    END AS data_atualizacao_sem_sentinela
+      WHEN atualizado_em = CAST('2025-09-01' AS DATE) THEN CAST(NULL AS DATE)
+      ELSE atualizado_em
+    END AS atualizado_em_sem_sentinela
   FROM {{ ref('silver_beta_devedores_padronizados') }}
 )
 
@@ -33,7 +33,7 @@ WITH tBase AS (
     , ROW_NUMBER() OVER (
       PARTITION BY tipo_documento, documento
       ORDER BY
-        data_atualizacao DESC NULLS LAST
+        atualizado_em DESC NULLS LAST
         , data_entrega DESC NULLS LAST
         , _arquivo DESC
         , _linha DESC
@@ -42,7 +42,7 @@ WITH tBase AS (
     , ROW_NUMBER() OVER (
       PARTITION BY tipo_documento, documento
       ORDER BY
-        data_atualizacao_sem_sentinela DESC NULLS LAST
+        atualizado_em_sem_sentinela DESC NULLS LAST
         , data_entrega DESC NULLS LAST
         , _arquivo DESC
         , _linha DESC
@@ -52,7 +52,7 @@ WITH tBase AS (
       PARTITION BY tipo_documento, documento
       ORDER BY
         data_entrega DESC NULLS LAST
-        , data_atualizacao DESC NULLS LAST
+        , atualizado_em DESC NULLS LAST
         , _arquivo DESC
         , _linha DESC
       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW

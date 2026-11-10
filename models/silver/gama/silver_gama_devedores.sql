@@ -9,7 +9,7 @@ WITH tVersoes AS (
     documento
     , nome
     , data_nascimento
-    , cnpj_empregador
+    , cnpj_empregador_raw
     , estado_civil
     , qtd_dependentes
     , score_externo
@@ -24,7 +24,7 @@ WITH tVersoes AS (
     , cidade
     , uf
     , cep
-    , data_atualizacao
+    , dt_ref
     , data_entrega
     , _arquivo
     , _linha
@@ -32,7 +32,7 @@ WITH tVersoes AS (
     , ROW_NUMBER() OVER (
       PARTITION BY documento
       ORDER BY
-        data_atualizacao DESC NULLS LAST
+        dt_ref DESC NULLS LAST
         , data_entrega DESC NULLS LAST
         , _arquivo DESC
         , _linha DESC
@@ -45,7 +45,7 @@ SELECT
   documento
   , nome
   , data_nascimento
-  , cnpj_empregador
+  , cnpj_empregador_raw
   , estado_civil
   , qtd_dependentes
   , score_externo
@@ -60,7 +60,7 @@ SELECT
   , cidade
   , uf
   , cep
-  , data_atualizacao
+  , dt_ref
   , data_entrega
   , _arquivo
   , _linha

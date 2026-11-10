@@ -1,11 +1,11 @@
 {#
-  Grão: uma linha por (documento, tipo, contato normalizado), com a primeira e a última data de
-  entrega em que o par apareceu. Considera todas as linhas da bronze com documento, não só a
+  Grão: uma linha por (documento, tipo_contato, contato normalizado), com a primeira e a última
+  data de entrega em que o par apareceu. Considera todas as linhas da bronze com documento, não só a
   versão atual do devedor (S4): um número que saiu da versão mais recente continua registrado.
   Só existe linha para contato que veio preenchido.
 
-  Os contatos vêm da lista `contatos`, de elementos {tipo, valor}. `celular` e `fixo` viram o tipo
-  `telefone`, e `email` vira `email`. O tipo do telefone (`celular` ou `fixo`) é do provedor e
+  Os contatos vêm da lista `contatos`, de elementos {tipo, valor}. `celular` e `fixo` viram o `tipo_contato`
+  `telefone`, e `email` vira `email`. O `tipo` do telefone (`celular` ou `fixo`) é do provedor e
   vem da aparição mais recente do contato (mesma ordem da versão do devedor, S3); fica `NULL` no
   e-mail. `_arquivo`, `_linha` e `_hash_arquivo` são dessa mesma aparição, porque a data de
   entrega não identifica o arquivo (a gama tem arquivo original e reenvio na mesma data). A linha
@@ -15,7 +15,7 @@
 WITH tElementos AS (
   SELECT
     p.documento
-    , p.data_atualizacao
+    , p.dt_ref
     , p.data_entrega
     , p._arquivo
     , p._linha
@@ -31,7 +31,7 @@ WITH tElementos AS (
   SELECT
     documento
     , posicao
-    , data_atualizacao
+    , dt_ref
     , data_entrega
     , _arquivo
     , _linha
@@ -39,60 +39,60 @@ WITH tElementos AS (
     , CASE
       WHEN tipo_origem IN ('celular', 'fixo') THEN 'telefone'
       WHEN tipo_origem = 'email' THEN 'email'
-    END AS tipo
+    END AS tipo_contato
     , CASE
       WHEN tipo_origem IN ('celular', 'fixo') THEN {{ telefone_normalizado('valor_origem') }}
       WHEN tipo_origem = 'email' THEN {{ email_normalizado('valor_origem') }}
     END AS contato
-    , CASE WHEN tipo_origem IN ('celular', 'fixo') THEN tipo_origem END AS tipo_telefone
+    , CASE WHEN tipo_origem IN ('celular', 'fixo') THEN tipo_origem END AS tipo
   FROM tElementos
 )
 
 , tValidas AS (
   SELECT
     documento
-    , tipo
+    , tipo_contato
     , contato
-    , tipo_telefone
+    , tipo
     , posicao
-    , data_atualizacao
+    , dt_ref
     , data_entrega
     , _arquivo
     , _linha
     , _hash_arquivo
   FROM tAparicoes
   WHERE 1 = 1
-    AND tipo IS NOT NULL
+    AND tipo_contato IS NOT NULL
     AND contato IS NOT NULL
 )
 
 , tEntregas AS (
   SELECT
     documento
-    , tipo
+    , tipo_contato
     , contato
     , MIN(data_entrega) AS data_primeira_entrega
     , MAX(data_entrega) AS data_ultima_entrega
   FROM tValidas
   GROUP BY
     documento
-    , tipo
+    , tipo_contato
     , contato
 )
 
 , tOrdenadas AS (
   SELECT
     documento
-    , tipo
+    , tipo_contato
     , contato
-    , tipo_telefone
+    , tipo
     , _arquivo
     , _linha
     , _hash_arquivo
     , ROW_NUMBER() OVER (
-      PARTITION BY documento, tipo, contato
+      PARTITION BY documento, tipo_contato, contato
       ORDER BY
-        data_atualizacao DESC NULLS LAST
+        dt_ref DESC NULLS LAST
         , data_entrega DESC NULLS LAST
         , _arquivo DESC
         , _linha DESC
@@ -105,9 +105,9 @@ WITH tElementos AS (
 , tMaisRecentes AS (
   SELECT
     documento
-    , tipo
+    , tipo_contato
     , contato
-    , tipo_telefone
+    , tipo
     , _arquivo
     , _linha
     , _hash_arquivo
@@ -118,9 +118,9 @@ WITH tElementos AS (
 
 SELECT
   e.documento
-  , e.tipo
+  , e.tipo_contato
   , e.contato
-  , r.tipo_telefone
+  , r.tipo
   , e.data_primeira_entrega
   , e.data_ultima_entrega
   , r._arquivo
@@ -129,5 +129,5 @@ SELECT
 FROM tEntregas AS e
 INNER JOIN tMaisRecentes AS r
   ON e.documento = r.documento
-    AND e.tipo = r.tipo
+    AND e.tipo_contato = r.tipo_contato
     AND e.contato = r.contato

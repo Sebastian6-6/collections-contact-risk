@@ -13,7 +13,8 @@
     - `endereco` = "logradouro, numero - bairro", com `cidade` e `uf`.
   Nos dois formatos de texto, as partes só saem quando o texto casa inteiro com o padrão estrito
   (S7); senão ficam `NULL` e o texto original continua em `endereco`.
-  `dt_ref` vira `data_atualizacao`: a medição está no YAML do modelo `silver_gama_devedores`.
+  `dt_ref` e `cnpj_empregador_raw` mantêm o nome da fonte; a medição de `dt_ref` como data de
+  atualização está no YAML do modelo `silver_gama_devedores`.
 #}
 {{ config(materialized='ephemeral') }}
 
@@ -40,7 +41,7 @@ WITH tBase AS (
     documento
     , nome
     , {{ data_flexivel('data_nascimento') }} AS data_nascimento
-    , {{ cnpj_normalizado('cnpj_empregador_raw') }} AS cnpj_empregador
+    , {{ cnpj_normalizado('cnpj_empregador_raw') }} AS cnpj_empregador_raw
     , NULLIF(TRIM(atributos_json ->> 'estado_civil'), '') AS estado_civil
     , CAST(NULLIF(TRIM(atributos_json ->> 'qtd_dependentes'), '') AS INTEGER) AS qtd_dependentes
     , CAST(NULLIF(TRIM(atributos_json ->> 'score_externo'), '') AS INTEGER) AS score_externo
@@ -66,7 +67,7 @@ WITH tBase AS (
       , NULLIF(TRIM(endereco_json ->> 'estado'), '')
     ) AS uf
     , LPAD({{ somente_digitos("endereco_json ->> 'cep'") }}, 8, '0') AS cep
-    , {{ data_flexivel('dt_ref') }} AS data_atualizacao
+    , {{ data_flexivel('dt_ref') }} AS dt_ref
     , {{ data_de_entrega('_arquivo', 'gama') }} AS data_entrega
     , lista_contatos
     , _arquivo
@@ -81,7 +82,7 @@ SELECT
   documento
   , nome
   , data_nascimento
-  , cnpj_empregador
+  , cnpj_empregador_raw
   , estado_civil
   , qtd_dependentes
   , score_externo
@@ -107,7 +108,7 @@ SELECT
   , cidade
   , uf
   , cep
-  , data_atualizacao
+  , dt_ref
   , data_entrega
   , lista_contatos
   , _arquivo

@@ -28,7 +28,7 @@ WITH tOrigem AS (
 , tContatos AS (
   SELECT DISTINCT
     documento
-    , 'telefone' AS tipo
+    , 'telefone' AS tipo_contato
     , {{ telefone_normalizado('valor_origem') }} AS contato
   FROM tElementos
   WHERE 1 = 1
@@ -38,7 +38,7 @@ WITH tOrigem AS (
 
   SELECT DISTINCT
     documento
-    , 'email' AS tipo
+    , 'email' AS tipo_contato
     , {{ email_normalizado('valor_origem') }} AS contato
   FROM tElementos
   WHERE 1 = 1
@@ -48,7 +48,7 @@ WITH tOrigem AS (
 , tTiposDesconhecidos AS (
   SELECT DISTINCT
     documento
-    , tipo_origem AS tipo
+    , tipo_origem AS tipo_contato
     , CAST(NULL AS VARCHAR) AS contato
   FROM tElementos
   WHERE 1 = 1
@@ -59,7 +59,7 @@ WITH tOrigem AS (
 , tDocumentosPerdidos AS (
   SELECT DISTINCT
     o.documento
-    , CAST(NULL AS VARCHAR) AS tipo
+    , CAST(NULL AS VARCHAR) AS tipo_contato
     , CAST(NULL AS VARCHAR) AS contato
   FROM tOrigem AS o
   LEFT JOIN {{ ref('silver_gama_devedores') }} AS d
@@ -72,12 +72,12 @@ WITH tOrigem AS (
 , tContatosPerdidos AS (
   SELECT
     b.documento
-    , b.tipo
+    , b.tipo_contato
     , b.contato
   FROM tContatos AS b
   LEFT JOIN {{ ref('silver_gama_devedores_contatos') }} AS s
     ON b.documento = s.documento
-      AND b.tipo = s.tipo
+      AND b.tipo_contato = s.tipo_contato
       AND b.contato = s.contato
   WHERE 1 = 1
     AND b.contato IS NOT NULL
@@ -86,7 +86,7 @@ WITH tOrigem AS (
 
 SELECT
   documento
-  , tipo
+  , tipo_contato
   , contato
 FROM tDocumentosPerdidos
 
@@ -94,7 +94,7 @@ UNION ALL
 
 SELECT
   documento
-  , tipo
+  , tipo_contato
   , contato
 FROM tContatosPerdidos
 
@@ -102,6 +102,6 @@ UNION ALL
 
 SELECT
   documento
-  , tipo
+  , tipo_contato
   , contato
 FROM tTiposDesconhecidos

@@ -16,7 +16,7 @@ WITH tOrigem AS (
 , tPares AS (
   SELECT DISTINCT
     o.contato_id
-    , NULLIF(TRIM(p.provedor), '') AS provedor
+    , NULLIF(TRIM(p.provedor), '') AS provedor_origem
   FROM tOrigem AS o
   CROSS JOIN LATERAL UNNEST(STRING_TO_ARRAY(o.provedor_origem, '|')) AS p (provedor)
   WHERE 1 = 1
@@ -26,7 +26,7 @@ WITH tOrigem AS (
 , tContatosPerdidos AS (
   SELECT DISTINCT
     o.contato_id
-    , CAST(NULL AS VARCHAR) AS provedor
+    , CAST(NULL AS VARCHAR) AS provedor_origem
   FROM tOrigem AS o
   LEFT JOIN {{ ref('silver_cobranca_contatos_realizados') }} AS s
     ON o.contato_id = s.contato_id
@@ -38,24 +38,24 @@ WITH tOrigem AS (
 , tParesPerdidos AS (
   SELECT
     b.contato_id
-    , b.provedor
+    , b.provedor_origem
   FROM tPares AS b
   LEFT JOIN {{ ref('silver_cobranca_contatos_realizados_provedores') }} AS s
     ON b.contato_id = s.contato_id
-      AND b.provedor = s.provedor
+      AND b.provedor_origem = s.provedor_origem
   WHERE 1 = 1
-    AND b.provedor IS NOT NULL
+    AND b.provedor_origem IS NOT NULL
     AND s.contato_id IS NULL
 )
 
 SELECT
   contato_id
-  , provedor
+  , provedor_origem
 FROM tContatosPerdidos
 
 UNION ALL
 
 SELECT
   contato_id
-  , provedor
+  , provedor_origem
 FROM tParesPerdidos

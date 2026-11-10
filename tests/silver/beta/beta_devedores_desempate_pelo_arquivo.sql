@@ -14,7 +14,7 @@ FROM {{ ref('silver_beta_devedores') }} AS v
 INNER JOIN {{ ref('silver_beta_devedores_padronizados') }} AS p
   ON v.documento = p.documento
     AND v.tipo_documento = p.tipo_documento
-    AND v.data_atualizacao IS NOT DISTINCT FROM p.data_atualizacao
+    AND v.atualizado_em IS NOT DISTINCT FROM p.atualizado_em
     AND v.data_entrega IS NOT DISTINCT FROM p.data_entrega
     AND v._linha = p._linha
 GROUP BY

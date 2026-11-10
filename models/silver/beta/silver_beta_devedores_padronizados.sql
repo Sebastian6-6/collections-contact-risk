@@ -50,7 +50,7 @@ WITH tBase AS (
     , (registro_json -> 'vinculo_empresa') ->> 'cnpj' AS cnpj_empregador
     , NULLIF(TRIM((registro_json -> 'vinculo_empresa') ->> 'desde'), '') AS vinculo_desde
     , registro_json ->> 'renda_mensal' AS renda_mensal
-    , registro_json ->> 'atualizado_em' AS data_atualizacao
+    , registro_json ->> 'atualizado_em' AS atualizado_em
     , (registro_json -> 'contato') -> 'telefones' AS lista_telefones
     , (registro_json -> 'contato') -> 'emails' AS lista_emails
     , (registro_json -> 'contato') ->> 'email' AS email_unico
@@ -73,7 +73,7 @@ WITH tBase AS (
     , {{ cnpj_normalizado('cnpj_empregador') }} AS cnpj_empregador
     , vinculo_desde
     , {{ valor_monetario('renda_mensal') }} AS renda_mensal
-    , {{ data_flexivel('data_atualizacao') }} AS data_atualizacao
+    , {{ data_flexivel('atualizado_em') }} AS atualizado_em
     , {{ data_de_entrega('_arquivo', 'beta') }} AS data_entrega
     , lista_telefones
     , lista_emails
@@ -94,7 +94,7 @@ SELECT
   , cnpj_empregador
   , vinculo_desde
   , renda_mensal
-  , data_atualizacao
+  , atualizado_em
   , data_entrega
   , lista_telefones
   , lista_emails

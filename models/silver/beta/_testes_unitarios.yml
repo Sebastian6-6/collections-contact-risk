@@ -19,9 +19,9 @@ unit_tests:
           - {registro: '{"cpf": "94502272841", "nome": "Registro Interrompido", "contato": {"telefones": [{"ddd": "1', _arquivo: "contact_data/provedor_beta.jsonl", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: null}
     expect:
       rows:
-        - {tipo_documento: "CPF", documento: "10312391620", nome_completo: "Ana Souza", data_nascimento: "1990-02-03", cnpj_empregador: "00000000000191", vinculo_desde: "2020-05", renda_mensal: 4090.20, data_atualizacao: "2026-07-24", data_entrega: "2026-08-31", email_unico: null, _linha: 1}
-        - {tipo_documento: "RG", documento: "161429298", nome_completo: "Bia Lima", data_nascimento: "1990-02-03", cnpj_empregador: null, vinculo_desde: null, renda_mensal: 1400.00, data_atualizacao: "2026-09-02", data_entrega: "2026-09-05", email_unico: "bia@x.com", _linha: 7}
-        - {tipo_documento: "CPF", documento: "01006543201", nome_completo: "Caio Reis", data_nascimento: null, cnpj_empregador: null, vinculo_desde: null, renda_mensal: null, data_atualizacao: "2026-09-03", data_entrega: "2026-08-31", email_unico: null, _linha: 2}
+        - {tipo_documento: "CPF", documento: "10312391620", nome_completo: "Ana Souza", data_nascimento: "1990-02-03", cnpj_empregador: "00000000000191", vinculo_desde: "2020-05", renda_mensal: 4090.20, atualizado_em: "2026-07-24", data_entrega: "2026-08-31", email_unico: null, _linha: 1}
+        - {tipo_documento: "RG", documento: "161429298", nome_completo: "Bia Lima", data_nascimento: "1990-02-03", cnpj_empregador: null, vinculo_desde: null, renda_mensal: 1400.00, atualizado_em: "2026-09-02", data_entrega: "2026-09-05", email_unico: "bia@x.com", _linha: 7}
+        - {tipo_documento: "CPF", documento: "01006543201", nome_completo: "Caio Reis", data_nascimento: null, cnpj_empregador: null, vinculo_desde: null, renda_mensal: null, atualizado_em: "2026-09-03", data_entrega: "2026-08-31", email_unico: null, _linha: 2}
 
   - name: silver_beta_devedores_versao_mais_recente
     description: >
@@ -33,7 +33,7 @@ unit_tests:
       - input: ref('silver_beta_devedores_padronizados')
         format: sql
         rows: |
-          SELECT 'CPF' AS tipo_documento, '123' AS documento, 'NOME 1' AS nome_completo, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS VARCHAR) AS vinculo_desde, CAST(NULL AS DECIMAL(14, 2)) AS renda_mensal, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
+          SELECT 'CPF' AS tipo_documento, '123' AS documento, 'NOME 1' AS nome_completo, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS VARCHAR) AS vinculo_desde, CAST(NULL AS DECIMAL(14, 2)) AS renda_mensal, CAST('2026-07-01' AS DATE) AS atualizado_em, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
           UNION ALL
           SELECT 'CPF', '123', 'NOME 2', NULL, NULL, NULL, NULL, CAST('2026-09-17' AS DATE), CAST('2026-09-18' AS DATE), 'f2', 1, 'h'
           UNION ALL
@@ -62,17 +62,17 @@ unit_tests:
       - input: ref('silver_beta_devedores_padronizados')
         format: sql
         rows: |
-          SELECT 'CPF' AS tipo_documento, '123' AS documento, CAST('2026-07-01' AS DATE) AS data_atualizacao, CAST('2026-08-31' AS DATE) AS data_entrega, 1 AS _linha, 'b1' AS _arquivo, 'h1' AS _hash_arquivo, CAST('["+55 11 90040-5285", "2199998888"]' AS JSON) AS lista_telefones, CAST('["ANA@X.COM"]' AS JSON) AS lista_emails, CAST(NULL AS VARCHAR) AS email_unico
+          SELECT 'CPF' AS tipo_documento, '123' AS documento, CAST('2026-07-01' AS DATE) AS atualizado_em, CAST('2026-08-31' AS DATE) AS data_entrega, 1 AS _linha, 'b1' AS _arquivo, 'h1' AS _hash_arquivo, CAST('["+55 11 90040-5285", "2199998888"]' AS JSON) AS lista_telefones, CAST('["ANA@X.COM"]' AS JSON) AS lista_emails, CAST(NULL AS VARCHAR) AS email_unico
           UNION ALL
           SELECT 'CPF', '123', CAST('2026-09-10' AS DATE), CAST('2026-09-10' AS DATE), 2, 'b2', 'h2', CAST('[{"ddd": "11", "numero": "900405285", "tipo": "celular", "principal": true}]' AS JSON), CAST(NULL AS JSON), 'ana@x.com'
           UNION ALL
           SELECT 'RG', '123', CAST('2026-09-11' AS DATE), CAST('2026-09-11' AS DATE), 3, 'b3', 'h3', CAST('[{"ddd": "11", "numero": "900405285", "tipo": "fixo", "principal": false}]' AS JSON), CAST('[]' AS JSON), CAST(NULL AS VARCHAR)
     expect:
       rows:
-        - {tipo_documento: "CPF", documento: "123", tipo: "telefone", contato: "11900405285", tipo_telefone: "celular", principal: true, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
-        - {tipo_documento: "CPF", documento: "123", tipo: "telefone", contato: "2199998888", tipo_telefone: null, principal: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
-        - {tipo_documento: "CPF", documento: "123", tipo: "email", contato: "ana@x.com", tipo_telefone: null, principal: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
-        - {tipo_documento: "RG", documento: "123", tipo: "telefone", contato: "11900405285", tipo_telefone: "fixo", principal: false, data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "b3", _linha: 3, _hash_arquivo: "h3"}
+        - {tipo_documento: "CPF", documento: "123", tipo_contato: "telefone", contato: "11900405285", tipo: "celular", principal: true, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
+        - {tipo_documento: "CPF", documento: "123", tipo_contato: "telefone", contato: "2199998888", tipo: null, principal: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-08-31", _arquivo: "b1", _linha: 1, _hash_arquivo: "h1"}
+        - {tipo_documento: "CPF", documento: "123", tipo_contato: "email", contato: "ana@x.com", tipo: null, principal: null, data_primeira_entrega: "2026-08-31", data_ultima_entrega: "2026-09-10", _arquivo: "b2", _linha: 2, _hash_arquivo: "h2"}
+        - {tipo_documento: "RG", documento: "123", tipo_contato: "telefone", contato: "11900405285", tipo: "fixo", principal: false, data_primeira_entrega: "2026-09-11", data_ultima_entrega: "2026-09-11", _arquivo: "b3", _linha: 3, _hash_arquivo: "h3"}
 
   - name: silver_beta_devedores_enderecos_versao_atual
     description: >

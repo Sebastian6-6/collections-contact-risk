@@ -15,8 +15,8 @@ models:
       convivem (S6): documento = `cpf` ou `documento.valor` (com `tipo_documento` = `CPF` para
       `cpf`, ou o `documento.tipo`); `nome_completo` = `nome_completo`, `nome` ou `nome_devedor`
       (nessa ordem, a primeira preenchida); e-mail = lista `contato.emails` mais o texto
-      `contato.email`; endereço = lista `enderecos` mais o objeto `endereco`; `data_atualizacao` =
-      `atualizado_em` em ISO 8601 ou epoch em milissegundos; `renda_mensal` = número, texto
+      `contato.email`; endereço = lista `enderecos` mais o objeto `endereco`; `atualizado_em` em
+      ISO 8601 ou epoch em milissegundos, os dois viram data; `renda_mensal` = número, texto
       "R$ x,xx" ou nulo. Linha com JSON inválido (registro truncado) ou sem documento fica fora e
       continua na bronze.
     config:
@@ -73,10 +73,11 @@ models:
         description: >-
           Renda mensal em `NUMERIC(14, 2)`, vinda de número ou de texto "R$ x,xx". `NULL` quando
           a origem é nula; o zero informado pelo provedor fica 0.00.
-      - name: data_atualizacao
+      - name: atualizado_em
         description: >-
-          Data de atualização do registro informada pelo provedor (`atualizado_em`, ISO 8601 ou
-          epoch em milissegundos, este no fuso do Brasil), usada para escolher a versão.
+          Data de atualização do registro informada pelo provedor, com o nome do campo da origem
+          (`atualizado_em`, ISO 8601 ou epoch em milissegundos, este no fuso do Brasil), usada para
+          escolher a versão.
       - name: data_entrega
         description: >-
           Data da entrega do arquivo de onde veio a versão: a data escrita no nome do arquivo ou,
@@ -96,8 +97,8 @@ models:
 
   - name: silver_beta_devedores_contatos
     description: >
-      Histórico de contatos do provedor beta, uma linha por (tipo de documento, documento, tipo,
-      contato normalizado). Considera todas as linhas da bronze com documento, não só a versão
+      Histórico de contatos do provedor beta, uma linha por (tipo de documento, documento,
+      tipo_contato, contato normalizado). Considera todas as linhas da bronze com documento, não só a versão
       atual do devedor: um telefone ou e-mail que saiu da versão mais recente continua
       registrado, com a última data de entrega em que apareceu. Só existe linha para contato que
       veio preenchido. Telefone vem da lista `contato.telefones` (texto ou objeto com `ddd` e
@@ -107,7 +108,7 @@ models:
     data_tests:
       - combinacao_unica:
           arguments:
-            colunas: [tipo_documento, documento, tipo, contato]
+            colunas: [tipo_documento, documento, tipo_contato, contato]
     columns:
       - name: tipo_documento
         description: "Tipo do documento, como em `silver_beta.devedores`."
@@ -117,20 +118,20 @@ models:
         description: "Documento do devedor, como em `silver_beta.devedores`."
         data_tests:
           - not_null
-      - name: tipo
-        description: "Tipo do contato: `telefone` ou `email`."
+      - name: tipo_contato
+        description: "Tipo do contato, criado na silver: `telefone` ou `email`."
         data_tests:
           - not_null
           - accepted_values:
               arguments:
                 values: [telefone, email]
       - name: contato
-        description: "Telefone (só dígitos, DDD + número, sem o código do país) ou e-mail (minúsculas), conforme `tipo`."
+        description: "Telefone (só dígitos, DDD + número, sem o código do país) ou e-mail (minúsculas), conforme `tipo_contato`."
         data_tests:
           - not_null
-      - name: tipo_telefone
+      - name: tipo
         description: >-
-          Tipo do telefone informado pelo provedor (`celular` ou `fixo`) na aparição mais recente
+          Campo `tipo` do telefone informado pelo provedor (`celular` ou `fixo`) na aparição mais recente
           do contato. `NULL` para e-mail e para telefone que o provedor escreveu como texto.
         data_tests:
           - accepted_values:
