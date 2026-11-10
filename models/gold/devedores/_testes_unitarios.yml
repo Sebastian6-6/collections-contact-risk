@@ -1,0 +1,498 @@
+version: 2
+
+unit_tests:
+  - name: devedores_documentos_liga_cpf_com_um_digito_errado_e_rg_por_nome_e_nascimento
+    description: >
+      G3a'. CPF inválido a um dígito de um único CPF válido com mesmo nome e nascimento se liga a
+      ele; a dois dígitos não se liga; com duas correspondências não se liga (empate nunca se resolve);
+      com nascimento não confiável não se liga. RG com mesmo nome e nascimento de um único CPF
+      válido se liga; RG sem correspondência não é devedor (`cpf` NULL). O CPF válido que chega por dois
+      provedores é um documento só.
+    model: devedores_documentos
+    given:
+      - input: ref('devedores_registros')
+        format: sql
+        rows: |
+          SELECT
+            CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(nome_chave AS VARCHAR) AS nome_chave
+            , CAST(dt_nascimento AS DATE) AS dt_nascimento
+            , CAST(nascimento_confiavel AS BOOLEAN) AS nascimento_confiavel
+          FROM (
+            VALUES
+            ('CPF', '52998224725', 'ANA SOUZA', DATE '1990-01-01', TRUE)
+            , ('CPF', '52998224725', 'ANA SOUZA', DATE '1990-01-01', TRUE)
+            , ('CPF', '52998224726', 'ANA SOUZA', DATE '1990-01-01', TRUE)
+            , ('CPF', '52998224736', 'ANA SOUZA', DATE '1990-01-01', TRUE)
+            , ('CPF', '11144477735', 'MARIA LIMA', DATE '1980-05-05', TRUE)
+            , ('CPF', '12345678909', 'MARIA LIMA', DATE '1980-05-05', TRUE)
+            , ('CPF', '11144477736', 'MARIA LIMA', DATE '1980-05-05', TRUE)
+            , ('CPF', '39053344705', 'JOSE DA CONCEICAO', DATE '1975-03-03', TRUE)
+            , ('CPF', '39053344706', 'JOSE DA CONCEICAO', DATE '1900-01-01', FALSE)
+            , ('RG', '123456789', 'JOSE DA CONCEICAO', DATE '1975-03-03', TRUE)
+            , ('RG', '987654321', 'NINGUEM', DATE '2000-01-01', TRUE)
+          ) AS tLinhas (documento_tipo, documento, nome_chave, dt_nascimento, nascimento_confiavel)
+    expect:
+      rows:
+        - {documento_tipo: CPF, documento: "52998224725", cpf: "52998224725", situacao_documento: cpf_valido}
+        - {documento_tipo: CPF, documento: "52998224726", cpf: "52998224725", situacao_documento: cpf_corrigido}
+        - {documento_tipo: CPF, documento: "52998224736", cpf: "52998224736", situacao_documento: cpf_invalido}
+        - {documento_tipo: CPF, documento: "11144477735", cpf: "11144477735", situacao_documento: cpf_valido}
+        - {documento_tipo: CPF, documento: "12345678909", cpf: "12345678909", situacao_documento: cpf_valido}
+        - {documento_tipo: CPF, documento: "11144477736", cpf: "11144477736", situacao_documento: cpf_invalido}
+        - {documento_tipo: CPF, documento: "39053344705", cpf: "39053344705", situacao_documento: cpf_valido}
+        - {documento_tipo: CPF, documento: "39053344706", cpf: "39053344706", situacao_documento: cpf_invalido}
+        - {documento_tipo: RG, documento: "123456789", cpf: "39053344705", situacao_documento: rg_por_nome_nascimento}
+        - {documento_tipo: RG, documento: "987654321", cpf: null, situacao_documento: sem_documento}
+
+  - name: dim_devedor_escolhe_nome_nascimento_perfil_e_marca_conflitos
+    description: >
+      G3b, G3c e ponto 4. Um voto por provedor. Nome abreviado ("ANA C. SOUZA") vota na forma por
+      extenso e não é conflito; a grafia acentuada vence a sem acento; primeiro nome diferente é
+      conflito de identidade e, no empate, vale o nome mais recente. Nascimento: a sentinela não
+      vota, a maioria vence e o empate dá NULL. O perfil sai só da gama. Um documento com versões empatadas no topo
+      da histórica (`devedores_conflitos_versao`) marca `versao` (e, com o conflito de
+      identidade, `identidade_e_versao`). O RG ligado conta em `qt_documentos_vinculados` e o
+      provedor dele conta em `qt_provedores`.
+    model: dim_devedor
+    given:
+      - input: ref('devedores_registros')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(nome_devedor AS VARCHAR) AS nome_devedor
+            , CAST(nome_chave AS VARCHAR) AS nome_chave
+            , CAST(dt_nascimento AS DATE) AS dt_nascimento
+            , CAST(nascimento_confiavel AS BOOLEAN) AS nascimento_confiavel
+            , CAST(dt_atualizacao AS DATE) AS dt_atualizacao
+            , CAST(dt_entrega AS DATE) AS dt_entrega
+            , CAST(estado_civil AS VARCHAR) AS estado_civil
+            , CAST(escolaridade AS VARCHAR) AS escolaridade
+            , CAST(fonte_score AS VARCHAR) AS fonte_score
+            , CAST(qt_dependentes AS INTEGER) AS qt_dependentes
+            , CAST(score_externo AS INTEGER) AS score_externo
+            , CAST(flag_possui_imovel AS BOOLEAN) AS flag_possui_imovel
+          FROM (
+            VALUES
+            ('alfa', 'CPF', '52998224725', 'ANA C. SOUZA', 'ANA C. SOUZA', DATE '1990-01-01', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('gama', 'CPF', '52998224725', 'ANA CRISTINA SOUZA', 'ANA CRISTINA SOUZA', DATE '1990-01-01', TRUE, DATE '2026-07-01', DATE '2026-08-31', 'CASADO', 'SUPERIOR', 'SERASA', 2, 700, TRUE)
+            , ('alfa', 'CPF', '11144477735', 'JOSE DA CONCEICAO', 'JOSE DA CONCEICAO', DATE '1980-05-05', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('beta', 'CPF', '11144477735', 'JOSÉ DA CONCEIÇÃO', 'JOSE DA CONCEICAO', DATE '1980-05-05', TRUE, DATE '2026-07-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('alfa', 'CPF', '12345678909', 'MARIA LIMA', 'MARIA LIMA', DATE '1980-05-05', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('gama', 'CPF', '12345678909', 'ANA LIMA', 'ANA LIMA', DATE '1981-05-05', TRUE, DATE '2026-07-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('alfa', 'CPF', '39053344705', 'PEDRO ALVES', 'PEDRO ALVES', DATE '1900-01-01', FALSE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('gama', 'CPF', '39053344705', 'PEDRO ALVES', 'PEDRO ALVES', DATE '1970-02-02', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('beta', 'RG', '123456789', 'PEDRO ALVES', 'PEDRO ALVES', DATE '1970-02-02', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('alfa', 'CPF', '52998224736', 'LUIZ SILVA', 'LUIZ SILVA', DATE '1960-06-06', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+            , ('alfa', 'CPF', '70000000007', 'ROSA PINTO', 'ROSA PINTO', DATE '1955-07-07', TRUE, DATE '2026-08-01', DATE '2026-08-31', NULL, NULL, NULL, NULL, NULL, NULL)
+          ) AS tLinhas (provedor, documento_tipo, documento, nome_devedor, nome_chave, dt_nascimento, nascimento_confiavel, dt_atualizacao, dt_entrega, estado_civil, escolaridade, fonte_score, qt_dependentes, score_externo, flag_possui_imovel)
+      - input: ref('devedores_documentos')
+        format: sql
+        rows: |
+          SELECT
+            CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(situacao_documento AS VARCHAR) AS situacao_documento
+          FROM (
+            VALUES
+            ('CPF', '52998224725', '52998224725', 'cpf_valido')
+            , ('CPF', '11144477735', '11144477735', 'cpf_valido')
+            , ('CPF', '12345678909', '12345678909', 'cpf_valido')
+            , ('CPF', '39053344705', '39053344705', 'cpf_valido')
+            , ('RG', '123456789', '39053344705', 'rg_por_nome_nascimento')
+            , ('CPF', '52998224736', '52998224736', 'cpf_invalido')
+            , ('CPF', '70000000007', '70000000007', 'cpf_valido')
+          ) AS tLinhas (documento_tipo, documento, cpf, situacao_documento)
+      - input: ref('devedores_conflitos_versao')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+          FROM (
+            VALUES
+            ('alfa', 'CPF', '12345678909')
+            , ('alfa', 'CPF', '70000000007')
+          ) AS tLinhas (provedor, documento_tipo, documento)
+    expect:
+      rows:
+        - {sk_devedor: 1, cpf: "11144477735", situacao_cpf: "valido", tipo_conflito_cadastral: "nenhum", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "JOSÉ DA CONCEIÇÃO", qt_dependentes: null, score_externo: null, qt_provedores: 2, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: "1980-05-05"}
+        - {sk_devedor: 2, cpf: "12345678909", situacao_cpf: "valido", tipo_conflito_cadastral: "identidade_e_versao", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "MARIA LIMA", qt_dependentes: null, score_externo: null, qt_provedores: 2, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: null}
+        - {sk_devedor: 3, cpf: "39053344705", situacao_cpf: "valido", tipo_conflito_cadastral: "nenhum", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "PEDRO ALVES", qt_dependentes: null, score_externo: null, qt_provedores: 3, qt_documentos_vinculados: 1, flag_possui_imovel: null, dt_nascimento: "1970-02-02"}
+        - {sk_devedor: 4, cpf: "52998224725", situacao_cpf: "valido", tipo_conflito_cadastral: "nenhum", estado_civil: "CASADO", escolaridade: "SUPERIOR", fonte_score: "SERASA", nome_devedor: "ANA CRISTINA SOUZA", qt_dependentes: 2, score_externo: 700, qt_provedores: 2, qt_documentos_vinculados: 0, flag_possui_imovel: true, dt_nascimento: "1990-01-01"}
+        - {sk_devedor: 5, cpf: "52998224736", situacao_cpf: "invalido", tipo_conflito_cadastral: "nenhum", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "LUIZ SILVA", qt_dependentes: null, score_externo: null, qt_provedores: 1, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: "1960-06-06"}
+        - {sk_devedor: 6, cpf: "70000000007", situacao_cpf: "valido", tipo_conflito_cadastral: "versao", estado_civil: null, escolaridade: null, fonte_score: null, nome_devedor: "ROSA PINTO", qt_dependentes: null, score_externo: null, qt_provedores: 1, qt_documentos_vinculados: 0, flag_possui_imovel: null, dt_nascimento: "1955-07-07"}
+
+  - name: ft_vinculo_empresa_abre_periodos_por_ilhas_e_marca_o_vigente
+    description: >
+      Ponto 3. Versões seguidas com o mesmo conteúdo formam um período (documento 3: duas versões,
+      um período, com a menor primeira entrega e a maior última entrega); um vínculo que volta
+      depois de outro abre um período novo (A, B, A dá três linhas); conteúdo todo vazio não vira
+      linha e separa os períodos (A, vazio, A dá duas). `atual` é o período que contém a versão
+      vigente do devedor; o documento 2 tem a versão vigente vazia e por isso nenhum período atual.
+    model: ft_vinculo_empresa
+    given:
+      - input: ref('devedores_vinculos_versoes')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(hash_conteudo AS VARCHAR) AS hash_conteudo
+            , CAST(cnpj AS VARCHAR) AS cnpj
+            , CAST(cargo AS VARCHAR) AS cargo
+            , CAST(vl_renda AS NUMERIC(14, 2)) AS vl_renda
+            , CAST(dt_inicio_vinculo AS DATE) AS dt_inicio_vinculo
+            , CAST(dt_atualizacao AS DATE) AS dt_atualizacao
+            , CAST(data_primeira_entrega AS DATE) AS data_primeira_entrega
+            , CAST(data_ultima_entrega AS DATE) AS data_ultima_entrega
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            ('alfa', 'CPF', '1', 'h11', 'A', 'X', 100, NULL, DATE '2026-01-01', DATE '2026-01-05', DATE '2026-01-10', 'a11', 1, 'ha')
+            , ('alfa', 'CPF', '1', 'h12', 'B', 'X', 100, NULL, DATE '2026-02-01', DATE '2026-02-05', DATE '2026-02-10', 'a12', 2, 'ha')
+            , ('alfa', 'CPF', '1', 'h13', 'A', 'X', 100, NULL, DATE '2026-03-01', DATE '2026-03-05', DATE '2026-03-10', 'a13', 3, 'ha')
+            , ('gama', 'CPF', '2', 'h21', 'A', NULL, NULL, NULL, DATE '2026-01-01', DATE '2026-01-05', DATE '2026-01-10', 'a21', 1, 'hg')
+            , ('gama', 'CPF', '2', 'h22', NULL, NULL, NULL, NULL, DATE '2026-02-01', DATE '2026-02-05', DATE '2026-02-10', 'a22', 2, 'hg')
+            , ('gama', 'CPF', '2', 'h23', 'A', NULL, NULL, NULL, DATE '2026-03-01', DATE '2026-03-05', DATE '2026-03-10', 'a23', 3, 'hg')
+            , ('alfa', 'CPF', '3', 'h31', 'A', 'X', 100, NULL, DATE '2026-01-01', DATE '2026-01-05', DATE '2026-01-10', 'a31', 1, 'hb')
+            , ('alfa', 'CPF', '3', 'h32', 'A', 'X', 100, NULL, DATE '2026-02-01', DATE '2026-02-05', DATE '2026-02-10', 'a32', 2, 'hb')
+          ) AS tLinhas (provedor, documento_tipo, documento, hash_conteudo, cnpj, cargo, vl_renda, dt_inicio_vinculo, dt_atualizacao, data_primeira_entrega, data_ultima_entrega, _arquivo, _linha, _hash_arquivo)
+      - input: ref('devedores_versao_vigente')
+        format: sql
+        rows: |
+          SELECT
+            CAST(cpf AS VARCHAR) AS cpf
+            , CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(hash_conteudo AS VARCHAR) AS hash_conteudo
+          FROM (
+            VALUES
+            ('c1', 'alfa', 'CPF', '1', 'h13')
+            , ('c2', 'gama', 'CPF', '2', 'h22')
+            , ('c3', 'alfa', 'CPF', '3', 'h32')
+          ) AS tLinhas (cpf, provedor, documento_tipo, documento, hash_conteudo)
+      - input: ref('devedores_documentos')
+        format: sql
+        rows: |
+          SELECT
+            CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(situacao_documento AS VARCHAR) AS situacao_documento
+          FROM (
+            VALUES
+            ('CPF', '1', 'c1', 'cpf_valido')
+            , ('CPF', '2', 'c2', 'cpf_valido')
+            , ('CPF', '3', 'c3', 'cpf_valido')
+          ) AS tLinhas (documento_tipo, documento, cpf, situacao_documento)
+      - input: ref('dim_devedor')
+        rows:
+        - {cpf: "c1", sk_devedor: 1}
+        - {cpf: "c2", sk_devedor: 2}
+        - {cpf: "c3", sk_devedor: 3}
+      - input: ref('dim_empregador')
+        rows:
+        - {cnpj: "A", sk_empregador: 10}
+        - {cnpj: "B", sk_empregador: 20}
+    expect:
+      rows:
+        - {sk_devedor: 1, sk_empregador: 10, provedor: "alfa", situacao_vinculo: "anterior", cargo: "X", vl_renda: 100, dt_inicio_vinculo: null, dt_atualizacao: "2026-01-01", dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "a11", _linha: 1, _hash_arquivo: "ha"}
+        - {sk_devedor: 1, sk_empregador: 20, provedor: "alfa", situacao_vinculo: "anterior", cargo: "X", vl_renda: 100, dt_inicio_vinculo: null, dt_atualizacao: "2026-02-01", dt_primeira_entrega: "2026-02-05", dt_ultima_entrega: "2026-02-10", _arquivo: "a12", _linha: 2, _hash_arquivo: "ha"}
+        - {sk_devedor: 1, sk_empregador: 10, provedor: "alfa", situacao_vinculo: "atual", cargo: "X", vl_renda: 100, dt_inicio_vinculo: null, dt_atualizacao: "2026-03-01", dt_primeira_entrega: "2026-03-05", dt_ultima_entrega: "2026-03-10", _arquivo: "a13", _linha: 3, _hash_arquivo: "ha"}
+        - {sk_devedor: 2, sk_empregador: 10, provedor: "gama", situacao_vinculo: "anterior", cargo: null, vl_renda: null, dt_inicio_vinculo: null, dt_atualizacao: "2026-01-01", dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "a21", _linha: 1, _hash_arquivo: "hg"}
+        - {sk_devedor: 2, sk_empregador: 10, provedor: "gama", situacao_vinculo: "anterior", cargo: null, vl_renda: null, dt_inicio_vinculo: null, dt_atualizacao: "2026-03-01", dt_primeira_entrega: "2026-03-05", dt_ultima_entrega: "2026-03-10", _arquivo: "a23", _linha: 3, _hash_arquivo: "hg"}
+        - {sk_devedor: 3, sk_empregador: 10, provedor: "alfa", situacao_vinculo: "atual", cargo: "X", vl_renda: 100, dt_inicio_vinculo: null, dt_atualizacao: "2026-02-01", dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-02-10", _arquivo: "a32", _linha: 2, _hash_arquivo: "hb"}
+
+  - name: dim_endereco_junta_complemento_nulo_e_marca_o_endereco_vigente
+    description: >
+      Ponto 5 e G3b. Dois endereços do mesmo devedor iguais em tudo menos no complemento se
+      juntam quando um é NULL e há um só complemento preenchido (devedor 1: fica "APTO 3", com
+      dois provedores, a menor primeira e a maior última entrega, e o texto de quem tem o
+      complemento). Com dois complementos preenchidos diferentes (devedor 2), nada se junta e o
+      NULL continua separado. `atual` vem dos endereços da versão vigente, mesmo quando o
+      endereço vigente foi o que se juntou ao preenchido. Endereço sem devedor mantém a linha com
+      `sk_devedor` NULL.
+    model: dim_endereco
+    given:
+      - input: ref('devedores_enderecos_registros')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(hash_endereco AS VARCHAR) AS hash_endereco
+            , CAST(tipo_endereco AS VARCHAR) AS tipo_endereco
+            , CAST(endereco AS VARCHAR) AS endereco
+            , CAST(logradouro AS VARCHAR) AS logradouro
+            , CAST(numero_endereco AS VARCHAR) AS numero_endereco
+            , CAST(complemento AS VARCHAR) AS complemento
+            , CAST(bairro AS VARCHAR) AS bairro
+            , CAST(cidade AS VARCHAR) AS cidade
+            , CAST(uf AS VARCHAR) AS uf
+            , CAST(cep AS VARCHAR) AS cep
+            , CAST(data_primeira_entrega AS DATE) AS data_primeira_entrega
+            , CAST(data_ultima_entrega AS DATE) AS data_ultima_entrega
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            ('alfa', 'CPF', '1', 'h1', NULL, 'RUA A, 10', 'RUA A', '10', NULL, 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-02-10', 'e1', 1, 'hx')
+            , ('gama', 'CPF', '1', 'h2', NULL, 'RUA A, 10, APTO 3', 'RUA A', '10', 'APTO 3', 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-10', DATE '2026-03-10', 'e2', 2, 'hx')
+            , ('beta', 'CPF', '2', 'h3', 'RESIDENCIAL', NULL, 'RUA A', '20', 'APTO 1', 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e3', 3, 'hx')
+            , ('beta', 'CPF', '2', 'h4', 'COMERCIAL', NULL, 'RUA A', '20', 'APTO 2', 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e4', 4, 'hx')
+            , ('alfa', 'CPF', '2', 'h5', NULL, 'RUA A, 20', 'RUA A', '20', NULL, 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e5', 5, 'hx')
+            , ('alfa', 'CPF', '3', 'h6', NULL, 'RUA A, 30', 'RUA A', '30', NULL, 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e6', 6, 'hx')
+            , ('alfa', 'CPF', NULL, 'h7', NULL, 'RUA A, 40', 'RUA A', '40', NULL, 'CENTRO', 'SANTOS', 'SP', '11010000', DATE '2026-01-05', DATE '2026-01-10', 'e7', 7, 'hx')
+          ) AS tLinhas (provedor, documento_tipo, documento, hash_endereco, tipo_endereco, endereco, logradouro, numero_endereco, complemento, bairro, cidade, uf, cep, data_primeira_entrega, data_ultima_entrega, _arquivo, _linha, _hash_arquivo)
+      - input: ref('devedores_enderecos_vigentes')
+        format: sql
+        rows: |
+          SELECT
+            CAST(provedor AS VARCHAR) AS provedor
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(hash_endereco AS VARCHAR) AS hash_endereco
+          FROM (
+            VALUES
+            ('alfa', '1', 'h1')
+            , ('alfa', '3', 'h6')
+          ) AS tLinhas (provedor, documento, hash_endereco)
+      - input: ref('devedores_documentos')
+        format: sql
+        rows: |
+          SELECT
+            CAST(documento_tipo AS VARCHAR) AS documento_tipo
+            , CAST(documento AS VARCHAR) AS documento
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(situacao_documento AS VARCHAR) AS situacao_documento
+          FROM (
+            VALUES
+            ('CPF', '1', 'c1', 'cpf_valido')
+            , ('CPF', '2', 'c2', 'cpf_valido')
+            , ('CPF', '3', 'c3', 'cpf_valido')
+          ) AS tLinhas (documento_tipo, documento, cpf, situacao_documento)
+      - input: ref('dim_devedor')
+        rows:
+        - {cpf: "c1", sk_devedor: 1}
+        - {cpf: "c2", sk_devedor: 2}
+        - {cpf: "c3", sk_devedor: 3}
+    expect:
+      rows:
+        - {sk_endereco: 1, sk_devedor: 1, tipo_endereco: null, situacao_endereco: "atual", endereco: "RUA A, 10, APTO 3", logradouro: "RUA A", numero_endereco: "10", complemento: "APTO 3", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 2, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-03-10", _arquivo: "e2", _linha: 2, _hash_arquivo: "hx"}
+        - {sk_endereco: 2, sk_devedor: 2, tipo_endereco: "RESIDENCIAL", situacao_endereco: "anterior", endereco: null, logradouro: "RUA A", numero_endereco: "20", complemento: "APTO 1", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e3", _linha: 3, _hash_arquivo: "hx"}
+        - {sk_endereco: 3, sk_devedor: 2, tipo_endereco: "COMERCIAL", situacao_endereco: "anterior", endereco: null, logradouro: "RUA A", numero_endereco: "20", complemento: "APTO 2", bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e4", _linha: 4, _hash_arquivo: "hx"}
+        - {sk_endereco: 4, sk_devedor: 2, tipo_endereco: null, situacao_endereco: "anterior", endereco: "RUA A, 20", logradouro: "RUA A", numero_endereco: "20", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e5", _linha: 5, _hash_arquivo: "hx"}
+        - {sk_endereco: 5, sk_devedor: 3, tipo_endereco: null, situacao_endereco: "atual", endereco: "RUA A, 30", logradouro: "RUA A", numero_endereco: "30", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e6", _linha: 6, _hash_arquivo: "hx"}
+        - {sk_endereco: 6, sk_devedor: null, tipo_endereco: null, situacao_endereco: "anterior", endereco: "RUA A, 40", logradouro: "RUA A", numero_endereco: "40", complemento: null, bairro: "CENTRO", cidade: "SANTOS", uf: "SP", cep: "11010000", qt_provedores: 1, dt_primeira_entrega: "2026-01-05", dt_ultima_entrega: "2026-01-10", _arquivo: "e7", _linha: 7, _hash_arquivo: "hx"}
+
+  - name: dim_contato_aplica_a_regua_aos_sinais_de_contato_devedor_e_tentativa
+    description: >
+      G4 e G5. Contato exclusivo e sem alerta é `liberado`; contato de dois CPFs que se sobrepõem
+      é `compartilhado` (`atencao`); contato que passa de um CPF para outro depois da última
+      entrega do primeiro é `migrado` e bloqueia os dois pares. `opt_out` numa tentativa bloqueia
+      o contato para todos os CPFs dele; `falecido` bloqueia todos os pares do devedor, e vence a
+      migração; `numero_errado` bloqueia só o par. Contato sem devedor é bloqueado, e documento
+      ligado por correção é `atencao`. As contagens de tentativas saem das ligadas ao par.
+    model: dim_contato
+    given:
+      - input: ref('devedores_contatos_pares')
+        format: sql
+        rows: |
+          SELECT
+            CAST(sk_contato AS INTEGER) AS sk_contato
+            , CAST(sk_devedor AS INTEGER) AS sk_devedor
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(tipo_contato AS VARCHAR) AS tipo_contato
+            , CAST(contato AS VARCHAR) AS contato
+            , CAST(tipo_conflito_cadastral AS VARCHAR) AS tipo_conflito_cadastral
+            , CAST(situacao_documento AS VARCHAR) AS situacao_documento
+            , CAST(documento_original AS VARCHAR) AS documento_original
+            , CAST(situacao_entrega AS VARCHAR) AS situacao_entrega
+            , CAST(qt_provedores AS INTEGER) AS qt_provedores
+            , CAST(dt_primeira_entrega AS DATE) AS dt_primeira_entrega
+            , CAST(dt_ultima_entrega AS DATE) AS dt_ultima_entrega
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            (1, 1, 'c1', 'telefone', '111', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f1', 1, 'h')
+            , (2, 1, 'c1', 'telefone', '222', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f2', 2, 'h')
+            , (3, 2, 'c2', 'telefone', '222', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-05-01', DATE '2026-09-30', 'f3', 3, 'h')
+            , (4, 3, 'c3', 'telefone', '333', 'nenhum', 'cpf_valido', NULL, 'ausente', 1, DATE '2026-01-01', DATE '2026-03-31', 'f4', 4, 'h')
+            , (5, 4, 'c4', 'telefone', '333', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-06-01', DATE '2026-09-30', 'f5', 5, 'h')
+            , (6, 1, 'c1', 'telefone', '444', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f6', 6, 'h')
+            , (7, 2, 'c2', 'telefone', '444', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-02-01', DATE '2026-09-30', 'f7', 7, 'h')
+            , (8, 3, 'c3', 'email', 'a@x', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f8', 8, 'h')
+            , (9, 3, 'c3', 'telefone', '666', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f9', 9, 'h')
+            , (10, 5, 'c5', 'telefone', '777', 'nenhum', 'cpf_valido', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f10', 10, 'h')
+            , (11, NULL, NULL, 'telefone', '888', 'nenhum', 'sem_documento', NULL, 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f11', 11, 'h')
+            , (12, 5, 'c5', 'telefone', '999', 'nenhum', 'cpf_corrigido', '12345678900', 'presente', 1, DATE '2026-01-01', DATE '2026-09-30', 'f12', 12, 'h')
+          ) AS tLinhas (sk_contato, sk_devedor, cpf, tipo_contato, contato, tipo_conflito_cadastral, situacao_documento, documento_original, situacao_entrega, qt_provedores, dt_primeira_entrega, dt_ultima_entrega, _arquivo, _linha, _hash_arquivo)
+      - input: ref('cobranca_tentativas')
+        format: sql
+        rows: |
+          SELECT
+            CAST(contato_id AS VARCHAR) AS contato_id
+            , CAST(tipo_contato AS VARCHAR) AS tipo_contato
+            , CAST(contato AS VARCHAR) AS contato
+            , CAST(resultado AS VARCHAR) AS resultado
+            , CAST(tipo_desfecho AS VARCHAR) AS tipo_desfecho
+            , CAST(dt_tentativa AS DATE) AS dt_tentativa
+            , CAST(cpf AS VARCHAR) AS cpf
+            , CAST(sk_contato AS INTEGER) AS sk_contato
+          FROM (
+            VALUES
+            ('t1', 'telefone', '444', 'opt_out', 'opt_out', DATE '2026-09-05', 'c1', 6)
+            , ('t2', 'email', 'a@x', 'falecido', 'falecido', DATE '2026-09-06', 'c3', 8)
+            , ('t3', 'telefone', '777', 'numero_errado', 'terceiro', DATE '2026-09-07', 'c5', 10)
+            , ('t4', 'telefone', '777', 'entregue', 'sem_confirmacao', DATE '2026-09-08', 'c5', 10)
+          ) AS tLinhas (contato_id, tipo_contato, contato, resultado, tipo_desfecho, dt_tentativa, cpf, sk_contato)
+    expect:
+      rows:
+        - {sk_contato: 1, sk_devedor: 1, cpf: "c1", tipo_contato: "telefone", contato: "111", nivel_risco: "liberado", desc_motivo_risco: "sem sinal de risco", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: null, _arquivo: "f1", _linha: 1, _hash_arquivo: "h"}
+        - {sk_contato: 2, sk_devedor: 1, cpf: "c1", tipo_contato: "telefone", contato: "222", nivel_risco: "atencao", desc_motivo_risco: "contato compartilhado entre devedores", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "compartilhado", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-05-01", dt_alerta_historico: null, _arquivo: "f2", _linha: 2, _hash_arquivo: "h"}
+        - {sk_contato: 3, sk_devedor: 2, cpf: "c2", tipo_contato: "telefone", contato: "222", nivel_risco: "atencao", desc_motivo_risco: "contato compartilhado entre devedores", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "compartilhado", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-05-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-05-01", dt_alerta_historico: null, _arquivo: "f3", _linha: 3, _hash_arquivo: "h"}
+        - {sk_contato: 4, sk_devedor: 3, cpf: "c3", tipo_contato: "telefone", contato: "333", nivel_risco: "bloqueado", desc_motivo_risco: "falecido: devedor falecido registrado em contato", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "migrado", tipo_alerta_historico: "falecido", situacao_entrega: "ausente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-03-31", dt_situacao_compartilhamento: "2026-06-01", dt_alerta_historico: "2026-09-06", _arquivo: "f4", _linha: 4, _hash_arquivo: "h"}
+        - {sk_contato: 5, sk_devedor: 4, cpf: "c4", tipo_contato: "telefone", contato: "333", nivel_risco: "bloqueado", desc_motivo_risco: "contato migrado: passou a outro CPF", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "migrado", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-06-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-06-01", dt_alerta_historico: null, _arquivo: "f5", _linha: 5, _hash_arquivo: "h"}
+        - {sk_contato: 6, sk_devedor: 1, cpf: "c1", tipo_contato: "telefone", contato: "444", nivel_risco: "bloqueado", desc_motivo_risco: "opt_out: titular do contato pediu para não ser contatado", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "compartilhado", tipo_alerta_historico: "opt_out", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 1, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-02-01", dt_alerta_historico: "2026-09-05", _arquivo: "f6", _linha: 6, _hash_arquivo: "h"}
+        - {sk_contato: 7, sk_devedor: 2, cpf: "c2", tipo_contato: "telefone", contato: "444", nivel_risco: "bloqueado", desc_motivo_risco: "opt_out: titular do contato pediu para não ser contatado", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "compartilhado", tipo_alerta_historico: "opt_out", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 2, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-02-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: "2026-02-01", dt_alerta_historico: "2026-09-05", _arquivo: "f7", _linha: 7, _hash_arquivo: "h"}
+        - {sk_contato: 8, sk_devedor: 3, cpf: "c3", tipo_contato: "email", contato: "a@x", nivel_risco: "bloqueado", desc_motivo_risco: "falecido: devedor falecido registrado em contato", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "falecido", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 1, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: "2026-09-06", _arquivo: "f8", _linha: 8, _hash_arquivo: "h"}
+        - {sk_contato: 9, sk_devedor: 3, cpf: "c3", tipo_contato: "telefone", contato: "666", nivel_risco: "bloqueado", desc_motivo_risco: "falecido: devedor falecido registrado em contato", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "falecido", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: "2026-09-06", _arquivo: "f9", _linha: 9, _hash_arquivo: "h"}
+        - {sk_contato: 10, sk_devedor: 5, cpf: "c5", tipo_contato: "telefone", contato: "777", nivel_risco: "bloqueado", desc_motivo_risco: "terceiro: contato informou não ser o devedor", situacao_documento: "cpf_valido", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nao_e_o_devedor", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 2, qt_tentativas_terceiro: 1, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: "2026-09-07", _arquivo: "f10", _linha: 10, _hash_arquivo: "h"}
+        - {sk_contato: 11, sk_devedor: null, cpf: null, tipo_contato: "telefone", contato: "888", nivel_risco: "bloqueado", desc_motivo_risco: "contato sem devedor identificado", situacao_documento: "sem_documento", documento_original: null, situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 0, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: null, _arquivo: "f11", _linha: 11, _hash_arquivo: "h"}
+        - {sk_contato: 12, sk_devedor: 5, cpf: "c5", tipo_contato: "telefone", contato: "999", nivel_risco: "atencao", desc_motivo_risco: "documento ligado por correção ou por RG", situacao_documento: "cpf_corrigido", documento_original: "12345678900", situacao_compartilhamento: "exclusivo", tipo_alerta_historico: "nenhum", situacao_entrega: "presente", qt_provedores: 1, qt_devedores_mesmo_contato: 1, qt_tentativas: 0, qt_tentativas_terceiro: 0, dt_primeira_entrega: "2026-01-01", dt_ultima_entrega: "2026-09-30", dt_situacao_compartilhamento: null, dt_alerta_historico: null, _arquivo: "f12", _linha: 12, _hash_arquivo: "h"}
+
+  - name: ft_tentativa_contato_classifica_o_horario_pela_janela_unica
+    description: >
+      G7. Segunda a sexta vale das 8h às 20h e sábado das 9h às 14h, sem a hora final; domingo e
+      feriado nacional ficam de fora, e domingo vence feriado; o e-mail não tem janela
+      (`nao_se_aplica`). As chaves da ligação passam como vieram, inclusive `NULL`, e um resultado
+      novo deixa `tipo_desfecho` `NULL`.
+    model: ft_tentativa_contato
+    given:
+      - input: ref('cobranca_tentativas')
+        format: sql
+        rows: |
+          SELECT
+            CAST(sk_devedor AS INTEGER) AS sk_devedor
+            , CAST(sk_contato AS INTEGER) AS sk_contato
+            , CAST(contato_id AS VARCHAR) AS contato_id
+            , CAST(canal AS VARCHAR) AS canal
+            , CAST(resultado AS VARCHAR) AS resultado
+            , CAST(tipo_desfecho AS VARCHAR) AS tipo_desfecho
+            , CAST(data_hora AS TIMESTAMP) AS data_hora
+            , CAST(dt_tentativa AS DATE) AS dt_tentativa
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            (1, 1, 't1', 'whatsapp', 'entregue', 'sem_confirmacao', '2026-09-08 10:00:00', DATE '2026-09-08', 'arq', 1, 'h')
+            , (1, 1, 't2', 'sms', 'entregue', 'sem_confirmacao', '2026-09-08 07:59:59', DATE '2026-09-08', 'arq', 2, 'h')
+            , (1, 1, 't3', 'ligacao', 'entregue', 'sem_confirmacao', '2026-09-08 20:00:00', DATE '2026-09-08', 'arq', 3, 'h')
+            , (1, 1, 't4', 'whatsapp', 'entregue', 'sem_confirmacao', '2026-09-08 19:59:59', DATE '2026-09-08', 'arq', 4, 'h')
+            , (1, 1, 't5', 'sms', 'entregue', 'sem_confirmacao', '2026-09-05 09:00:00', DATE '2026-09-05', 'arq', 5, 'h')
+            , (1, 1, 't6', 'sms', 'entregue', 'sem_confirmacao', '2026-09-05 14:00:00', DATE '2026-09-05', 'arq', 6, 'h')
+            , (1, 1, 't7', 'sms', 'entregue', 'sem_confirmacao', '2026-09-05 08:59:59', DATE '2026-09-05', 'arq', 7, 'h')
+            , (1, 1, 't8', 'whatsapp', 'entregue', 'sem_confirmacao', '2026-09-06 10:00:00', DATE '2026-09-06', 'arq', 8, 'h')
+            , (1, 1, 't9', 'ligacao', 'entregue', 'sem_confirmacao', '2026-09-07 10:00:00', DATE '2026-09-07', 'arq', 9, 'h')
+            , (1, 1, 't10', 'email', 'entregue', 'sem_confirmacao', '2026-09-06 22:00:00', DATE '2026-09-06', 'arq', 10, 'h')
+            , (1, 1, 't11', 'sms', 'entregue', 'sem_confirmacao', '2026-11-15 10:00:00', DATE '2026-11-15', 'arq', 11, 'h')
+            , (NULL, 2, 't12', 'email', 'entregue', 'sem_confirmacao', '2026-09-07 03:00:00', DATE '2026-09-07', 'arq', 12, 'h')
+            , (NULL, NULL, 't13', 'sms', 'valor_novo', NULL, '2026-09-09 11:00:00', DATE '2026-09-09', 'arq', 13, 'h')
+          ) AS tLinhas (sk_devedor, sk_contato, contato_id, canal, resultado, tipo_desfecho, data_hora, dt_tentativa, _arquivo, _linha, _hash_arquivo)
+    expect:
+      rows:
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t1", canal: "whatsapp", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-08", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 1, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t2", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "fora_do_horario", dt_tentativa: "2026-09-08", hr_tentativa: "07:59:59", _arquivo: "arq", _linha: 2, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t3", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "fora_do_horario", dt_tentativa: "2026-09-08", hr_tentativa: "20:00:00", _arquivo: "arq", _linha: 3, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t4", canal: "whatsapp", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-08", hr_tentativa: "19:59:59", _arquivo: "arq", _linha: 4, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t5", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-05", hr_tentativa: "09:00:00", _arquivo: "arq", _linha: 5, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t6", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "fora_do_horario", dt_tentativa: "2026-09-05", hr_tentativa: "14:00:00", _arquivo: "arq", _linha: 6, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t7", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "fora_do_horario", dt_tentativa: "2026-09-05", hr_tentativa: "08:59:59", _arquivo: "arq", _linha: 7, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t8", canal: "whatsapp", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "domingo", dt_tentativa: "2026-09-06", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 8, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t9", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "feriado", dt_tentativa: "2026-09-07", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 9, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t10", canal: "email", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "nao_se_aplica", dt_tentativa: "2026-09-06", hr_tentativa: "22:00:00", _arquivo: "arq", _linha: 10, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t11", canal: "sms", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "domingo", dt_tentativa: "2026-11-15", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 11, _hash_arquivo: "h"}
+        - {sk_devedor: null, sk_contato: 2, contato_id: "t12", canal: "email", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "nao_se_aplica", dt_tentativa: "2026-09-07", hr_tentativa: "03:00:00", _arquivo: "arq", _linha: 12, _hash_arquivo: "h"}
+        - {sk_devedor: null, sk_contato: null, contato_id: "t13", canal: "sms", resultado: "valor_novo", tipo_desfecho: null, situacao_horario: "permitido", dt_tentativa: "2026-09-09", hr_tentativa: "11:00:00", _arquivo: "arq", _linha: 13, _hash_arquivo: "h"}
+
+  - name: ft_tentativa_contato_marca_12_de_outubro_e_20_de_novembro_como_feriado
+    description: >
+      G7. A `var` de feriados traz o 12/10 (Lei 6.802/1980) e o 20/11 (Lei 14.759/2023): uma
+      ligação nesses dias, em horário comercial, sai como `feriado`; o dia seguinte ao 12/10 não.
+    model: ft_tentativa_contato
+    given:
+      - input: ref('cobranca_tentativas')
+        format: sql
+        rows: |
+          SELECT
+            CAST(sk_devedor AS INTEGER) AS sk_devedor
+            , CAST(sk_contato AS INTEGER) AS sk_contato
+            , CAST(contato_id AS VARCHAR) AS contato_id
+            , CAST(canal AS VARCHAR) AS canal
+            , CAST(resultado AS VARCHAR) AS resultado
+            , CAST(tipo_desfecho AS VARCHAR) AS tipo_desfecho
+            , CAST(data_hora AS TIMESTAMP) AS data_hora
+            , CAST(dt_tentativa AS DATE) AS dt_tentativa
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            (1, 1, 't1', 'ligacao', 'entregue', 'sem_confirmacao', '2026-10-12 10:00:00', DATE '2026-10-12', 'arq', 1, 'h')
+            , (1, 1, 't2', 'ligacao', 'entregue', 'sem_confirmacao', '2026-11-20 10:00:00', DATE '2026-11-20', 'arq', 2, 'h')
+            , (1, 1, 't3', 'ligacao', 'entregue', 'sem_confirmacao', '2026-10-13 10:00:00', DATE '2026-10-13', 'arq', 3, 'h')
+          ) AS tLinhas (sk_devedor, sk_contato, contato_id, canal, resultado, tipo_desfecho, data_hora, dt_tentativa, _arquivo, _linha, _hash_arquivo)
+    expect:
+      rows:
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t1", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "feriado", dt_tentativa: "2026-10-12", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 1, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t2", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "feriado", dt_tentativa: "2026-11-20", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 2, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t3", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-10-13", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 3, _hash_arquivo: "h"}
+
+  - name: ft_tentativa_contato_sem_feriados_na_var_nao_gera_o_ramo_de_feriado
+    description: >
+      G7. Com a lista de feriados vazia o SQL não monta `IN ()`: o 7/9 em horário comercial vira
+      `permitido`, e o domingo continua `domingo`.
+    model: ft_tentativa_contato
+    overrides:
+      vars:
+        feriados_nacionais_2026: []
+    given:
+      - input: ref('cobranca_tentativas')
+        format: sql
+        rows: |
+          SELECT
+            CAST(sk_devedor AS INTEGER) AS sk_devedor
+            , CAST(sk_contato AS INTEGER) AS sk_contato
+            , CAST(contato_id AS VARCHAR) AS contato_id
+            , CAST(canal AS VARCHAR) AS canal
+            , CAST(resultado AS VARCHAR) AS resultado
+            , CAST(tipo_desfecho AS VARCHAR) AS tipo_desfecho
+            , CAST(data_hora AS TIMESTAMP) AS data_hora
+            , CAST(dt_tentativa AS DATE) AS dt_tentativa
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+            (1, 1, 't1', 'ligacao', 'entregue', 'sem_confirmacao', '2026-09-07 10:00:00', DATE '2026-09-07', 'arq', 1, 'h')
+            , (1, 1, 't2', 'ligacao', 'entregue', 'sem_confirmacao', '2026-09-06 10:00:00', DATE '2026-09-06', 'arq', 2, 'h')
+          ) AS tLinhas (sk_devedor, sk_contato, contato_id, canal, resultado, tipo_desfecho, data_hora, dt_tentativa, _arquivo, _linha, _hash_arquivo)
+    expect:
+      rows:
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t1", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-07", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 1, _hash_arquivo: "h"}
+        - {sk_devedor: 1, sk_contato: 1, contato_id: "t2", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "domingo", dt_tentativa: "2026-09-06", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 2, _hash_arquivo: "h"}
