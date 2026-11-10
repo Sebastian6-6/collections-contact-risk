@@ -446,12 +446,13 @@ models:
   - name: ft_tentativa_contato
     description: >
       Uma tentativa de contato (`contato_id`), as mesmas linhas da Cobrança. Liga-se ao par
-      (CPF, contato) da `dim_contato`; sem o par, ao contato sem devedor de mesmo valor (e
-      `sk_devedor` NULL); sem nenhum dos dois, as chaves ficam NULL. `tipo_desfecho` é a classe do
-      resultado (G2b) e `situacao_horario` compara o horário com a janela única da G7.
+      (CPF, contato) da `dim_contato`; sem o par, ao contato sem devedor de mesmo valor; sem nenhum
+      dos dois, `sk_contato` fica NULL. `sk_devedor` vem do CPF da tentativa, com ou sem par.
+      `tipo_desfecho` é a classe do resultado (G2b) e `situacao_horario` compara o horário com a
+      janela única da G7.
     columns:
       - name: sk_devedor
-        description: "Devedor do par ligado. `NULL` quando a tentativa liga ao contato sem devedor ou a nenhum."
+        description: "Devedor dono do CPF da tentativa, mesmo quando o contato dela não foi entregue por nenhum provedor. `NULL` só quando o alvo não é devedor da gold."
         data_tests:
           - relationships:
               arguments:

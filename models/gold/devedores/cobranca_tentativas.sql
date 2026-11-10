@@ -5,10 +5,12 @@
   quando o alvo não é documento recebido. `tipo_contato` é `email` para o canal e-mail e
   `telefone` para os demais; `contato` é o destino normalizado. `tipo_desfecho` vem da macro
   `tipo_desfecho` (G2b).
+  `sk_devedor` vem da `dim_devedor` pelo `cpf` da tentativa, com ou sem par: o devedor existe
+  mesmo quando o contato nunca foi entregue por um provedor para ele; `NULL` só quando o alvo não
+  é devedor da gold.
   Ligação ao par (G2c'): primeiro o par (`cpf`, `tipo_contato`, `contato`); sem ele, o contato
-  sem devedor de mesmo valor (o de menor `sk_contato`); sem nenhum dos dois, `sk_contato` e
-  `sk_devedor` ficam `NULL`. `sk_devedor` é o do par ligado. `ligacao` diz qual dos três casos
-  valeu: `par`, `contato_sem_devedor` ou `sem_ligacao`.
+  sem devedor de mesmo valor (o de menor `sk_contato`); sem nenhum dos dois, `sk_contato` fica
+  `NULL`. `ligacao` diz qual dos três casos valeu: `par`, `contato_sem_devedor` ou `sem_ligacao`.
   É efêmero: existe para a régua (`dim_contato`) e para `ft_tentativa_contato` partirem da mesma
   ligação.
 #}
@@ -56,7 +58,7 @@ SELECT
   , tTentativas.data_hora
   , tTentativas.dt_tentativa
   , tTentativas.cpf
-  , devedores_contatos_pares.sk_devedor
+  , dim_devedor.sk_devedor
   , tTentativas._arquivo
   , tTentativas._linha
   , tTentativas._hash_arquivo
@@ -74,3 +76,5 @@ LEFT JOIN {{ ref('devedores_contatos_pares') }} AS devedores_contatos_pares
 LEFT JOIN tContatosSemDevedor
   ON tTentativas.tipo_contato = tContatosSemDevedor.tipo_contato
     AND tTentativas.contato = tContatosSemDevedor.contato
+LEFT JOIN {{ ref('dim_devedor') }} AS dim_devedor
+  ON tTentativas.cpf = dim_devedor.cpf
