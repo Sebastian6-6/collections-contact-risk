@@ -367,17 +367,6 @@
       "origin": "https://github.com/duckdb/duckdb-web/blob/main/docs/stable/sql/query_syntax/with.md · acesso 2026-11-09"
     },
     "referencias-ruff-configuration-0-17-4": {
-      "source": "raw/referencias/ruff/configuration-0.17.4.md",
-      "sha256": "ad98019d25c70e6f4f8e149a3d496daee5a617cc32fb2926f03acd35273cb252",
-      "size": 11212,
-      "kind": "document",
-      "converted_at": "2026-11-09 07:43",
-      "converted": "converted/referencias-ruff-configuration-0-17-4.md",
-      "status": "ok",
-      "error": null,
-      "pages": 0,
-      "converter": "plain",
-      "summary": "Ruff 0.17.4 configuration docs (ruff.toml format, config file discovery, Python version inference); basis for the project's ruff.toml.",
       "tags": [
         "reference",
         "ruff",
@@ -385,20 +374,19 @@
         "lint",
         "stage-3"
       ],
-      "origin": "https://github.com/astral-sh/ruff/blob/0.17.4/docs/configuration.md · acesso 2026-11-09"
-    },
-    "referencias-sqlfluff-regras-usadas-4-5-0": {
-      "source": "raw/referencias/sqlfluff/regras-usadas-4.5.0.md",
-      "sha256": "a8a543220a8e4f50981bf1146fa8a43a3eb20f5c7f25224a8fe0ab77a840ad78",
-      "size": 10068,
+      "origin": "https://github.com/astral-sh/ruff/blob/0.17.4/docs/configuration.md · acesso 2026-11-09",
+      "source": "raw/referencias/ruff/configuration-0.17.4.md",
+      "sha256": "33b4b1a9c063d3c0c3aec64f5e9aa62514f23026861e96e693576c0145fb90ea",
+      "size": 10893,
       "kind": "document",
-      "converted_at": "2026-11-09 07:43",
-      "converted": "converted/referencias-sqlfluff-regras-usadas-4-5-0.md",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-ruff-configuration-0-17-4.md",
       "status": "ok",
       "error": null,
       "pages": 0,
-      "converter": "plain",
-      "summary": "SQLFluff 4.5.0 rule docstrings and default settings for the rules this project configures (CP01, CP03, CP04, CP05 capitalisation; LT02 indentation; ST05 subqueries; CV11 cast style; AM04 select star); basis for .sqlfluff.",
+      "converter": "plain"
+    },
+    "referencias-sqlfluff-regras-usadas-4-5-0": {
       "tags": [
         "reference",
         "sqlfluff",
@@ -406,7 +394,17 @@
         "sql-conventions",
         "stage-3"
       ],
-      "origin": "https://github.com/sqlfluff/sqlfluff/tree/4.5.0/src/sqlfluff (rules + core/default_config.cfg) · acesso 2026-11-09"
+      "origin": "https://github.com/sqlfluff/sqlfluff/tree/4.5.0/src/sqlfluff (rules + core/default_config.cfg) · acesso 2026-11-09",
+      "source": "raw/referencias/sqlfluff/regras-usadas-4.5.0.md",
+      "sha256": "10560862d66390c5ce0763299c4b0e2240e0c52fe085d808f72c6fcfe23e8e65",
+      "size": 9679,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-sqlfluff-regras-usadas-4-5-0.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain"
     },
     "referencias-claude-notas-subagentes-e-modelos": {
       "source": "raw/referencias/claude/notas-subagentes-e-modelos.md",
@@ -542,6 +540,114 @@
         "stage-5"
       ],
       "origin": "nota própria com as URLs das fontes · 2026-11-09"
+    },
+    "referencias-leis-cdc-8078-1990-arts-42-71": {
+      "source": "raw/referencias/leis/cdc-8078-1990-arts-42-71.md",
+      "sha256": "248ede9b6b48cca4eadcc69e156766a35f21faa561d9c324d453311a6440f7bd",
+      "size": 946,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-cdc-8078-1990-arts-42-71.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Articles 42 and 71 of the Brazilian Consumer Defense Code (Lei 8.078/1990): debt-collection conduct rules.",
+      "tags": [
+        "leis",
+        "cdc",
+        "cobranca"
+      ]
+    },
+    "referencias-leis-lei-14759-2023-art1": {
+      "source": "raw/referencias/leis/lei-14759-2023-art1.md",
+      "sha256": "b0b8c17557512fdbdcdfe1b39a8e4fbf0bff1ab76d160af6a899bc1d8a870b00",
+      "size": 342,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-lei-14759-2023-art1.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Article 1 of Lei 14.759/2023: 20 November declared a national holiday.",
+      "tags": [
+        "leis",
+        "feriados"
+      ]
+    },
+    "referencias-leis-lei-662-1949-art1": {
+      "source": "raw/referencias/leis/lei-662-1949-art1.md",
+      "sha256": "4a46e78a304d8240a5a755f212997e16a54caafc0b850151f6ec5c778e61150d",
+      "size": 406,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-lei-662-1949-art1.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Article 1 of Lei 662/1949 (as amended by Lei 10.607/2002): list of national holidays.",
+      "tags": [
+        "leis",
+        "feriados"
+      ]
+    },
+    "referencias-leis-lei-sp-17832-2023-art51": {
+      "source": "raw/referencias/leis/lei-sp-17832-2023-art51.md",
+      "sha256": "2301e17f6fa789c346afcdf9cedecd2b52ac45976f6a7ec0ed6d43ab111de9d1",
+      "size": 492,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-lei-sp-17832-2023-art51.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Article 51 of Sao Paulo state Lei 17.832/2023: permitted hours for collection phone calls.",
+      "tags": [
+        "leis",
+        "sp",
+        "horario-cobranca"
+      ]
+    },
+    "referencias-leis-lgpd-13709-2018-arts-6-7": {
+      "source": "raw/referencias/leis/lgpd-13709-2018-arts-6-7.md",
+      "sha256": "a37e8c40391b0c8cfe94f81d361c35de871dab23f42610cc5ec112a62af8eff6",
+      "size": 5474,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-leis-lgpd-13709-2018-arts-6-7.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Articles 6 and 7 of the Brazilian LGPD (Lei 13.709/2018): processing principles and legal bases.",
+      "tags": [
+        "leis",
+        "lgpd",
+        "base-legal"
+      ]
+    },
+    "referencias-padroes-de-mercado-notas-gold-e-regua": {
+      "source": "raw/referencias/padroes-de-mercado/notas-gold-e-regua.md",
+      "sha256": "bae7a431b135250fd7fb31bf3a47a954165b860f024e04073eb0ce894f01cf40",
+      "size": 1857,
+      "kind": "document",
+      "converted_at": "2026-11-10 09:10",
+      "converted": "converted/referencias-padroes-de-mercado-notas-gold-e-regua.md",
+      "status": "ok",
+      "error": null,
+      "pages": 0,
+      "converter": "plain",
+      "summary": "Links and one-line summaries of Kimball, Microsoft Learn and Febraban SARB 27/2023 used for the gold layer and the contact rule; laws kept as links only.",
+      "tags": [
+        "notas",
+        "gold",
+        "regua",
+        "kimball",
+        "sarb"
+      ]
     }
   }
 }
