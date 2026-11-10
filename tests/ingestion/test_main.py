@@ -262,7 +262,7 @@ def test_leitor_novo_funciona_sem_mexer_no_main(projeto, monkeypatch):
     monkeypatch.setattr(leitores, "LEITORES", dict(leitores.LEITORES))
 
     @leitores.leitor("psv")
-    def ler_psv(caminho, encoding, separador):
+    def ler_psv(caminho, encoding, separador, colunas=None):
         textos = caminho.read_text(encoding=encoding).splitlines()
         cabecalho, *registros = textos
         colunas = cabecalho.split("|")
@@ -482,7 +482,6 @@ def test_toda_linha_fisica_fica_coberta_no_arquivo_sem_cabecalho(projeto):
         ({"colunas": "codigo"}, "colunas"),
         ({"colunas": ["a", "a"]}, "duplicadas"),
         ({"colunas": ["a", 1]}, "texto"),
-        ({"formato": "jsonl", "colunas": ["a"]}, "não aceita 'colunas'"),
     ],
 )
 def test_colunas_invalidas_dizem_o_problema_e_nao_carregam_nada(projeto, capsys, campos, trecho):

@@ -41,7 +41,7 @@ class Leitura:
     linhas: list[LinhaLida]
 
 
-Leitor = Callable[..., Leitura]
+Leitor = Callable[[Path, str, str, Sequence[str] | None], Leitura]
 
 LEITORES: dict[str, Leitor] = {}
 
@@ -207,12 +207,17 @@ COLUNA_JSONL = "registro"
 
 
 @leitor("jsonl")
-def ler_jsonl(caminho: Path, encoding: str, separador: str) -> Leitura:
+def ler_jsonl(
+    caminho: Path, encoding: str, separador: str, colunas: Sequence[str] | None = None
+) -> Leitura:
     """Lê um JSON Lines guardando o texto de cada linha na coluna `registro`.
 
     O JSON não é interpretado nem validado: as variantes de esquema e o JSON inválido são
-    tratados na silver. `separador` existe só para casar com o contrato dos leitores.
+    tratados na silver. `separador` existe só para casar com o contrato dos leitores, e
+    `colunas` é recusada: o JSON Lines não tem colunas a nomear.
     """
+    if colunas is not None:
+        raise ErroDeIngestao(f"{caminho.name}: o formato 'jsonl' não aceita 'colunas'")
     textos = [sem_terminador(bruto) for bruto in linhas_fisicas(ler_texto(caminho, encoding))]
     linhas = [
         LinhaLida(numero, texto, {COLUNA_JSONL: texto}, None)

@@ -154,7 +154,7 @@ def test_leitor_novo_se_registra_pelo_nome(monkeypatch):
     monkeypatch.setattr(leitores, "LEITORES", dict(leitores.LEITORES))
 
     @leitores.leitor("psv")
-    def ler_psv(caminho, encoding, separador):
+    def ler_psv(caminho, encoding, separador, colunas=None):
         return Leitura(colunas=["x"], cabecalho=None, linhas=[])
 
     assert obter_leitor("psv") is ler_psv
@@ -234,3 +234,11 @@ def test_csv_sem_cabecalho_byte_fora_do_encoding_continua_interrompendo(tmp_path
 def test_csv_sem_cabecalho_recusa_colunas_invalidas(tmp_path, colunas, trecho):
     with pytest.raises(ErroDeIngestao, match=trecho):
         _sem_cabecalho(tmp_path, b'"1"\n', colunas)
+
+
+def test_jsonl_recusa_colunas(tmp_path):
+    arquivo = tmp_path / "dados.jsonl"
+    arquivo.write_text('{"a": 1}\n', encoding="utf-8")
+
+    with pytest.raises(ErroDeIngestao, match=r"jsonl.*colunas"):
+        ler_jsonl(arquivo, "utf-8", ",", ["a"])

@@ -16,7 +16,6 @@ novo exige uma função em `leitores.py` e só uma origem nova exige uma em `con
 import argparse
 import codecs
 import hashlib
-import inspect
 import re
 import sys
 from collections.abc import Sequence
@@ -223,11 +222,7 @@ def _validar_colunas(rotulo: str, brutas: object) -> tuple[str, ...] | None:
 
 def _validar_leitura(entidade: Entidade) -> None:
     obter_conector(entidade.origem)
-    leitor = obter_leitor(entidade.formato)
-    if entidade.colunas and "colunas" not in inspect.signature(leitor).parameters:
-        raise ErroDeIngestao(
-            f"{entidade.rotulo}: o formato '{entidade.formato}' não aceita 'colunas'"
-        )
+    obter_leitor(entidade.formato)
     try:
         codecs.lookup(entidade.encoding)
     except LookupError as erro:
@@ -332,8 +327,7 @@ def ler_entidade(entidade: Entidade, arquivos: Sequence[Path], raiz: Path) -> Ta
     lidos = []
     for arquivo in arquivos:
         conteudo = arquivo.read_bytes()
-        opcoes = {"colunas": entidade.colunas} if entidade.colunas else {}
-        leitura = leitor(arquivo, entidade.encoding, entidade.separador, **opcoes)
+        leitura = leitor(arquivo, entidade.encoding, entidade.separador, entidade.colunas)
         lidos.append(
             ArquivoLido(
                 caminho=caminho_relativo(arquivo, raiz),
