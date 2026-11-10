@@ -4,10 +4,10 @@ Uso, a partir da raiz do repositório:
     python scripts/verificar_execucoes_identicas.py
 
 Roda `python pipeline.py` duas vezes (cada uma apaga o banco e refaz tudo) e, depois de cada
-rodada, resume todas as tabelas e views dos schemas `bronze_*`, `silver_*` e `gold` (se existir):
-contagem de linhas e a soma dos hashes das linhas. A soma dos hashes não depende da ordem das
-linhas, então equivale a comparar o conteúdo ordenado por todas as colunas sem o custo de
-ordenar. Sai com código 1 e lista as tabelas que divergiram.
+rodada, resume todas as tabelas e views dos schemas `bronze_*`, `silver_*` e `gold_*` (um por
+domínio, como `gold_devedores`): contagem de linhas e a soma dos hashes das linhas. A soma dos
+hashes não depende da ordem das linhas, então equivale a comparar o conteúdo ordenado por todas as
+colunas sem o custo de ordenar. Sai com código 1 e lista as tabelas que divergiram.
 """
 
 import subprocess
@@ -24,15 +24,14 @@ if str(RAIZ) not in sys.path:
 
 from ingestion.main import caminho_do_banco  # noqa: E402
 
-PREFIXOS_COMPARADOS = ("bronze_", "silver_")
-SCHEMA_GOLD = "gold"
+PREFIXOS_COMPARADOS = ("bronze_", "silver_", "gold_")
 
 Resumo = dict[str, tuple[int, int]]
 
 
 def schema_comparado(schema: str) -> bool:
-    """Diz se o schema entra na comparação (bronze, silver ou gold)."""
-    return schema == SCHEMA_GOLD or schema.startswith(PREFIXOS_COMPARADOS)
+    """Diz se o schema entra na comparação (`bronze_*`, `silver_*` ou `gold_*`)."""
+    return schema.startswith(PREFIXOS_COMPARADOS)
 
 
 def resumir_banco(banco: Path) -> Resumo:
