@@ -48,7 +48,7 @@ Merge the sources into a single trusted debtor registry as a star schema, apply 
 
 ## Pending
 <!-- Unconfirmed questions: "- [?] question (where it came up, date)". Never treat them as a standard until the user answers. -->
-- [?] D8 (draft, stage 7, not discussed in the stage-6 session): scripts/extrair_receita_cnpj.py, pinned, filtered (CNPJ list + its hash in ORIGEM.md), versioned extract in dados_externos/; pipeline stays offline. Draft items D1-D7 and the contact-hour legal texts were closed in the stage-6 session as G1-G7 (see Decisions).
+- [x] (resolved 2026-11-10 in the closing round; see Decisions) D8 (draft, stage 7, not discussed in the stage-6 session): scripts/extrair_receita_cnpj.py, pinned, filtered (CNPJ list + its hash in ORIGEM.md), versioned extract in dados_externos/; pipeline stays offline. Draft items D1-D7 and the contact-hour legal texts were closed in the stage-6 session as G1-G7 (see Decisions).
 
 ## Decisions
 <!-- Local to this topic, append-only: "- YYYY-MM-DD decision". -->

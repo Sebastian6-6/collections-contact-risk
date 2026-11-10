@@ -1,8 +1,9 @@
 ---
 topic: fechamento-do-projeto
-status: active
+status: completed
 created: 2026-11-10
-updated: 2026-11-10 05:00
+updated: 2026-11-10 10:44
+completed: 2026-11-10
 scope: []
 ---
 # fechamento-do-projeto
@@ -24,15 +25,13 @@ Take the project to a PRIVATE GitHub repository with CI green, ready for the own
 | modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | DONE, merged | 8eff0d2 (develop) | - |
 | enriquecimento-cnpj | merged | DONE | cd3f69c (develop) | - |
 | monitoramento-e-analises | feat/monitoramento-e-analises (worktree ../collections-contact-risk-monit) | 9.1-9.2 running (opus) | c9d215b (develop synced) | 9.3 review+verify, merge |
-| documentacao-e-entrega | docs/documentacao-e-entrega (worktree ../collections-contact-risk-docs) | 10.1 done | 232f351 (laws; 6.802 link only) | rest after 3 merges |
+| documentacao-e-entrega | merged | 10.1 done | 232f351 (laws; 6.802 link only) | rest after 3 merges |
 
 ## Where we stopped
-- 2026-11-10: session started; gold branch fast-forwarded from 2fb4b44 to develop f4bad48 (only memory commits in between); topics fechamento-do-projeto and enriquecimento-cnpj created.
-- Untracked and left out of commits on purpose: `.vscode/` (local editor settings) and `.context/raw/referencias/dlt/destination-tables.pdf` (the private hook blocks .pdf; its converted copy is committed).
-- Memory commit da7b82a (gold memory + 2026-11-10 decision). 4.1 done 5e6605f; open item from 4.1: AGENTS.md Stack still mentions 'datasets do schema analises' (G1 replaced them) -> decision round.
-- 2026-11-10 usage limit hit: 4.2 agent and research agent stopped and were resumed with SendMessage; AGENTS.md Stack sentence replaced (uncommitted, commit after 4.2).
-- Owner now authorizes Claude to switch the repo to PUBLIC once every validation passes 100% (no leak, as designed).
-- Resume: read the queue above and the PLAN.md of the topic in execution.
+- FINAL SUMMARY (2026-11-10): project complete and PUBLIC at https://github.com/Sebastian6-6/collections-contact-risk (default branch main 21be9d9, develop 9d90cb1); GitHub Actions green on main and develop (first run 42825612957 also green).
+- Delivered: gold (dim_devedor, dim_contato with the risk scale, dim_endereco, dim_empregador enriched by Receita, ft_vinculo_empresa, ft_tentativa_contato) + gold_monitoramento.ft_entrega_diaria (6/6 incidents, 0 false alarms); Receita source through the ingestion component (versioned 2026-10 extract, 8/13 CNPJs found); validation at 15/09 BA 0.6871 / 0.7208, refinement loop 4 hypotheses rejected; README, ERD, dictionary (54 tables), references; folders standardized (database/, external_data/).
+- Final verification: pipeline from scratch PASS=608 WARN=9 ERROR=0, 54 tables identical, pytest 180, lint clean. Pre-publication checklist clean (2 approved exceptions: official Receita domain lines); private hook fixed (--text, exact-line exceptions).
+- Left for the owner: optional step 8.3 (e-mail alert) not run; worktrees ../collections-contact-risk-{cnpj,monit,docs,refactor} still exist (cnpj holds the 7.8 GB Receita zip cache); untracked .vscode/ and the dlt PDF stay local.
 
 ## Pending
 <!-- Unconfirmed questions: "- [?] question (where it came up, date)". Never treat them as a standard until the user answers. -->
