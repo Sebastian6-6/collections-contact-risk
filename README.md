@@ -27,7 +27,7 @@ A pipeline lê tudo, consolida uma base única por CPF, cruza o empregador com o
 
 | 3.434 | 73,45% | 0,6871 |
 |---|---|---|
-| pares devedor × contato bloqueados: a lista de não-contatar | dos terceiros pegos no corte de 15/09 (202 de 275 tentativas) | de acurácia balanceada no corte de 15/09 (0,7208 no controle de 22/09) |
+| pares devedor × contato bloqueados: a lista de não-contatar | dos terceiros pegos no corte de 15/09 (202 de 275 tentativas) | de acurácia balanceada no corte de 15/09: a média de 50,22% dos riscos pegos e 87,21% dos confirmados liberados (0,7208 no controle de 22/09) |
 
 **Arquitetura:** `contact_data/` e a Receita (`external_data/receita/`) → bronze, como veio → silver por fonte (`alfa`, `beta`, `gama`, `cobranca`, `receita`) → gold: `dim_devedor`, `dim_contato`, `dim_endereco`, `dim_empregador`, `ft_vinculo_empresa`, `ft_tentativa_contato` e `ft_entrega_diaria`. O ERD está em [docs/erd.md](docs/erd.md).
 
@@ -46,7 +46,7 @@ A pipeline lê tudo, consolida uma base única por CPF, cruza o empregador com o
 | Critério de avaliação (p. 3–4) | Onde está a resposta |
 |---|---|
 | Arquitetura das camadas | [Raciocínio das transformações](#-raciocínio-das-transformações); decisões, [seção 1](docs/decisoes-de-modelagem.md#1-camadas) e [9.1](docs/decisoes-de-modelagem.md#91-o-papel-da-gold-o-critério-é-o-grão) |
-| Integridade referencial | 32 testes `relationships`, 10 deles na gold ([`_modelos.yml`](models/gold/devedores/_modelos.yml)); chave `NULL`, sem linha "desconhecido" ([ERD](docs/erd.md)) |
+| Integridade referencial | 31 testes `relationships`, 10 deles na gold ([`_modelos.yml`](models/gold/devedores/_modelos.yml)); chave `NULL`, sem linha "desconhecido" ([ERD](docs/erd.md)) |
 | Eficiência do modelo e tipos | [dicionário, ganhos medidos dos tipos](docs/dicionario-de-dados.md#ganhos-medidos-dos-tipos); materialização medida nas decisões, [seção 1](docs/decisoes-de-modelagem.md#1-camadas) |
 | Deduplicação e conflitos cadastrais | decisões [5.3](docs/decisoes-de-modelagem.md#53-deduplicação-pela-chave-de-cada-tabela), [6](docs/decisoes-de-modelagem.md#6-mudança-de-rumo-histórico-de-versões-2026-11-10), [9.5](docs/decisoes-de-modelagem.md#95-quem-é-o-devedor-documentos-ruidosos-ligados-a-um-cpf) e [9.7](docs/decisoes-de-modelagem.md#97-escolha-de-atributos-e-conflitos) |
 | Dados incompletos ou ruidosos | decisões [5.8](docs/decisoes-de-modelagem.md#58-linhas-sem-chave-e-documento-que-não-identifica-ninguém) e [9.5](docs/decisoes-de-modelagem.md#95-quem-é-o-devedor-documentos-ruidosos-ligados-a-um-cpf); [contratos de dados](docs/contratos-de-dados.md) |
