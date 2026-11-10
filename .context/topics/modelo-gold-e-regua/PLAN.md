@@ -114,7 +114,7 @@ A gold tem uma flag só, `flag_possui_imovel`, que é dado recebido, e não sina
 
 Cada passo roda com o agente indicado, que lê este plano, o AGENTS.md e o contrato da silver. Os commits listados são os autorizados; o que a revisão do passo 4.9 apontar entra como commit próprio. Nenhum passo edita `models/silver/` nem as macros de padronização: o que faltar da silver vira pendência para o dono.
 
-**Ponto de verificação de cada passo**, antes do commit: `dbt build` dos modelos alterados e dos que dependem deles, SQLFluff sem erro nos arquivos alterados e `scripts/verificar_execucoes_identicas.py` verde. O passo só segue com os três verdes.
+**Ponto de verificação de cada passo**, antes do commit: `dbt build --select` dos modelos alterados e dos que dependem deles e SQLFluff sem erro nos arquivos alterados. A verificação completa (execuções idênticas, lint, pytest, `verificador`, `revisor`) roda em bloco no passo 4.9 (decisão de 2026-11-10: verificação em blocos, "o mínimo que entrega o máximo"). Divergência só de contagem vai para o corpo do commit e não para a execução.
 
 **Condições de parada.** A execução para e chama o dono, sem contornar, quando:
 - uma contagem medida diverge mais de 10% da que está neste plano;
@@ -158,8 +158,22 @@ Cada passo roda com o agente indicado, que lê este plano, o AGENTS.md e o contr
 
 ### 4.7 Consultas pedidas pelas decisões da gold
 - **Quem:** `analista-dados` (Opus 5.5 · medium).
-- **Fazer:** em `analyses/`, só as consultas que as decisões desta etapa pedem: conformidade de horário por canal (G7), taxa de terceiro por provedor sobre `silver_cobranca.contatos_realizados_provedores` (G2d) e a lista de não-contatar (G5). A reconciliação da renda já entra no passo 4.4. A validação com corte D, a matriz de acertos e a calibração são da etapa 9; a macro `regua_de_risco(data_corte)` fica pronta para ela.
-- **Commit:** `feat: consultas de conformidade de horário, provedor e lista de não-contatar`.
+- **Fazer:** em `analyses/`:
+  1. as consultas que as decisões desta etapa pedem: conformidade de horário por canal (G7), taxa de terceiro por provedor sobre `silver_cobranca.contatos_realizados_provedores` (G2d) e a lista de não-contatar (G5);
+  2. a validação da régua (trazida da etapa 9 em 2026-11-10, porque o loop 4.7b depende dela), cobrindo tudo o que a p. 2 pede: cada tentativa depois de D = 2026-09-15 com o nível de `regua_de_risco('2026-09-15')` e o `tipo_desfecho`; a matriz nível × desfecho (acurácia); a calibração (taxa de terceiro, opt_out e falecido por nível); o peso preditivo de cada sinal (taxa de terceiro com e sem o sinal, razão e quantidades); os padrões de erro (pontos cegos: `liberado` que terminou em terceiro; falsos bloqueios: `bloqueado` ou `atencao` que terminou em `contato_confirmado`); as propostas de ajuste; a segmentação dos devedores elegíveis e a estratégia de canais e mensagens por nível;
+  3. `scripts/medir_regua.py`: compila e executa a consulta das métricas do loop (acurácia balanceada, fração de terceiros pegos, nos cortes 2026-09-15 e 2026-09-22) e imprime os números; é o instrumento do 4.7b.
+- **Quem:** `analista-dados` especifica e interpreta; `engenheiro-sql` escreve as consultas e o script.
+- **Commits:** `feat: consultas de conformidade de horário, provedor e lista de não-contatar`; `feat: validação da régua no corte de 15/09 com acurácia, calibração e peso dos sinais`, com a linha de base do loop no corpo.
+
+### 4.7b Refinamento da régua em loop
+- **Quem:** `analista-dados` (Opus 5.5 · high) propõe e mede; ele mesmo aplica a mudança na `regua_de_risco()`.
+- **Métrica principal:** acurácia balanceada no corte D = 2026-09-15, a média entre (a) a fração dos desfechos de risco (`terceiro`, `opt_out`, `falecido`) cujo par a régua deixou em `atencao` ou `bloqueado` e (b) a fração dos `contato_confirmado` cujo par ficou `liberado`; `sem_confirmacao` fica fora. Equilibra efetividade e proteção a terceiros (p. 4).
+- **Piso de proteção:** a fração de `terceiro` pegos nunca fica abaixo da linha de base do 4.7.
+- **Robustez:** a mudança não pode piorar a métrica no segundo corte, 2026-09-22.
+- **Cada iteração:** uma hipótese escrita, uma mudança na `regua_de_risco()`, a medição antes e depois por `scripts/medir_regua.py`, e o efeito na proteção e na efetividade; registro no STATE.md deste tópico (hipótese, números, aceita ou rejeitada).
+- **Só fica** a mudança que melhora a métrica principal sem passar do piso e sem piorar o segundo corte. Cada uma vira um commit próprio, `fix: <ajuste> na régua`, com o antes e o depois no corpo; a rejeitada é revertida e só registrada.
+- **Parada:** 3 hipóteses rejeitadas seguidas, ou 8 iterações, ou um ganho aceito menor que 0,5 p.p.
+- **Limite declarado no README:** as hipóteses são vistas nos dados depois do corte, por isso o segundo corte serve de controle; um mês de histórico.
 
 ### 4.8 Otimização medida
 - **Quem:** `engenheiro-sql`, com o plano de execução real dos modelos mais pesados; um `refactor:` só com ganho medido (antes e depois no corpo).
@@ -182,8 +196,8 @@ Cada passo roda com o agente indicado, que lê este plano, o AGENTS.md e o contr
 ## 6. Fora deste plano
 - **Etapa 7 (CNPJ, D8 do rascunho):** extrato reproduzível da Receita e atributos da `dim_empregador`; não discutido.
 - **Etapa 8:** o fato de monitoramento da ingestão, noutro schema `gold_<domínio>`.
-- **Etapa 9 (tópico `monitoramento-e-analises`):** validação com corte D, matriz de acertos e erros, calibração, chamando `regua_de_risco(data_corte)`.
-- **Ciclo medido de refinamento da régua** (log do PROJECT.md, 2026-11-10: refinamentos além da calibração rodam num ciclo medido planejado no tópico da régua): depende da métrica que a etapa 9 define. Ele é planejado neste tópico quando essa métrica existir, como um passo novo deste plano, aprovado pelo dono antes de rodar.
+- **Etapa 9 (tópico `monitoramento-e-analises`):** o valor do CNPJ, o perfil regenerado e as conclusões; a validação e o loop passaram para os passos 4.7 e 4.7b (2026-11-10).
+- **Feriados:** a `var` do 4.2 traz só a Lei 662/1949; faltam 12/10 (Lei 6.802/1980) e 20/11 (Lei 14.759/2023), corrigidos como achado no 4.9.
 - **ERD e dicionário:** tópico `documentacao-e-entrega` (D1, D2).
 - **Referências da web** (Kimball, Microsoft Learn, dbt, CDC, LGPD, Lei SP 17.832/2023, SARB 27/2023, Lei 662/1949): a cópia em `.context/raw/referencias/` depende do aval do dono.
 
