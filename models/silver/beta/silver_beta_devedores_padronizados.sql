@@ -1,6 +1,7 @@
 {#
   Etapa comum da silver do beta: toda linha da bronze com JSON válido, já padronizada e sem
   deduplicar. Grão: uma linha por linha recebida com JSON válido (`_arquivo`, `_linha`).
+  `vinculo_desde` é o mês do vínculo (AAAA-MM) e vira DATE no dia 01.
   Documento vazio ou só com zeros vira `documento` NULL (e `tipo_documento` também, já que não há
   documento para tipar), e a linha continua aqui: `devedores` a deixa de fora (não há chave) e
   `devedores_contatos` guarda os contatos dela sem documento. É efêmera: não vira tabela. Existe para `devedores` (que fica com a
@@ -76,7 +77,7 @@ WITH tBase AS (
     , nome_completo
     , {{ data_flexivel('data_nascimento') }} AS data_nascimento
     , {{ cnpj_normalizado('cnpj_empregador') }} AS cnpj_empregador
-    , vinculo_desde
+    , {{ mes_como_data('vinculo_desde') }} AS vinculo_desde
     , {{ valor_monetario('renda_mensal') }} AS renda_mensal
     , {{ data_flexivel('atualizado_em') }} AS atualizado_em
     , {{ data_de_entrega('_arquivo', 'beta') }} AS data_entrega

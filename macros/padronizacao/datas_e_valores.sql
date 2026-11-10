@@ -52,6 +52,18 @@
 {%- endmacro %}
 
 {#
+  Mês no formato AAAA-MM como DATE no dia 01 ('2020-05' -> 2020-05-01). O valor da origem é um mês
+  (o beta não informa o dia); o dia 01 é só a representação do mês em um DATE, e quem consome
+  deve ler o valor como mês. Qualquer outro formato, vazio ou mês inexistente ('2020-13') dá NULL.
+#}
+{% macro mes_como_data(expressao) -%}
+  {%- set texto = "TRIM(CAST(" ~ expressao ~ " AS VARCHAR))" -%}
+  CASE
+    WHEN {{ texto }} ~ '^[0-9]{4}-[0-9]{2}$' THEN {{ data_iso_ou_nulo(texto ~ " || '-01'") }}
+  END
+{%- endmacro %}
+
+{#
   Valor monetário em NUMERIC(14, 2). Aceita 'R$ 1.400,00', '1.290,07', '1298,35', '1400.00' e
   '9241.83'. Com vírgula, a vírgula é o decimal e os pontos são milhar; sem vírgula, o ponto é o
   decimal ('1.400' é 1,4, não 1400). Vazio, sem número ou fora desses formatos dá NULL (S8).

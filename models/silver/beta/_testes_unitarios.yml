@@ -18,7 +18,7 @@ unit_tests:
           - {registro: '{"cpf": "94502272841", "nome": "Registro Interrompido", "contato": {"telefones": [{"ddd": "1', _arquivo: "contact_data/provedor_beta.jsonl", _linha: 4, _hash_arquivo: "h1", _motivo_ilegivel: null}
     expect:
       rows:
-        - {tipo_documento: "CPF", documento: "10312391620", nome_completo: "Ana Souza", data_nascimento: "1990-02-03", cnpj_empregador: "00000000000191", vinculo_desde: "2020-05", renda_mensal: 4090.20, atualizado_em: "2026-07-24", data_entrega: "2026-08-31", email_unico: null, _linha: 1}
+        - {tipo_documento: "CPF", documento: "10312391620", nome_completo: "Ana Souza", data_nascimento: "1990-02-03", cnpj_empregador: "00000000000191", vinculo_desde: "2020-05-01", renda_mensal: 4090.20, atualizado_em: "2026-07-24", data_entrega: "2026-08-31", email_unico: null, _linha: 1}
         - {tipo_documento: "RG", documento: "161429298", nome_completo: "Bia Lima", data_nascimento: "1990-02-03", cnpj_empregador: null, vinculo_desde: null, renda_mensal: 1400.00, atualizado_em: "2026-09-02", data_entrega: "2026-09-05", email_unico: "bia@x.com", _linha: 7}
         - {tipo_documento: "CPF", documento: "01006543201", nome_completo: "Caio Reis", data_nascimento: null, cnpj_empregador: null, vinculo_desde: null, renda_mensal: null, atualizado_em: "2026-09-03", data_entrega: "2026-08-31", email_unico: null, _linha: 2}
 
@@ -52,7 +52,7 @@ unit_tests:
       - input: ref('silver_beta_devedores_padronizados')
         format: sql
         rows: |
-          SELECT 'CPF' AS tipo_documento, '123' AS documento, 'NOME 1' AS nome_completo, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS VARCHAR) AS vinculo_desde, CAST(NULL AS DECIMAL(14, 2)) AS renda_mensal, CAST('2026-07-01' AS DATE) AS atualizado_em, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
+          SELECT 'CPF' AS tipo_documento, '123' AS documento, 'NOME 1' AS nome_completo, CAST(NULL AS DATE) AS data_nascimento, CAST(NULL AS VARCHAR) AS cnpj_empregador, CAST(NULL AS DATE) AS vinculo_desde, CAST(NULL AS DECIMAL(14, 2)) AS renda_mensal, CAST('2026-07-01' AS DATE) AS atualizado_em, CAST('2026-08-31' AS DATE) AS data_entrega, 'f1' AS _arquivo, 5 AS _linha, 'h' AS _hash_arquivo
           UNION ALL
           SELECT 'CPF', '123', 'NOME 2', NULL, NULL, NULL, NULL, CAST('2026-09-17' AS DATE), CAST('2026-09-18' AS DATE), 'f2', 1, 'h'
           UNION ALL
