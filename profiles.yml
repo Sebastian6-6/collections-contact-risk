@@ -5,5 +5,5 @@ collections_contact_risk:
     dev:
       type: duckdb
       # Caminho relativo à raiz; o arquivo .duckdb é ignorado pelo git e recriado a cada execução.
-      path: banco/collections_contact_risk.duckdb
+      path: database/collections_contact_risk.duckdb
       threads: 4

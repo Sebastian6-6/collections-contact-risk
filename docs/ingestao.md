@@ -11,7 +11,7 @@ flowchart LR
   Y["ingestion/fontes.yml"] -.configura.-> C
   P["contact_data/<br/>arquivos dos provedores"] --> C["@conector pasta"]
   W[("WebDAV público<br/>da Receita")] -->|"--baixar receita"| D["@baixador receita"]
-  D --> X["dados_externos/receita/2026-10/<br/>extrato versionado + ORIGEM.md"]
+  D --> X["external_data/receita/2026-10/<br/>extrato versionado + ORIGEM.md"]
   X --> C
   C --> L["@leitor csv ou jsonl"]
   L --> B[("bronze_&lt;fonte&gt;.&lt;entidade&gt;<br/>bronze_&lt;fonte&gt;.arquivos")]
@@ -77,7 +77,7 @@ O enunciado pede para "cruzar as informações de empregador com os dados aberto
 
 **sha256 calculado.** A Receita não publica checksum: na pasta do mês só há os zips, e o `ETag` do WebDAV é um identificador de versão do Nextcloud, não o hash do conteúdo (o do `Motivos.zip` não bate com o MD5 do arquivo). Por isso o baixador confere o tamanho de cada zip contra o anunciado na listagem, lê o zip (o que confere o CRC-32 de cada membro) e calcula o sha256 de cada um.
 
-**Extrato versionado.** O baixador grava em `dados_externos/receita/2026-10/`:
+**Extrato versionado.** O baixador grava em `external_data/receita/2026-10/`:
 - as 6 tabelas de domínio inteiras (`cnaes`, `motivos`, `municipios`, `naturezas`, `paises`, `qualificacoes`);
 - de `empresas`, `estabelecimentos`, `simples` e `socios`, só os registros cuja raiz de CNPJ (8 primeiros caracteres) foi recebida, byte a byte como a Receita publicou;
 - o `ORIGEM.md`, com a URL, o mês, a licença, os bytes, a data no servidor, o sha256 e os registros de cada zip baixado, o que o extrato tem e a lista de raízes com o sha256 dela. O texto não tem horário nem caminho da máquina.

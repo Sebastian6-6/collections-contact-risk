@@ -17,7 +17,7 @@ class Projeto:
     def __init__(self, raiz: Path):
         self.raiz = raiz
         self.config = raiz / "fontes.yml"
-        self.banco = raiz / "banco" / "teste.duckdb"
+        self.banco = raiz / "database" / "teste.duckdb"
 
     def escrever(self, caminho: str, conteudo: bytes | str) -> Path:
         destino = self.raiz / caminho

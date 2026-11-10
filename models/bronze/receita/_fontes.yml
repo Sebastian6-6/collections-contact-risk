@@ -4,7 +4,7 @@ sources:
   - name: bronze_receita
     description: >
       Dados abertos do CNPJ da Receita Federal (mês 2026-10): o extrato versionado em
-      `dados_externos/receita/2026-10/`, com as empresas dos CNPJs de empregador recebidos e as seis
+      `external_data/receita/2026-10/`, com as empresas dos CNPJs de empregador recebidos e as seis
       tabelas de domínio inteiras. Os arquivos não têm cabeçalho; os nomes das colunas vêm do layout
       oficial (`cnpj-metadados.pdf`, 02/12/2021), em minúsculas, sem acento e com `_` no lugar de espaço
       e pontuação, na ordem do layout. Fiel à origem: nenhuma linha é descartada nem interpretada na
