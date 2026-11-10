@@ -8,7 +8,9 @@ Para cada corte (2026-09-15 e 2026-09-22), compila `analyses/regua_metricas.sql`
   - a acurácia balanceada, a média entre a fração dos desfechos de risco (terceiro, opt_out e
     falecido) cujo par ficou em `atencao` ou `bloqueado` e a fração dos `contato_confirmado` cujo
     par ficou `liberado`;
-  - a fração de `terceiro` pegos e a de `contato_confirmado` liberados, com as quantidades.
+  - a fração de `terceiro` pegos e a de `contato_confirmado` liberados, com as quantidades;
+  - as tentativas sem par na régua do corte (`sem_par_no_corte`), só como contagem: ficam fora do
+    denominador de todas as frações, porque a régua não deu nível a elas.
 Sai com código 1 se o dbt falhar ao compilar.
 """
 
@@ -96,6 +98,7 @@ def formatar_metricas(metricas: Metricas) -> str:
                 metricas["fracao_confirmado_liberado"]),
             "  riscos pegos (terceiro, opt_out, falecido): " + formatar_fracao(
                 metricas["qt_risco_pego"], metricas["qt_risco"], metricas["fracao_risco_pego"]),
+            f"  sem par no corte (fora das frações): {metricas['qt_sem_par_no_corte']}",
         ]
     )
 

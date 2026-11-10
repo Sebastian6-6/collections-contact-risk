@@ -15,6 +15,7 @@ METRICAS = {
     "qt_terceiro_pego": 201,
     "qt_confirmado": 944,
     "qt_confirmado_liberado": 674,
+    "qt_sem_par_no_corte": 1209,
     "fracao_risco_pego": 0.4222,
     "fracao_terceiro_pego": 0.6147,
     "fracao_confirmado_liberado": 0.714,
@@ -38,6 +39,7 @@ def test_formata_quantidades_e_frações_com_vírgula():
     assert "acurácia balanceada: 0,5681" in texto
     assert "terceiros pegos: 201 de 327 (61,47%)" in texto
     assert "confirmados liberados: 674 de 944 (71,40%)" in texto
+    assert "sem par no corte (fora das frações): 1209" in texto
 
 
 def test_sem_base_não_vira_zero():
