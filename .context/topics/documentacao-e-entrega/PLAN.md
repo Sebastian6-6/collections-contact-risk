@@ -40,6 +40,7 @@ Branch `docs/documentacao-e-entrega` a partir da `develop`, depois dos outros tr
 ### 10.4 README
 - **Quem:** `analista-dados` (Opus 5.5 · medium).
 - **Fazer:** todas as seções da p. 2, com as conclusões de `docs/analises.md`, as premissas (G e C) e os limites da D3. O componente de ingestão multi-fonte aparece como diferencial.
+- **Estilo (pedido do dono, 2026-11-10):** só a estilização de `.claude/skills/context-manager/README.md`: linha "Criado por" com o badge do LinkedIn no topo, badges do shields.io com a stack (DuckDB, dbt, Python, CI) e o bloco de contato com o LinkedIn no fim. O conteúdo é o deste projeto.
 - **Commit:** `docs: README com visão geral, premissas, conclusões e limites`.
 
 ### 10.5 Verificação final e merge

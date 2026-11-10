@@ -21,8 +21,8 @@ Take the project to a PRIVATE GitHub repository with CI green, ready for the own
 ## Execution queue
 | Topic | Branch | Current step | Last commit | Next step |
 |---|---|---|---|---|
-| modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | 4.3-4.6 running (one agent) | d39d08a (4.2 = 311ff28) | 4.7 |
-| enriquecimento-cnpj | feat/enriquecimento-cnpj (worktree ../collections-contact-risk-cnpj) | 7.1 running | f4bad48 | 7.2-7.3 (sql), 7.4 after gold merge |
+| modelo-gold-e-regua | feat/modelo-gold-e-regua (main tree) | 4.7b loop running (opus) | 0ae1660 (4.7 baseline BA 0.5681 / 0.6178) | 4.9 block verification |
+| enriquecimento-cnpj | feat/enriquecimento-cnpj (worktree ../collections-contact-risk-cnpj) | 7.2-7.3 running (sonnet) | b0db40e (extract 7.5 MB, 10/13 roots found) | 7.4 after gold merge; 7.5 docs (AGENTS.md Fonte nova gains @baixador) |
 | monitoramento-e-analises | - | planned (PLAN.md) | - | 8.1 after gold merge |
 | documentacao-e-entrega | - | planned (PLAN.md) | - | 10.1 refs anytime; rest after the 3 merges |
 
