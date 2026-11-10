@@ -59,7 +59,7 @@ def test_recria_o_banco_do_zero_e_roda_o_dbt_depois_da_ingestao(raiz, config):
         conexao = duckdb.connect(str(banco), read_only=True)
         chamadas.append(conexao.execute("SELECT COUNT(*) FROM bronze_fonte.pessoas").fetchone())
         conexao.close()
-        return True
+        return 0
 
     assert pipeline.main(raiz, config, dbt_falso) == 0
 
@@ -75,9 +75,40 @@ def test_ingestao_que_falha_impede_o_dbt(raiz, config):
     (raiz / "dados" / "a.csv").write_bytes(b"id\n\xe9\n")
     chamadas = []
 
-    assert pipeline.main(raiz, config, lambda r: chamadas.append(r) or True) == 1
+    assert pipeline.main(raiz, config, lambda r: chamadas.append(r) or 0) == 1
     assert chamadas == []
 
 
 def test_dbt_que_falha_faz_a_pipeline_falhar(raiz, config):
-    assert pipeline.main(raiz, config, lambda r: False) == 1
+    assert pipeline.main(raiz, config, lambda r: None) == 1
+
+
+def test_tudo_certo_nao_envia_alerta(raiz, config):
+    alertas = []
+
+    assert pipeline.main(raiz, config, lambda r: 0, notificar=alertas.append) == 0
+    assert alertas == []
+
+
+def test_ingestao_que_falha_envia_alerta_e_mantem_o_codigo_de_saida(raiz, config):
+    (raiz / "dados" / "a.csv").write_bytes(b"id\n\xe9\n")
+    alertas = []
+
+    assert pipeline.main(raiz, config, lambda r: 0, notificar=alertas.append) == 1
+    assert alertas == ["a ingestão falhou"]
+
+
+def test_dbt_que_falha_envia_alerta(raiz, config):
+    alertas = []
+
+    assert pipeline.main(raiz, config, lambda r: None, notificar=alertas.append) == 1
+    assert alertas == ["o dbt build falhou"]
+
+
+def test_warn_so_avisa_quando_a_opcao_esta_ligada(raiz, config):
+    alertas = []
+
+    assert pipeline.main(raiz, config, lambda r: 9, notificar=alertas.append) == 0
+    assert alertas == []
+    assert pipeline.main(raiz, config, lambda r: 9, True, alertas.append) == 0
+    assert alertas == ["o dbt build terminou com 9 testes em WARN"]
