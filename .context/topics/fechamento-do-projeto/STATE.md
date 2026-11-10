@@ -40,6 +40,7 @@ Take the project to a PRIVATE GitHub repository with CI green, ready for the own
 ## Decisions
 <!-- Local to this topic, append-only: "- YYYY-MM-DD decision". -->
 - 2026-11-10 2026-11-10 pre-publication checklist: one private-term pattern matches two lines of official Receita domain tables (naturezas.csv:8, qualificacoes.csv:42, public code names unrelated to the case origin). Judged a false positive under the owner's autonomy grant (least friction: domain tables stay complete, ORIGEM sha256 intact); exception logged in the private checklist log; owner to confirm in the final report. Also for the owner: the private hook did not see these CSVs at commit time, likely because .gitattributes marks them -text (binary diff).
+- 2026-11-10 2026-11-10 owner: checklist exception approved (2 official Receita domain lines); private hook fixed (diff --text, grep -a, exact-line exceptions file in the private folder; tested on the extract commit: 2 hits without exception, 0 with). Private repo github.com/Sebastian6-6/collections-contact-risk created and develop pushed under the owner's identity (Sebastian6-6); first GitHub Actions run 42825612957 on develop 9752de9: success.
 
 ## Documents in use
 <!-- "- doc-id (p.10-14): why it matters". Ids come from .context/index.md. -->

@@ -25,6 +25,8 @@
     "tests/generic": "Custom generic dbt tests (composite uniqueness, row counts per file, declared columns)",
     "tests/ingestion": "pytest suite for the Python ingestion component",
     "tests/macros": "Singular dbt tests for the standardization and history macros",
-    "tests/silver": "Singular dbt tests for the silver layer (lineage, representation, headers, address pairs)"
+    "tests/silver": "Singular dbt tests for the silver layer (lineage, representation, headers, address pairs)",
+    "database": "Local DuckDB database file, rebuilt from scratch on every pipeline run (git-ignored)",
+    "external_data": "Versioned external extracts read offline by the pipeline (Receita CNPJ open data, month 2026-10, with ORIGEM.md)"
   }
 }
