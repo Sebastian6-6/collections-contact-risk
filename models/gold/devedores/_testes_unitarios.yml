@@ -496,3 +496,63 @@ unit_tests:
       rows:
         - {sk_devedor: 1, sk_contato: 1, contato_id: "t1", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "permitido", dt_tentativa: "2026-09-07", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 1, _hash_arquivo: "h"}
         - {sk_devedor: 1, sk_contato: 1, contato_id: "t2", canal: "ligacao", resultado: "entregue", tipo_desfecho: "sem_confirmacao", situacao_horario: "domingo", dt_tentativa: "2026-09-06", hr_tentativa: "10:00:00", _arquivo: "arq", _linha: 2, _hash_arquivo: "h"}
+
+  - name: dim_empregador_junta_a_receita_sem_perder_cnpj_nem_inventar_atributo
+    description: >
+      C5 do enriquecimento. O CNPJ "A" está na Receita: ganha os atributos, as descrições de
+      situação cadastral e de porte, os nomes dos domínios e as opções do Simples e do MEI
+      (`S` vira `TRUE`, `N` vira `FALSE`). O "B" está na Receita, mas a empresa não tem registro do
+      Simples: as flags ficam `NULL`, e não `FALSE`. O "C" não está na Receita: continua na
+      dimensão como `nao_encontrado`, com tudo `NULL`. O "D" só tem a raiz na Receita (outro
+      estabelecimento): também é `nao_encontrado`.
+    model: dim_empregador
+    given:
+      - input: ref('empregadores_cnpjs')
+        format: sql
+        rows: |
+          SELECT
+            CAST(cnpj AS VARCHAR) AS cnpj
+            , CAST(_arquivo AS VARCHAR) AS _arquivo
+            , CAST(_linha AS BIGINT) AS _linha
+            , CAST(_hash_arquivo AS VARCHAR) AS _hash_arquivo
+          FROM (
+            VALUES
+              ('A', 'a1', 1, 'h1')
+              , ('B', 'a1', 2, 'h1')
+              , ('C', 'a1', 3, 'h1')
+              , ('D', 'a1', 4, 'h1')
+          ) AS tLinhas (cnpj, _arquivo, _linha, _hash_arquivo)
+      - input: ref('silver_receita_estabelecimentos')
+        rows:
+        - {cnpj: "A", cnpj_basico: "1", situacao_cadastral: "02", motivo_situacao_cadastral: "00", cnae_fiscal_principal: "6422100", uf: "SP", municipio: "7107", data_situacao_cadastral: "2005-11-03", data_de_inicio_atividade: "1990-05-10"}
+        - {cnpj: "B", cnpj_basico: "2", situacao_cadastral: "08", motivo_situacao_cadastral: "01", cnae_fiscal_principal: "6422100", uf: "RJ", municipio: "6001", data_situacao_cadastral: null, data_de_inicio_atividade: "2000-01-01"}
+        - {cnpj: "D2", cnpj_basico: "4", situacao_cadastral: "03", motivo_situacao_cadastral: "00", cnae_fiscal_principal: "6422100", uf: "DF", municipio: "9701", data_situacao_cadastral: null, data_de_inicio_atividade: "2000-01-01"}
+      - input: ref('silver_receita_empresas')
+        rows:
+        - {cnpj_basico: "1", razao_social_nome_empresarial: "EMPRESA UM", natureza_juridica: "2046", porte_da_empresa: "05"}
+        - {cnpj_basico: "2", razao_social_nome_empresarial: "EMPRESA DOIS", natureza_juridica: "2046", porte_da_empresa: "01"}
+        - {cnpj_basico: "4", razao_social_nome_empresarial: "EMPRESA QUATRO", natureza_juridica: "2046", porte_da_empresa: "03"}
+      - input: ref('silver_receita_simples')
+        rows:
+        - {cnpj_basico: "1", opcao_pelo_simples: "S", opcao_pelo_mei: "N"}
+      - input: ref('silver_receita_naturezas')
+        rows:
+        - {codigo: "2046", descricao: "Sociedade Anonima Aberta"}
+      - input: ref('silver_receita_motivos')
+        rows:
+        - {codigo: "00", descricao: "SEM MOTIVO"}
+        - {codigo: "01", descricao: "EXTINCAO POR ENCERRAMENTO"}
+      - input: ref('silver_receita_cnaes')
+        rows:
+        - {codigo: "6422100", descricao: "Bancos multiplos, com carteira comercial"}
+      - input: ref('silver_receita_municipios')
+        rows:
+        - {codigo: "7107", descricao: "SAO PAULO"}
+        - {codigo: "6001", descricao: "RIO DE JANEIRO"}
+        - {codigo: "9701", descricao: "BRASILIA"}
+    expect:
+      rows:
+        - {sk_empregador: 1, cnpj: "A", situacao_receita: "encontrado", natureza_juridica: "2046", desc_natureza_juridica: "Sociedade Anonima Aberta", porte: "05", desc_porte: "DEMAIS", situacao_cadastral: "02", desc_situacao_cadastral: "ATIVA", motivo_situacao_cadastral: "00", desc_motivo_situacao_cadastral: "SEM MOTIVO", cnae: "6422100", desc_cnae: "Bancos multiplos, com carteira comercial", uf: "SP", municipio: "7107", desc_municipio: "SAO PAULO", nome_razao_social: "EMPRESA UM", flag_optante_simples: true, flag_optante_mei: false, dt_situacao_cadastral: "2005-11-03", dt_inicio_atividade: "1990-05-10"}
+        - {sk_empregador: 2, cnpj: "B", situacao_receita: "encontrado", natureza_juridica: "2046", desc_natureza_juridica: "Sociedade Anonima Aberta", porte: "01", desc_porte: "MICRO EMPRESA", situacao_cadastral: "08", desc_situacao_cadastral: "BAIXADA", motivo_situacao_cadastral: "01", desc_motivo_situacao_cadastral: "EXTINCAO POR ENCERRAMENTO", cnae: "6422100", desc_cnae: "Bancos multiplos, com carteira comercial", uf: "RJ", municipio: "6001", desc_municipio: "RIO DE JANEIRO", nome_razao_social: "EMPRESA DOIS", flag_optante_simples: null, flag_optante_mei: null, dt_situacao_cadastral: null, dt_inicio_atividade: "2000-01-01"}
+        - {sk_empregador: 3, cnpj: "C", situacao_receita: "nao_encontrado", natureza_juridica: null, desc_natureza_juridica: null, porte: null, desc_porte: null, situacao_cadastral: null, desc_situacao_cadastral: null, motivo_situacao_cadastral: null, desc_motivo_situacao_cadastral: null, cnae: null, desc_cnae: null, uf: null, municipio: null, desc_municipio: null, nome_razao_social: null, flag_optante_simples: null, flag_optante_mei: null, dt_situacao_cadastral: null, dt_inicio_atividade: null}
+        - {sk_empregador: 4, cnpj: "D", situacao_receita: "nao_encontrado", natureza_juridica: null, desc_natureza_juridica: null, porte: null, desc_porte: null, situacao_cadastral: null, desc_situacao_cadastral: null, motivo_situacao_cadastral: null, desc_motivo_situacao_cadastral: null, cnae: null, desc_cnae: null, uf: null, municipio: null, desc_municipio: null, nome_razao_social: null, flag_optante_simples: null, flag_optante_mei: null, dt_situacao_cadastral: null, dt_inicio_atividade: null}

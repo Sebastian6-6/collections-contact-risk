@@ -1,77 +1,117 @@
 {#
-  Grão: um CNPJ recebido de empregador. Sai da histórica das três fontes, que guarda todas as
-  versões, para que o empregador de uma versão antiga também exista na dimensão. O CNPJ entra como
-  a silver o padronizou (14 caracteres), inclusive o que não tem dígito verificador válido: é o
-  que o provedor mandou, e os atributos da Receita entram na etapa 7. Versões sem CNPJ não geram
-  linha. A rastreabilidade é da aparição mais recente do CNPJ (maior data de entrega, depois
-  arquivo e linha).
+  Grão: um CNPJ recebido de empregador (`empregadores_cnpjs`, que junta as três fontes), com os
+  atributos da Receita por LEFT JOIN pelo CNPJ de 14 caracteres (C5 do enriquecimento): o
+  estabelecimento traz situação, CNAE, UF, município e início da atividade; a empresa (pela base
+  do CNPJ), a razão social, a natureza e o porte; o Simples, a opção pelo Simples e pelo MEI.
+  Cada tabela da Receita é única na chave do join, então a junção não multiplica linhas. CNPJ sem
+  estabelecimento na Receita fica `nao_encontrado` e com os atributos NULL, sem linha fictícia.
+  As descrições de situação cadastral e de porte são o domínio do layout oficial, que não vem em
+  tabela de domínio nos arquivos.
 #}
-WITH tCnpjs AS (
+WITH tEmpregadores AS (
   SELECT
-    'alfa' AS provedor
-    , cnpj_empregador AS cnpj
-    , data_ultima_entrega
+    CAST(
+      ROW_NUMBER() OVER (ORDER BY cnpj ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+      AS INTEGER
+    ) AS sk_empregador
+    , cnpj
     , _arquivo
     , _linha
     , _hash_arquivo
-  FROM {{ ref('silver_alfa_devedores_historico') }}
-  WHERE 1 = 1
-    AND cnpj_empregador IS NOT NULL
-
-  UNION ALL
-
-  SELECT
-    'beta' AS provedor
-    , vinculo_empresa_cnpj AS cnpj
-    , data_ultima_entrega
-    , _arquivo
-    , _linha
-    , _hash_arquivo
-  FROM {{ ref('silver_beta_devedores_historico') }}
-  WHERE 1 = 1
-    AND vinculo_empresa_cnpj IS NOT NULL
-
-  UNION ALL
-
-  SELECT
-    'gama' AS provedor
-    , cnpj_empregador_raw AS cnpj
-    , data_ultima_entrega
-    , _arquivo
-    , _linha
-    , _hash_arquivo
-  FROM {{ ref('silver_gama_devedores_historico') }}
-  WHERE 1 = 1
-    AND cnpj_empregador_raw IS NOT NULL
+  FROM {{ ref('empregadores_cnpjs') }}
 )
 
-, tOrdenados AS (
+, tReceita AS (
   SELECT
-    cnpj
-    , _arquivo
-    , _linha
-    , _hash_arquivo
-    , ROW_NUMBER() OVER (
-      PARTITION BY cnpj
-      ORDER BY
-        data_ultima_entrega DESC NULLS LAST
-        , _arquivo COLLATE "C" DESC
-        , _linha DESC
-        , provedor ASC
-      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS num_aparicao
-  FROM tCnpjs
+    tEmpregadores.sk_empregador
+    , tEmpregadores.cnpj
+    , empresas.natureza_juridica
+    , naturezas.descricao AS desc_natureza_juridica
+    , empresas.porte_da_empresa AS porte
+    , estabelecimentos.situacao_cadastral
+    , estabelecimentos.motivo_situacao_cadastral
+    , motivos.descricao AS desc_motivo_situacao_cadastral
+    , estabelecimentos.cnae_fiscal_principal AS cnae
+    , cnaes.descricao AS desc_cnae
+    , estabelecimentos.uf
+    , estabelecimentos.municipio
+    , municipios.descricao AS desc_municipio
+    , empresas.razao_social_nome_empresarial AS nome_razao_social
+    , estabelecimentos.data_situacao_cadastral AS dt_situacao_cadastral
+    , estabelecimentos.data_de_inicio_atividade AS dt_inicio_atividade
+    , tEmpregadores._arquivo
+    , tEmpregadores._linha
+    , tEmpregadores._hash_arquivo
+    , CASE
+      WHEN estabelecimentos.cnpj IS NOT NULL THEN 'encontrado'
+      ELSE 'nao_encontrado'
+    END AS situacao_receita
+    , CASE empresas.porte_da_empresa
+      WHEN '00' THEN 'NAO INFORMADO'
+      WHEN '01' THEN 'MICRO EMPRESA'
+      WHEN '03' THEN 'EMPRESA DE PEQUENO PORTE'
+      WHEN '05' THEN 'DEMAIS'
+    END AS desc_porte
+    , CASE estabelecimentos.situacao_cadastral
+      WHEN '01' THEN 'NULA'
+      WHEN '02' THEN 'ATIVA'
+      WHEN '03' THEN 'SUSPENSA'
+      WHEN '04' THEN 'INAPTA'
+      WHEN '08' THEN 'BAIXADA'
+    END AS desc_situacao_cadastral
+    , CASE simples.opcao_pelo_simples
+      WHEN 'S' THEN TRUE
+      WHEN 'N' THEN FALSE
+    END AS flag_optante_simples
+    , CASE simples.opcao_pelo_mei
+      WHEN 'S' THEN TRUE
+      WHEN 'N' THEN FALSE
+    END AS flag_optante_mei
+  FROM tEmpregadores
+  LEFT JOIN {{ ref('silver_receita_estabelecimentos') }} AS estabelecimentos
+    ON tEmpregadores.cnpj = estabelecimentos.cnpj
+  LEFT JOIN {{ ref('silver_receita_empresas') }} AS empresas
+    ON estabelecimentos.cnpj_basico = empresas.cnpj_basico
+  LEFT JOIN {{ ref('silver_receita_simples') }} AS simples
+    ON estabelecimentos.cnpj_basico = simples.cnpj_basico
+  LEFT JOIN {{ ref('silver_receita_naturezas') }} AS naturezas
+    ON empresas.natureza_juridica = naturezas.codigo
+  LEFT JOIN {{ ref('silver_receita_motivos') }} AS motivos
+    ON estabelecimentos.motivo_situacao_cadastral = motivos.codigo
+  LEFT JOIN {{ ref('silver_receita_cnaes') }} AS cnaes
+    ON estabelecimentos.cnae_fiscal_principal = cnaes.codigo
+  LEFT JOIN {{ ref('silver_receita_municipios') }} AS municipios
+    ON estabelecimentos.municipio = municipios.codigo
 )
 
 SELECT
-  CAST(
-    ROW_NUMBER() OVER (ORDER BY cnpj ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-    AS INTEGER
-  ) AS sk_empregador
+  sk_empregador
   , cnpj
+  , situacao_receita
+
+  , natureza_juridica
+  , desc_natureza_juridica
+  , porte
+  , desc_porte
+  , situacao_cadastral
+  , desc_situacao_cadastral
+  , motivo_situacao_cadastral
+  , desc_motivo_situacao_cadastral
+  , cnae
+  , desc_cnae
+  , uf
+  , municipio
+  , desc_municipio
+
+  , nome_razao_social
+
+  , flag_optante_simples
+  , flag_optante_mei
+
+  , dt_situacao_cadastral
+  , dt_inicio_atividade
+
   , _arquivo
   , _linha
   , _hash_arquivo
-FROM tOrdenados
-WHERE 1 = 1
-  AND num_aparicao = 1
+FROM tReceita

@@ -23,6 +23,17 @@
 -- depends_on: {{ ref('silver_gama_devedores_historico_contatos') }}
 -- depends_on: {{ ref('silver_cobranca_contatos_realizados') }}
 -- depends_on: {{ ref('silver_cobranca_contatos_realizados_provedores') }}
+-- depends_on: {{ ref('silver_receita_empresas') }}
+-- depends_on: {{ ref('silver_receita_estabelecimentos') }}
+-- depends_on: {{ ref('silver_receita_estabelecimentos_cnaes_secundarios') }}
+-- depends_on: {{ ref('silver_receita_simples') }}
+-- depends_on: {{ ref('silver_receita_socios') }}
+-- depends_on: {{ ref('silver_receita_cnaes') }}
+-- depends_on: {{ ref('silver_receita_motivos') }}
+-- depends_on: {{ ref('silver_receita_municipios') }}
+-- depends_on: {{ ref('silver_receita_naturezas') }}
+-- depends_on: {{ ref('silver_receita_paises') }}
+-- depends_on: {{ ref('silver_receita_qualificacoes') }}
 {% set exigidas = [] %}
 {% for coluna in ['_arquivo', '_linha', '_hash_arquivo'] %}
   {% do exigidas.append("SELECT '" ~ coluna ~ "' AS coluna") %}
