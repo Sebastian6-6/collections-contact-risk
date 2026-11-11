@@ -44,7 +44,10 @@ flowchart LR
   C --> D["dbt build: silver, gold e testes"]
   D --> E{"entrega_recente_com_alerta"}
   E -- "sem linhas" --> F["Entrega normal"]
-  E -- "warn" --> G["Notificação<br/>(produção)"]
+  E -- "warn" --> G["Notificação por provedor<br/>(produção)"]
+  C -- "falha" --> H["scripts/notificar_falha.py<br/>e-mail (seção 4)"]
+  D -- "erro" --> H
+  E -. "WARN, com --avisar-warn" .-> H
 ```
 
 **O que já roda:**
