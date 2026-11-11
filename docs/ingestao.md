@@ -1,5 +1,7 @@
 # Ingestão multi-fonte
 
+**Como ver os diagramas:** no [GitHub](https://github.com/Sebastian6-6/collections-contact-risk/blob/main/docs/ingestao.md); no VS Code 1.121+, pela pré-visualização do Markdown, que desenha Mermaid nativamente; no Cursor e no Antigravity, com a extensão [Markdown Preview Mermaid Support](https://open-vsx.org/extension/bierner/markdown-mermaid), que não deve ser usada no VS Code 1.121+, porque conflita com o nativo.
+
 A ingestão (`ingestion/`) lê os arquivos de cada fonte e grava a bronze no DuckDB, uma linha por linha recebida, sem transformar nada. Ela atende a convenção do case de que `ingestion/` faz a "leitura dos arquivos dos provedores, sem transformação" (AGENTS.md, convenções do case). Hoje recebe cinco fontes em três formatos e duas origens: os provedores `alfa` (CSV), `beta` (JSON Lines) e `gama` (CSV com JSON embutido), o histórico `cobranca` e a Receita Federal (`receita`), que chega por uma API e é gravada como arquivo antes de ser lida.
 
 As decisões por trás do desenho (reler tudo, rastreabilidade, gravação em lote) estão em [decisoes-de-modelagem.md](decisoes-de-modelagem.md), seções 3, 4 e 10. O que cada fonte entrega está em [contratos-de-dados.md](contratos-de-dados.md).

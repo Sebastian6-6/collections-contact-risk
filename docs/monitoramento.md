@@ -1,5 +1,7 @@
 # Monitoramento das entregas diárias
 
+**Como ver os diagramas:** no [GitHub](https://github.com/Sebastian6-6/collections-contact-risk/blob/main/docs/monitoramento.md); no VS Code 1.121+, pela pré-visualização do Markdown, que desenha Mermaid nativamente; no Cursor e no Antigravity, com a extensão [Markdown Preview Mermaid Support](https://open-vsx.org/extension/bierner/markdown-mermaid), que não deve ser usada no VS Code 1.121+, porque conflita com o nativo.
+
 O enunciado pede investigar se houve problema de ingestão em algum dia, uma estratégia de normalização e, se aplicável, a arquitetura de um monitoramento diário automatizado, que pode usar uma média móvel (p. 1–2), "sem complexidade desnecessária" (p. 4).
 
 Os números saem de `gold_monitoramento.ft_entrega_diaria`: uma linha por provedor e dia com entrega, 87 entregas de 01 a 30/09/2026, sem a carga histórica. Os alertas saem de `dbt show --select alertas_das_entregas` (`analyses/alertas_das_entregas.sql`), depois de `python pipeline.py`.

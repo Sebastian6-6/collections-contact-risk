@@ -1,5 +1,7 @@
 # ERD
 
+**Como ver os diagramas:** no [GitHub](https://github.com/Sebastian6-6/collections-contact-risk/blob/main/docs/erd.md); no VS Code 1.121+, pela pré-visualização do Markdown, que desenha Mermaid nativamente; no Cursor e no Antigravity, com a extensão [Markdown Preview Mermaid Support](https://open-vsx.org/extension/bierner/markdown-mermaid), que não deve ser usada no VS Code 1.121+, porque conflita com o nativo.
+
 Diagramas em Mermaid das três camadas do banco. As colunas mostradas são as chaves e alguns atributos; a lista completa está em `models/gold/*/_modelos.yml` e no dicionário de dados.
 
 ## Gold: estrela de devedores (`models/gold/devedores`)
