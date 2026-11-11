@@ -1,0 +1,11 @@
+{
+  "sqltools.connections": [
+    {
+      "name": "collections_contact_risk",
+      "driver": "DuckDB",
+      "databaseFilePath": "${workspaceFolder}/database/collections_contact_risk.duckdb",
+      "accessMode": "Read Only",
+      "previewLimit": 50
+    }
+  ]
+}
