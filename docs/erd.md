@@ -1,19 +1,21 @@
 # ERD
 
+**Como ver os diagramas:** no [GitHub](https://github.com/Sebastian6-6/collections-contact-risk/blob/main/docs/erd.md); no VS Code 1.121+, pela pré-visualização do Markdown, que desenha Mermaid nativamente; no Cursor e no Antigravity, com a extensão [Markdown Preview Mermaid Support](https://open-vsx.org/extension/bierner/markdown-mermaid), que não deve ser usada no VS Code 1.121+, porque conflita com o nativo.
+
 Diagramas em Mermaid das três camadas do banco. As colunas mostradas são as chaves e alguns atributos; a lista completa está em `models/gold/*/_modelos.yml` e no dicionário de dados.
 
 ## Gold: estrela de devedores (`models/gold/devedores`)
 
-`dim_devedor` é o centro: uma linha por CPF. As demais tabelas apontam para ela por `sk_devedor`. Onde o devedor não é encontrado a chave fica `NULL` (não há linha "desconhecido"), por isso a ligação é opcional do lado do fato e da dimensão filha.
+`dim_devedor` é o centro: uma linha por CPF. As demais tabelas apontam para ela por `sk_devedor`. Onde o devedor não é encontrado a chave fica `NULL` (não há linha "desconhecido"), por isso a chave estrangeira é opcional (`|o` no desenho) em todas as ligações.
 
 ```mermaid
 erDiagram
-  dim_devedor ||--o{ dim_endereco : "sk_devedor"
-  dim_devedor ||--o{ dim_contato : "sk_devedor"
-  dim_devedor ||--o{ ft_vinculo_empresa : "sk_devedor"
-  dim_devedor ||--o{ ft_tentativa_contato : "sk_devedor"
-  dim_empregador ||--o{ ft_vinculo_empresa : "sk_empregador"
-  dim_contato ||--o{ ft_tentativa_contato : "sk_contato"
+  dim_devedor |o--o{ dim_endereco : "sk_devedor"
+  dim_devedor |o--o{ dim_contato : "sk_devedor"
+  dim_devedor |o--o{ ft_vinculo_empresa : "sk_devedor"
+  dim_devedor |o--o{ ft_tentativa_contato : "sk_devedor"
+  dim_empregador |o--o{ ft_vinculo_empresa : "sk_empregador"
+  dim_contato |o--o{ ft_tentativa_contato : "sk_contato"
 
   dim_devedor {
     int sk_devedor PK
@@ -64,7 +66,7 @@ erDiagram
   ft_tentativa_contato {
     int sk_devedor FK
     int sk_contato FK
-    text contato_id
+    text contato_id UK
     text canal
     text resultado
     text tipo_desfecho
@@ -143,6 +145,8 @@ flowchart LR
   s_beta_hist --> s_beta_hc
   s_beta_hist --> s_beta_he
   s_beta_hist --> s_beta_dev
+  s_beta_hist --> s_beta_con
+  s_beta_hist --> s_beta_end
   s_beta_hc --> s_beta_con
   s_beta_he --> s_beta_end
 
@@ -161,6 +165,7 @@ flowchart LR
   b_gama_arq --> s_gama_hist
   s_gama_hist --> s_gama_hc
   s_gama_hist --> s_gama_dev
+  s_gama_hist --> s_gama_con
   s_gama_hc --> s_gama_con
   s_gama_hist --> s_gama_end
 
@@ -215,6 +220,9 @@ flowchart LR
     s_cob["silver_cobranca<br/>(contatos_realizados)"]
     s_rec["silver_receita<br/>(estabelecimentos, empresas, simples, dominios)"]
   end
+  subgraph bronze
+    b_prov["bronze_alfa, bronze_beta, bronze_gama<br/>(devedores, arquivos)"]
+  end
   subgraph gold
     d_dev[dim_devedor]
     d_end[dim_endereco]
@@ -245,5 +253,7 @@ flowchart LR
   d_dev --> d_end
   d_dev --> f_vin
   d_emp --> f_vin
+  d_dev --> f_ten
   d_con --> f_ten
+  b_prov --> f_ent
 ```
