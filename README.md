@@ -39,7 +39,7 @@ A pipeline lê tudo, consolida uma base única por CPF, cruza o empregador com o
 | [docs/ingestao.md](docs/ingestao.md) | o componente de ingestão multi-fonte |
 | [docs/monitoramento.md](docs/monitoramento.md) | os incidentes das entregas diárias, o alerta e o e-mail de falha |
 | [docs/contratos-de-dados.md](docs/contratos-de-dados.md) | o que cada provedor entrega e o que a gold recebe da silver |
-| [docs/erd.md](docs/erd.md) · [docs/dicionario-de-dados.md](docs/dicionario-de-dados.md) | o ERD em Mermaid e o dicionário com a justificativa de cada tipo |
+| [docs/erd.md](docs/erd.md) · [docs/dicionario-de-dados.md](docs/dicionario-de-dados.md) | o ERD em Mermaid (desenhado no GitHub; ver a nota no topo do arquivo) e o dicionário com a justificativa de cada tipo |
 | [docs/qualidade-e-convencoes.md](docs/qualidade-e-convencoes.md) | cada regra do repositório e a checagem que a garante |
 | [AGENTS.md](AGENTS.md) | as regras do repositório: as convenções do case e as do projeto |
 
@@ -88,6 +88,27 @@ dbt show --select lista_nao_contatar # qualquer consulta de analyses/
 Se as variáveis `ALERTA_*` estiverem definidas, a pipeline manda um e-mail quando a ingestão ou o `dbt build` falham; sem elas, nada muda ([Alerta por e-mail](docs/monitoramento.md#4-alerta-por-e-mail)).
 
 O download da Receita é opcional: o extrato usado já está versionado em `external_data/receita/2026-10/`. Para baixar de novo, `python -m ingestion.main --baixar receita` e depois `python pipeline.py` ([ingestao.md, seção 4](docs/ingestao.md#4-a-receita-como-exemplo-de-api)).
+
+---
+
+## 🔍 Explorar o modelo com o dbt
+
+Com a pipeline rodada, o lineage e as consultas saem do próprio dbt. O mesmo grafo está publicado em [lineage e documentação do dbt](https://sebastian6-6.github.io/collections-contact-risk/).
+
+```bash
+dbt docs generate && dbt docs serve    # documentação local, com o grafo de lineage
+dbt ls --select +dim_contato           # de onde vem um modelo
+dbt build --select dim_contato+        # reconstrói um modelo e o que depende dele
+dbt show --select lista_nao_contatar   # qualquer consulta de analyses/
+```
+
+O `.vscode/` sugere extensões ao abrir o repositório (VS Code, Cursor ou Antigravity); vale aceitar:
+
+- **SQLTools** (`mtxr.sqltools`) e o **driver DuckDB** (`Evidence.sqltools-duckdb-driver`): consultam o banco, com a conexão já configurada. O driver só está no Marketplace do VS Code (no Open VSX, que Cursor e Antigravity usam, o ID não existe em 2026-11-11), então nesses editores ele pode não aparecer.
+- **dbt Power User** (`innoverio.vscode-dbt-power-user`): mostra o mesmo lineage dentro do editor.
+- **Python** (`ms-python.python`): ambiente e depuração do código da ingestão.
+
+Feche a conexão do SQLTools antes de rodar a `pipeline.py`, que recria o arquivo do banco; recomendação, porque o travamento no Windows não foi verificado.
 
 ---
 
