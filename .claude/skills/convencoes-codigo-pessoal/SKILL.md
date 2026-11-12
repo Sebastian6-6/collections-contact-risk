@@ -1,57 +1,57 @@
 ---
 name: convencoes-codigo-pessoal
-description: Minhas convenções pessoais de código — Python (nomes em português, estrutura do módulo, docstrings, comentários, erros, logs, encoding) e SQL (formatação, CTEs, alinhamento) — e como evitar padrões de escrita genéricos de IA. Use sempre que estiver escrevendo, editando, reformatando ou revisando código Python ou SQL, neste ou em qualquer outro projeto meu.
+description: The owner's personal coding conventions — Python (names in Portuguese, module layout, docstrings, comments, errors, logs, encoding) and SQL (formatting, CTEs, alignment) — and how to avoid generic AI writing patterns. Use whenever writing, editing, reformatting or reviewing Python or SQL code, in this or any other of the owner's projects.
 ---
 
-# Convenções de código pessoal
+# Personal coding conventions
 
-Valem em todo código novo. Num projeto, as regras dele (AGENTS.md, CLAUDE.md, configuração das ferramentas) vêm antes destas: quando houver conflito, siga o projeto e mantenha daqui tudo o que não conflita.
+They apply to all new code. In a project, its own rules (AGENTS.md, CLAUDE.md, tool configuration) come before these: on a conflict, follow the project and keep everything from here that does not conflict.
 
-**Arquivo existente com outro estilo** (aspas, recuo, ordem de imports): siga o do arquivo e não reformate o que não é objeto da mudança. Misturar estilos é pior que qualquer um dos dois, e reformatar esconde no diff o que mudou.
+**Existing file with another style** (quotes, indentation, import order): follow the file's style and do not reformat what the change is not about. Mixing styles is worse than either one, and reformatting hides in the diff what changed.
 
 ## Python
 
-### Nomes
-- Variável e função em português, `snake_case`, com verbo no infinitivo para funções (`buscar_chaves_primarias`, `criar_tabela`). Classe em `PascalCase`, substantivo. Constante de módulo em MAIÚSCULAS. Helper privado com `_` na frente.
-- O nome descreve a transformação exata. Nada de `processar_dados`, `handle_utils`, `aux`.
-- Inglês só para jargão de API e de ferramenta: `logger`, `schema`, `engine`, `commit`, chaves externas.
-- Não reutilize um nome com outro significado nem sobrescreva parâmetro: cada etapa ganha nome novo (`df_lido` → `df_tipado`).
+### Names
+- Variables and functions in Portuguese, `snake_case`, with an infinitive verb for functions (`buscar_chaves_primarias`, `criar_tabela`). Classes in `PascalCase`, a noun. Module constants in UPPER CASE. Private helpers with a leading `_`.
+- The name describes the exact transformation. No `processar_dados`, `handle_utils`, `aux`.
+- English only for API and tool jargon: `logger`, `schema`, `engine`, `commit`, external keys.
+- Do not reuse a name with another meaning or overwrite a parameter: each step gets a new name (`df_lido` → `df_tipado`).
 
-### Estrutura do módulo
-- Blocos do módulo separados por um título de seção:
+### Module layout
+- Module blocks separated by a section title:
   ```python
   # ======================================================================================
   # Leitura dos arquivos
   # ======================================================================================
   ```
-- Dentro de uma função longa, cada etapa ganha um marcador curto: `# ── Chaves primárias ─────────`.
-- Imports um por linha, em grupos separados por linha em branco (biblioteca padrão, terceiros, SDK da plataforma, locais), ordem alfabética dentro do grupo. Sem `import *`. Sem import dentro de função, salvo ciclo justificado.
-- Duas linhas em branco entre funções e classes do módulo; uma entre métodos.
+- Inside a long function, each step gets a short marker: `# ── Chaves primárias ─────────`.
+- One import per line, in groups separated by a blank line (standard library, third party, platform SDK, local), alphabetical within the group. No `import *`. No import inside a function, except for a justified cycle.
+- Two blank lines between module functions and classes; one between methods.
 
-### Estilo
-- PEP 8, exceto o alinhamento vertical e o limite de linha descritos abaixo, com 4 espaços de recuo e aspas duplas (simples só para evitar escape).
-- Alinhar na vertical atribuições e argumentos relacionados é permitido quando a leitura vira uma tabela (vários campos do mesmo registro, chamadas repetidas com os mesmos parâmetros). Fora desses blocos, um espaço em volta do `=`.
-- Sem limite rígido de linha: quebre quando a leitura piorar.
-- Type hints na API pública (parâmetros e retorno), com a sintaxe moderna (`list[str]`, `str | None`). Não tipar toda variável local.
-- `is None` / `is not None`, f-strings, retorno antecipado em vez de `if` aninhado.
+### Style
+- PEP 8, except the vertical alignment and the line limit described below, with 4-space indentation and double quotes (single only to avoid escaping).
+- Vertically aligning related assignments and arguments is allowed when the code reads like a table (several fields of the same record, repeated calls with the same parameters). Outside those blocks, one space around `=`.
+- No hard line limit: break when readability gets worse.
+- Type hints on the public API (parameters and return), with the modern syntax (`list[str]`, `str | None`). Do not type every local variable.
+- `is None` / `is not None`, f-strings, early return instead of nested `if`.
 
-### Docstrings e comentários
-- Toda função pública tem docstring. A primeira linha diz direto o que faz ("Lê o arquivo e devolve as linhas com a origem."), sem repetir o nome da função em prosa e sem "Este método é responsável por…".
-- Sem seção de parâmetros e retorno quando a assinatura tipada já diz tudo. Quando o tipo não basta (um `dict` com chaves conhecidas, uma tupla), descreva a forma do retorno, com um exemplo curto se ajudar.
-- Explique só o porquê que não é óbvio. `Raises` só quando a falha não é óbvia.
-- Comentário em português, curto, registrando uma decisão. Nunca narra a linha nem numera passos que o nome da função já diz. Código comentado não fica no arquivo.
+### Docstrings and comments
+- Every public function has a docstring. The first line says directly what it does ("Lê o arquivo e devolve as linhas com a origem."), without repeating the function name in prose and without "Este método é responsável por…".
+- No parameters and returns section when the typed signature already says it all. When the type is not enough (a `dict` with known keys, a tuple), describe the shape of the return, with a short example if it helps.
+- Explain only the non-obvious why. `Raises` only when the failure is not obvious.
+- Comments in Portuguese, short, recording a decision. Never narrate the line or number steps the function name already states. Commented-out code does not stay in the file.
 
-### Erros, logs e saída
-- Código que roda em produção, com I/O, rede ou banco: `try/except` do erro específico, `logger` no erro e `raise`. Proibido `except:` vazio e `except Exception: pass`. Nunca escreva segredo nem variável de ambiente inteira no log.
-- Ferramenta local (gerador, conversor, script de conferência) para em vez de produzir errado: cada premissa vira `assert` com uma mensagem que diz o que foi encontrado (`assert len(partes) == 4, f"esperadas 4 partes, achadas {len(partes)}"`).
-- Mensagem para quem roda com prefixo de status: `[OK]`, `[INFO]`, `[WARN]`, `[ERRO]`. Em log, a severidade acompanha o prefixo.
-- Bibliotecas verbosas com o log silenciado no nível do projeto, para o que importa não se perder.
+### Errors, logs and output
+- Code that runs in production, with I/O, network or database: `try/except` on the specific error, `logger` on the error and `raise`. Bare `except:` and `except Exception: pass` are forbidden. Never write a secret or a whole environment variable to the log.
+- A local tool (generator, converter, check script) stops instead of producing something wrong: each assumption becomes an `assert` with a message saying what was found (`assert len(partes) == 4, f"esperadas 4 partes, achadas {len(partes)}"`).
+- Messages for whoever runs the code carry a status prefix: `[OK]`, `[INFO]`, `[WARN]`, `[ERRO]`. In logs, the severity matches the prefix.
+- Verbose libraries have their logging silenced at project level, so what matters is not lost.
 
 ### Encoding
-- Texto e arquivo sempre com `encoding="utf-8"` explícito (`open`, `read_text`, `write_text`): o padrão do sistema varia (cp1252 no Windows) e corrompe acentos. CSV aberto também com `newline=""`.
-- CLI que imprime acento: `sys.stdout.reconfigure(encoding="utf-8")` no início.
+- Text and files always with an explicit `encoding="utf-8"` (`open`, `read_text`, `write_text`): the system default varies (cp1252 on Windows) and corrupts accents. CSV files are also opened with `newline=""`.
+- A CLI that prints accents: `sys.stdout.reconfigure(encoding="utf-8")` at the start.
 
-### Exemplo
+### Example
 
 ```python
 # RUIM
@@ -88,19 +88,19 @@ def gravar_resumo(resumo: dict[str, int], destino: Path) -> None:
 
 ## SQL
 
-Estilo de leitura em colunas. Se o projeto exigir outro recuo ou outro padrão de nomes, siga o projeto e mantenha o resto.
+Column-reading style. If the project requires another indentation or another naming pattern, follow the project and keep the rest.
 
-1. Palavras-chave e funções em MAIÚSCULAS. Colunas e tabelas em `snake_case`.
-2. Recuo com espaços, sem tab. A 1ª coluna fica na linha do `SELECT`; as seguintes começam com a vírgula à esquerda, alinhadas para as expressões ficarem numa coluna só.
-3. `AS` só quando a coluna muda de nome ou é uma expressão (`CAST(valor AS NUMERIC(14, 2)) AS vl_total`). Coluna repassada sem mudança não leva `AS`: o autoalias `id AS id` só repete o nome. Quando há `AS`, ele fica alinhado na vertical numa coluna fixa.
-4. Linha em branco entre grupos lógicos de colunas (identificadores, códigos e descrições, datas, métricas, controle).
-5. `FROM` alinhado pela direita com o `SELECT`; `JOIN` com o recuo das colunas, aliases alinhados, o `AND` da condição terminando junto com o `ON`.
-6. `WHERE 1 = 1` e um `AND` por predicado; `GROUP BY` e `ORDER BY` com o 1º item na mesma linha e os seguintes com a vírgula à esquerda.
-7. CTEs no padrão `tNomeCte` (`t` minúsculo + PascalCase, sem acento e sem `_`): `WITH tBase AS (`, depois `, tCalc AS (`. CTEs que não são objeto de uma mudança mantêm o nome.
-8. `UNION ALL` sozinho na linha, com linha em branco antes e depois, no recuo da CTE em que está.
-9. Item de várias linhas (`CASE ... END`) com as continuações recuadas sob o próprio item.
-10. Em `UNION`, nulo tipado: `CAST(NULL AS TIPO)`. Literais UTF-8 diretos (sem `U&'...'`).
-11. Nunca vírgula sobrando antes do `FROM` nem depois do último item de uma lista: alguns motores aceitam, outros não.
+1. Keywords and functions in UPPER CASE. Columns and tables in `snake_case`.
+2. Indentation with spaces, no tabs. The 1st column stays on the `SELECT` line; the following ones start with the comma on the left, aligned so the expressions form a single column.
+3. `AS` only when the column is renamed or is an expression (`CAST(valor AS NUMERIC(14, 2)) AS vl_total`). A column passed through unchanged takes no `AS`: the self-alias `id AS id` only repeats the name. When there is an `AS`, it is aligned vertically in a fixed column.
+4. A blank line between logical groups of columns (identifiers, codes and descriptions, dates, metrics, control).
+5. `FROM` right-aligned with the `SELECT`; `JOIN` at the column indentation, aliases aligned, the `AND` of the condition ending flush with the `ON`.
+6. `WHERE 1 = 1` and one `AND` per predicate; `GROUP BY` and `ORDER BY` with the 1st item on the same line and the following ones with the comma on the left.
+7. CTEs in the `tNomeCte` pattern (lowercase `t` + PascalCase, no accents and no `_`): `WITH tBase AS (`, then `, tCalc AS (`. CTEs the change is not about keep their names.
+8. `UNION ALL` alone on its line, with a blank line before and after, at the indentation of the CTE it is in.
+9. A multi-line item (`CASE ... END`) with its continuation lines indented under the item itself.
+10. In a `UNION`, a typed null: `CAST(NULL AS TIPO)`. UTF-8 literals written directly (no `U&'...'`).
+11. Never a trailing comma before `FROM` or after the last item of a list: some engines accept it, others do not.
 
 ```sql
 WITH tBase AS (
@@ -117,6 +117,6 @@ SELECT b.id
  GROUP BY b.id
 ```
 
-## Sem padrão de escrita de IA
+## No AI writing patterns
 
-Nada de "este código implementa uma solução robusta e abrangente para…", nada de emoji em comentário, nada de resumo redundante no fim de um arquivo.
+No "este código implementa uma solução robusta e abrangente para…", no emoji in comments, no redundant summary at the end of a file.
